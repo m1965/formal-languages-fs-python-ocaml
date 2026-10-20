@@ -1,0 +1,7 @@
+SLR.fsx
+LR.fsx
+ParseTable.fsx
+ShiftReducePure.fsx
+ShiftReduce.fsx
+parse-table.fsx
+.validation-*.fsx

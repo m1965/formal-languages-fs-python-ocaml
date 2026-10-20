@@ -1,0 +1,12 @@
+\subsubsection{Translation of Expression Statements}
+An expression statement evaluates an expression for its effects and discards any resulting value.
+If an ordinary expression has instruction list $L$ and maximum extra stack height $s$, then
+\[
+\textsl{compile\_stmnt}(\textsl{expr}\mytt{;},\mytt{st},\mytt{class\_name})
+=\bigl\langle L+[\mytt{pop}],s\bigr\rangle.
+\]
+The \mytt{pop} instruction restores the stack to its height before the statement.
+Without it, a discarded arithmetic value or function result would accumulate on the stack inside a loop.
+The void built-in \mytt{println} is the special case described above: its instance call already consumes
+its operands and leaves no result, so no \mytt{pop} follows it.
+The \texttt{Expression} cases in \texttt{compileStatement} implement these two cases explicitly.

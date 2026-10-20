@@ -1,0 +1,8 @@
+Class: Advanced Witchcraft
+Group: TINF09AI
+MaxPoints = 75
+Exercise: 1. 2. 3. 4. 5.
+Harry Potter: 15 14 15 14 15
+Hermione Granger: 15 15 15 15 15
+Ron Weasley: 12 10 10 12 11
+1234567: 8 8 8 8 8

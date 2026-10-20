@@ -1,0 +1,11 @@
+\section{Representing parsing tables in F\#}
+The notation in the tables above becomes a record with two immutable maps. An action key is a state/token pair;
+a goto key is a state/nonterminal pair. An action value is a set because table generation must retain all conflicting
+candidates instead of overwriting one of them.
+@@snippet:slr-types@@
+@@snippet:parse-table@@
+
+\href{../../Chapter-09/Parse-Table.ipynb}{\nolinkurl{Chapter-09/Parse-Table.ipynb}}
+loads the example grammar and generates its table. The SLR notebook can also export a valid F\# table file;
+there is no generated file containing host-language assignments in a different language.
+The next sections derive how FIRST, FOLLOW, closure and goto determine these entries.

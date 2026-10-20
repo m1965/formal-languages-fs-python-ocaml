@@ -1,0 +1,4 @@
+\chapter{Building Scanners with FsLex \label{chapter:ply-lex}}
+We now turn regular expressions into executable tokenizers. FsLex is the scanner generator used by this edition;
+it produces F\# source code from an \texttt{.fsl} specification. The generated function consumes a
+\texttt{LexBuffer<char>} and returns the explicit token type chosen by the application.

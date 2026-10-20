@@ -1,0 +1,72 @@
+\chapter{Using FsYacc as a parser generator \label{chapter:ply}}
+FsYacc generates a bottom-up LALR parser from an \texttt{.fsy} grammar. Its semantic actions are F\# expressions.
+FsLex supplies tokens with the same generated token type. The scanner, generated parser and domain evaluator are
+separate modules; a small frontend composes them with one lexical buffer.
+
+\section{A symbolic calculator}
+The original calculator grammar remains the mathematical specification.
+@@figure:ply-yacc-interpreter:fig:calculator.g@@
+
+The syntax tree records numbers, variable names, arithmetic operators and statements with explicit union cases.
+The scanner and parser use that domain representation as follows.
+@@snippet:calculator-types@@
+@@snippet:calculator-lexer@@
+@@snippet:calculator-parser@@
+
+\texttt{\%token <float> NUMBER} declares a token with a floating-point payload.
+\texttt{\%start} selects the entry nonterminal, and \texttt{\%type} fixes its semantic result type.
+In an action, \texttt{\$1} is the first right-hand-side value, \texttt{\$2} the second, and so on.
+The number action constructs \texttt{Number \$1}; no unchecked numeric tuple index is carried into evaluation.
+The grammar's separate product and factor nonterminals encode arithmetic precedence structurally.
+
+The environment is an immutable map from names to values. Assignment returns a new environment;
+a lookup either finds a value or reports an undefined variable. The evaluator therefore has an explicit state boundary.
+@@snippet:calculator-evaluate@@
+\href{../../Chapter-07/01-Calculator.ipynb}{\nolinkurl{Chapter-07/01-Calculator.ipynb}}
+contains the full generated-frontend example and a separately callable interactive loop.
+Running all demonstration cells never blocks waiting for terminal input.
+
+\section{Symbolic differentiation}
+To differentiate we retain the expression tree rather than evaluating it to a number.
+Pattern matching implements the sum, product, quotient, chain and power rules directly over the recursive type.
+@@snippet:differentiate@@
+The differentiation notebook checks its symbolic result against a numerical finite-difference approximation.
+Its pretty-printer retains the parentheses needed to parse the tree again.
+See \href{../../Chapter-07/02-Differentiator.ipynb}{\nolinkurl{Chapter-07/02-Differentiator.ipynb}}.
+
+\section{Implementing a simple interpreter \label{chapter:interpreter}}
+The source language has assignments, blocks, conditionals, loops and calls to predefined functions.
+This source language is distinct from the F\# program that interprets it.
+@@figure:ply-yacc-interpreter:fig:Pure.g@@
+@@figure:ply-yacc-interpreter:fig:sum.sl@@
+The example computes $\sum_{i=1}^{n^2} i$ and prints the result.
+Its syntax tree uses \texttt{Block}, \texttt{Assign}, \texttt{If} and \texttt{While} cases;
+there is no nested tuple whose first string must be interpreted as an instruction name.
+@@snippet:interpreter-types@@
+@@snippet:interpreter-parser@@
+
+Evaluation receives a map of typed values and an explicit I/O record.
+Integer literals, input, addition, subtraction and multiplication retain arbitrary-precision integers.
+The simple language uses true division, which returns a floating-point value; modulo follows Python's
+floor-quotient rule, including negative operands. Mixed integer/real comparisons preserve integer precision.
+That record is the actual boundary between deterministic evaluation and reading or printing.
+Undefined variables and unsupported constructs produce diagnostics rather than fabricated values.
+@@snippet:interpreter-evaluate@@
+
+Execution returns the updated map. A block folds over its statements; a loop recursively threads its current
+map through its body. This makes the loop invariant visible in both the type and the control flow.
+@@snippet:interpreter-execute@@
+@@figure:ply-yacc-interpreter:fig:factorial.sl@@
+\href{../../Chapter-07/03-Interpreter.ipynb}{\nolinkurl{Chapter-07/03-Interpreter.ipynb}}
+contains the scanner/parser construction and the simple sum program.
+The factorial source example requires the extended language with function definitions.
+The corresponding \href{../../Chapter-07/Interpreter-Frame.ipynb}{\nolinkurl{Chapter-07/Interpreter-Frame.ipynb}}
+adds function frames and return behavior through explicit types.
+
+\section{Check your understanding}
+\begin{enumerate}
+\item Explain the roles of scanner, generated parser, syntax tree and evaluator.
+\item Why does a typed semantic action reject a malformed AST before the notebook executes it?
+\item Extend the simple interpreter with a comparison or a statement and update every affected match.
+\item Explain which effects require I/O and which transformations can operate solely on syntax trees.
+\end{enumerate}

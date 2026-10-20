@@ -1,0 +1,1 @@
+The grammar fixtures are retained from the lecture notes. In `simple.g`, the undefined lowercase nonterminal `literal` in `conjunction : conjunction '∧' literal` is corrected to `negation`, matching the adjacent conjunction production and boolean grammar. The original Python fixture is unchanged.

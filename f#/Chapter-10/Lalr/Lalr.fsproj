@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FsLexYacc" Version="11.3.0" />
+    <PackageReference Include="FsLexYacc.Runtime" Version="11.3.0" />
+    <Compile Include="Syntax.fs" />
+    <FsYacc Include="Ambiguous.fsy"><OtherFlags>--module FormalLanguages.Lalr.AmbiguousParser -v</OtherFlags></FsYacc>
+    <Compile Include="Ambiguous.fsi" />
+    <Compile Include="Ambiguous.fs" />
+    <FsYacc Include="Resolved.fsy"><OtherFlags>--module FormalLanguages.Lalr.ResolvedParser -v</OtherFlags></FsYacc>
+    <Compile Include="Resolved.fsi" />
+    <Compile Include="Resolved.fs" />
+    <FsYacc Include="Logic.fsy"><OtherFlags>--module FormalLanguages.Lalr.LogicParser -v</OtherFlags></FsYacc>
+    <Compile Include="Logic.fsi" />
+    <Compile Include="Logic.fs" />
+    <FsYacc Include="Symbolic.fsy"><OtherFlags>--module FormalLanguages.Lalr.SymbolicParser -v</OtherFlags></FsYacc>
+    <Compile Include="Symbolic.fsi" />
+    <Compile Include="Symbolic.fs" />
+    <FsYacc Include="LookAhead.fsy"><OtherFlags>--module FormalLanguages.Lalr.LookAheadParser -v</OtherFlags></FsYacc>
+    <Compile Include="LookAhead.fsi" />
+    <Compile Include="LookAhead.fs" />
+    <FsYacc Include="LookAheadSolved.fsy"><OtherFlags>--module FormalLanguages.Lalr.LookAheadSolvedParser -v</OtherFlags></FsYacc>
+    <Compile Include="LookAheadSolved.fsi" />
+    <Compile Include="LookAheadSolved.fs" />
+    <FsYacc Include="Mysterious.fsy"><OtherFlags>--module FormalLanguages.Lalr.MysteriousParser -v</OtherFlags></FsYacc>
+    <Compile Include="Mysterious.fsi" />
+    <Compile Include="Mysterious.fs" />
+    <FsLex Include="Lexer.fsl"><OtherFlags>--unicode</OtherFlags></FsLex>
+    <Compile Include="Lexer.fs" />
+    <Compile Include="Parse.fs" />
+  </ItemGroup>
+</Project>

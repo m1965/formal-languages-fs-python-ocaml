@@ -1,0 +1,16 @@
+\section{Executing the SLR and canonical LR constructions in F\#}
+The preceding definitions and examples are independent of their host language.
+The F\# implementation makes each finite fixed point explicit. FIRST sets retain an empty-word marker;
+FOLLOW sets propagate terminal possibilities after a nonterminal and inherit the head's FOLLOW set when the suffix is nullable.
+@@snippet:first-sets@@
+@@snippet:follow-sets@@
+
+Canonical LR items add their lookahead set to the LR(0) core. Closure computes the FIRST set of the suffix plus inherited
+lookahead, then merges entries that have the same rule and dot position.
+@@snippet:lr-closure@@
+
+\href{../../Chapter-09/SLR-Table-Generator.ipynb}{\nolinkurl{Chapter-09/SLR-Table-Generator.ipynb}}
+and \href{../../Chapter-09/LR-Table-Generator.ipynb}{\nolinkurl{Chapter-09/LR-Table-Generator.ipynb}}
+retain the arithmetic, postfix, nullable and conflicting grammar examples.
+State discovery uses a queue with structural keys so repeated builds have reproducible names.
+Neither generator silently selects one action from a conflict; the conflict set is part of the generated result.

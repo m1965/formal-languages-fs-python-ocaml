@@ -1,0 +1,15 @@
+%{
+open LectureCalculator
+%}
+%token <bigint> INTEGER
+%token <string> ID
+%token PRINT LPAREN RPAREN PLUS MINUS TIMES DIVIDE ASSIGN SEMICOLON EOF
+%start program
+%type <LectureCalculator.Statement list> program
+%%
+program: statements EOF { $1 }
+statements: statement { [$1] } | statement statements { $1::$2 }
+statement: ID ASSIGN expr SEMICOLON { Assignment($1,$3) } | PRINT LPAREN expr RPAREN SEMICOLON { Print $3 }
+expr: product { $1 } | expr PLUS product { Binary("+",$1,$3) } | expr MINUS product { Binary("-",$1,$3) }
+product: factor { $1 } | product TIMES factor { Binary("*",$1,$3) } | product DIVIDE factor { Binary("/",$1,$3) }
+factor: INTEGER { Integer $1 } | ID { Identifier $1 } | LPAREN expr RPAREN { $2 }

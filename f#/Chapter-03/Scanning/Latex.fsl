@@ -1,0 +1,14 @@
+{
+module LectureScanning.Latex
+open FSharp.Text.Lexing
+open LectureScanning
+let text lexbuf = LexBuffer<char>.LexemeString lexbuf
+}
+rule token = parse
+| "$$" { MathDelimiter "$$" }
+| '$' { MathDelimiter "$" }
+| '\\' ['a'-'z' 'A'-'Z']+ { Command((text lexbuf).Substring(1)) }
+| ['{' '}'] { Brace((text lexbuf).[0]) }
+| '^' { Hat }
+| eof { LatexEnd }
+| _ { Text(text lexbuf) }

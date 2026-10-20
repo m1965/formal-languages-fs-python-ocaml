@@ -1,0 +1,19 @@
+{
+open GrammarSyntax.Parser
+open FSharp.Text.Lexing
+let lexeme (buffer: LexBuffer<char>) = System.String(buffer.Lexeme)
+}
+let lower = ['a'-'z']
+let upper = ['A'-'Z']
+let digit = ['0'-'9']
+rule token = parse
+ | [' ' '\t' '\r']+ { token lexbuf }
+ | '\n' { lexbuf.EndPos <- lexbuf.EndPos.NextLine; token lexbuf }
+ | '#' [^'\n']* { token lexbuf }
+ | "//" [^'\n']* { token lexbuf }
+ | lower (lower | digit | '_')* { VARIABLE(lexeme lexbuf) }
+ | upper (upper | digit | '_')* { TOKEN(lexeme lexbuf) }
+ | '\'' [^'\'' '\n']* '\'' { let text = lexeme lexbuf in LITERAL(text.Substring(1, text.Length - 2)) }
+ | ':' { COLON } | '|' { BAR } | ';' { SEMICOLON }
+ | eof { EOF }
+ | _ { failwithf "Illegal grammar character at line %d, column %d" lexbuf.StartPos.Line (lexbuf.StartPos.Column + 1) }

@@ -1,0 +1,14 @@
+{
+module LectureGrammar.Lexer
+open FSharp.Text.Lexing
+open LectureGrammar.Parser
+let text lexbuf = LexBuffer<char>.LexemeString lexbuf
+}
+rule token = parse
+| ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']* { ID(text lexbuf) }
+| '\'' ([^ '\'' '\\'] | '\\' _)* '\'' { LITERAL(text lexbuf) }
+| ':' { COLON } | '|' { BAR } | ';' { SEMICOLON }
+| [' ' '\t' '\r']+ { token lexbuf }
+| '\n' { lexbuf.EndPos <- lexbuf.EndPos.NextLine; token lexbuf }
+| eof { EOF }
+| _ { failwithf "Illegal grammar character %s at line %d" (text lexbuf) lexbuf.StartPos.Line }

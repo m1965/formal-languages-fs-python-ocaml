@@ -1,0 +1,20 @@
+%{
+open FormalLanguages.Lalr
+%}
+%token <float> NUMBER
+%token PLUS MINUS TIMES DIVIDE POWER LPAREN RPAREN EOF
+%left PLUS MINUS
+%left TIMES DIVIDE
+%right POWER
+%start main
+%type <FormalLanguages.Lalr.Expression> main
+%%
+main: expr EOF { $1 }
+expr:
+  | expr PLUS expr { Binary ("+", $1, $3) }
+  | expr MINUS expr { Binary ("-", $1, $3) }
+  | expr TIMES expr { Binary ("*", $1, $3) }
+  | expr DIVIDE expr { Binary ("/", $1, $3) }
+  | expr POWER expr { Binary ("^", $1, $3) }
+  | LPAREN expr RPAREN { $2 }
+  | NUMBER { Number $1 }

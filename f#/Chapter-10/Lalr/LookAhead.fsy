@@ -1,0 +1,11 @@
+%{
+open FormalLanguages.Lalr
+%}
+%token U V W X Y Z EOF
+%start main
+%type <string> main
+%%
+main: a EOF { $1 }
+a: b U V { "bUV" } | c U W { "cUW" }
+b: X { () }
+c: X { () }

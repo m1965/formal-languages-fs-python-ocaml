@@ -1,0 +1,37 @@
+{
+open LanguageSyntax
+open LanguageSyntax.Parser
+open FSharp.Text.Lexing
+let lexeme (buffer: LexBuffer<char>) = System.String(buffer.Lexeme)
+let number (text: string) =
+    let normalized = text.Replace("_", "")
+    if normalized.IndexOfAny([|'.'; 'e'; 'E'|]) >= 0 then Real(System.Double.Parse(normalized, System.Globalization.CultureInfo.InvariantCulture))
+    else Integer(System.Numerics.BigInteger.Parse(normalized, System.Globalization.CultureInfo.InvariantCulture))
+}
+let digit = ['0'-'9']
+let digits = digit (digit | '_')*
+let letter = ['a'-'z' 'A'-'Z']
+rule token = parse
+ | [' ' '\t' '\r']+ { token lexbuf }
+ | '\n' { lexbuf.EndPos <- lexbuf.EndPos.NextLine; token lexbuf }
+ | "//" [^'\n']* { token lexbuf }
+ | "/*" { comment lexbuf; token lexbuf }
+ | digits ('.' digit+)? (['e' 'E'] ['+' '-']? digit+)? { NUMBER(number (lexeme lexbuf)) }
+ | '"' ([^'"' '\\' '\n'] | '\\' [^'\n'])* '"' { STRING(System.Text.Json.JsonSerializer.Deserialize<string>(lexeme lexbuf)) }
+ | letter (letter | digit | '_')* {
+     match lexeme lexbuf with
+     | "if" -> IF | "while" -> WHILE | "for" -> FOR | "function" -> FUNCTION | "return" -> RETURN
+     | name -> IDENTIFIER name }
+ | ":=" { ASSIGN } | "==" { EQ } | "!=" { NE } | "<=" { LE } | ">=" { GE }
+ | "&&" { AND } | "||" { OR }
+ | '+' { PLUS } | '-' { MINUS } | '*' { TIMES } | '/' { DIVIDE } | '%' { MODULO }
+ | '<' { LT } | '>' { GT } | '!' { NOT }
+ | '(' { LPAREN } | ')' { RPAREN } | '{' { LBRACE } | '}' { RBRACE }
+ | ';' { SEMICOLON } | ',' { COMMA }
+ | eof { EOF }
+ | _ { failwithf "Illegal character at line %d, column %d" lexbuf.StartPos.Line (lexbuf.StartPos.Column + 1) }
+and comment = parse
+ | "*/" { () }
+ | '\n' { lexbuf.EndPos <- lexbuf.EndPos.NextLine; comment lexbuf }
+ | eof { failwith "Unterminated block comment" }
+ | _ { comment lexbuf }

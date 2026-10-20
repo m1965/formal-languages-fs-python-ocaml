@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net9.0</TargetFramework><GenerateDocumentationFile>true</GenerateDocumentationFile><CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FsLexYacc" Version="11.3.0" PrivateAssets="all" />
+    <PackageReference Include="FsLexYacc.Runtime" Version="11.3.0" />
+    <FsYacc Include="Parser.fsy"><OtherFlags>--module LanguageSyntax.Parser</OtherFlags></FsYacc>
+    <FsLex Include="Lexer.fsl"><OtherFlags>--module LanguageSyntax.Lexer --unicode</OtherFlags></FsLex>
+    <Compile Include="Types.fs" />
+    <Compile Include="Parser.fs" />
+    <Compile Include="Lexer.fs" />
+    <Compile Include="Parse.fs" />
+  </ItemGroup>
+</Project>

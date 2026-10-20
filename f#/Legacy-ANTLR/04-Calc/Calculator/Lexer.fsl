@@ -1,0 +1,17 @@
+{
+module LectureCalculator.Lexer
+open FSharp.Text.Lexing
+open LectureCalculator.Parser
+let text lexbuf = LexBuffer<char>.LexemeString lexbuf
+}
+let digit = ['0'-'9']
+rule token = parse
+| "print" { PRINT }
+| ['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9']* { ID(text lexbuf) }
+| '0' | ['1'-'9'] digit* { INTEGER(bigint.Parse(text lexbuf)) }
+| '+' { PLUS } | '-' { MINUS } | '*' { TIMES } | '/' { DIVIDE }
+| '(' { LPAREN } | ')' { RPAREN } | '=' { ASSIGN } | ';' { SEMICOLON }
+| [' ' '\t' '\r']+ { token lexbuf }
+| '\n' { lexbuf.EndPos <- lexbuf.EndPos.NextLine; token lexbuf }
+| eof { EOF }
+| _ { failwithf "Illegal character %s at line %d" (text lexbuf) lexbuf.StartPos.Line }

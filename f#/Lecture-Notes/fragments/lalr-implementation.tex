@@ -1,0 +1,16 @@
+\paragraph{The non-associativity boundary}
+The intended language can reject a chain such as $a\leftrightarrow b\leftrightarrow c$ unless it is parenthesized.
+The pinned FsYacc 11.3.0 implementation shifts on the equal-precedence non-associative case rather than inserting
+an error action. Consequently this edition factors the equivalence production to admit at most one unparenthesized
+equivalence at each formula level. The grammar, rather than an unsupported declaration assumption, enforces the language.
+@@snippet:lalr-logic@@
+
+\href{../../Chapter-10/Propositional-Logic.ipynb}{\nolinkurl{Chapter-10/Propositional-Logic.ipynb}}
+checks precedence and the rejection of chained equivalence.
+For a lookahead conflict, compare these two actual specifications:
+@@snippet:lalr-lookahead@@
+@@snippet:lalr-lookahead-solved@@
+The transformation delays reduction until the distinguishing token is available.
+The associated \href{../../Chapter-10/03-Look-Ahead.ipynb}{\nolinkurl{03-Look-Ahead.ipynb}}
+and \href{../../Chapter-10/04-Look-Ahead-Solved.ipynb}{\nolinkurl{04-Look-Ahead-Solved.ipynb}}
+retain the conflicting and resolved input examples.

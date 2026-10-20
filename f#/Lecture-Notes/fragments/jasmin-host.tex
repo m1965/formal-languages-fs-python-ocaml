@@ -1,0 +1,10 @@
+\section{Host language and target language in this edition}
+The Java and Jasmin programs in this chapter describe the JVM target and remain target-language examples.
+The compiler that creates these instructions is written in F\#; it does not translate its input into .NET IL.
+The distinction is the same as compiling Integer-C with a compiler written in any other host language.
+
+For negative integers, F\# integer division and JVM \texttt{idiv} both truncate toward zero.
+The earlier Python comparison explains a historical semantic difference: Python's integer division rounds downward.
+A port must preserve the intended source-language operation explicitly rather than obtaining it accidentally from its host.
+The F\# compiler emits \texttt{idiv} and \texttt{irem} for Integer-C division and remainder.
+The generated \texttt{.limit stack} and \texttt{.limit locals} describe the JVM method, not an F\# runtime frame.

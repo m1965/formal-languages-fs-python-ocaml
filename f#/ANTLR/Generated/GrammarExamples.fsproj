@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net9.0</TargetFramework><CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FsLexYacc" Version="11.3.0" />
+    <PackageReference Include="FsLexYacc.Runtime" Version="11.3.0" />
+    <Compile Include="Syntax.fs" />
+    <FsYacc Include="Expression.fsy"><OtherFlags>--module GrammarExamples.ExpressionParser -v</OtherFlags></FsYacc>
+    <Compile Include="Expression.fsi" /><Compile Include="Expression.fs" />
+    <FsYacc Include="RegExp.fsy"><OtherFlags>--module GrammarExamples.RegExpParser -v</OtherFlags></FsYacc>
+    <Compile Include="RegExp.fsi" /><Compile Include="RegExp.fs" />
+    <FsLex Include="ExpressionLexer.fsl"><OtherFlags>--unicode</OtherFlags></FsLex>
+    <Compile Include="ExpressionLexer.fs" />
+    <FsLex Include="RegExpLexer.fsl"><OtherFlags>--unicode</OtherFlags></FsLex>
+    <Compile Include="RegExpLexer.fs" />
+    <Compile Include="Parse.fs" />
+  </ItemGroup>
+</Project>

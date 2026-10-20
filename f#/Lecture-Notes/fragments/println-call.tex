@@ -1,0 +1,14 @@
+\item The Integer-C built-in \mytt{println} accepts exactly one integer argument and returns no value.
+      It is therefore compiled as a statement, rather than through \texttt{compileExpr}.
+      If its argument has code $L$ and stack bound $s$, the generated instructions are
+      \[
+      \begin{aligned}
+      &\mytt{getstatic}\;\mytt{java/lang/System/out}\;\mytt{Ljava/io/PrintStream;}\\
+      &L;\\
+      &\mytt{invokevirtual}\;\mytt{java/io/PrintStream/println(I)V}.
+      \end{aligned}
+      \]
+      The stream object occupies one stack slot while the argument is evaluated, so the bound is $1+s$.
+      The instance call consumes the object and integer and leaves no operand-stack value.
+      The descriptor \mytt{(I)V} means one integer parameter and a void return.
+      A call with another arity, or a use of \mytt{println} inside a value expression, is rejected.

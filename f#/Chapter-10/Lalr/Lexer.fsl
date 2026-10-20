@@ -1,0 +1,23 @@
+{
+module FormalLanguages.Lalr.Lexer
+open System.Globalization
+open FSharp.Text.Lexing
+}
+let digit = ['0'-'9']
+let letter = ['a'-'z' 'A'-'Z']
+let number = ('0' | ['1'-'9'] digit*) ('.' digit+)? (['e' 'E'] ['+' '-']? digit+)?
+rule token = parse
+| [' ' '\t' '\r']+ { token lexbuf }
+| '\n' { lexbuf.EndPos <- lexbuf.EndPos.NextLine; token lexbuf }
+| number { Numeric (System.Double.Parse(LexBuffer<char>.LexemeString lexbuf, CultureInfo.InvariantCulture)) }
+| letter (letter | digit | ['_' '<' '>'])* { Identifier (LexBuffer<char>.LexemeString lexbuf) }
+| ":=" { Operator ":=" }
+| ['+' '-' '*' '/' '^' '(' ')' ';' '↔' '→' '∧' '∨' '¬' '⊤' '⊥'] { Operator (LexBuffer<char>.LexemeString lexbuf) }
+| eof { End }
+| _ { failwithf "Illegal character %A at line %d, column %d" (LexBuffer<char>.LexemeString lexbuf) lexbuf.StartPos.Line (lexbuf.StartPos.Column + 1) }
+and character = parse
+| [' ' '\t' '\r']+ { character lexbuf }
+| '\n' { lexbuf.EndPos <- lexbuf.EndPos.NextLine; character lexbuf }
+| ['U' 'V' 'W' 'X' 'v' 'w' 'x' 'y' 'z'] { Character (lexbuf.LexemeChar 0) }
+| eof { End }
+| _ { failwithf "Illegal character %A" (LexBuffer<char>.LexemeString lexbuf) }

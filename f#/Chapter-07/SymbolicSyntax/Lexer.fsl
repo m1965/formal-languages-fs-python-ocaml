@@ -1,0 +1,15 @@
+{
+open SymbolicSyntax.Parser
+open FSharp.Text.Lexing
+let lexeme (buffer: LexBuffer<char>) = System.String(buffer.Lexeme)
+}
+let natural = '0' | ['1'-'9'] ['0'-'9']*
+rule token = parse
+ | [' ' '\t' '\r']+ { token lexbuf }
+ | '\n' { lexbuf.EndPos <- lexbuf.EndPos.NextLine; token lexbuf }
+ | natural { NUMBER(int (lexeme lexbuf)) }
+ | "exp" { EXP } | "ln" { LN } | 'x' { X }
+ | "**" { POWER } | '+' { PLUS } | '-' { MINUS } | '*' { TIMES } | '/' { DIVIDE }
+ | '(' { LPAREN } | ')' { RPAREN }
+ | eof { EOF }
+ | _ { failwithf "Illegal character at line %d, column %d" lexbuf.StartPos.Line (lexbuf.StartPos.Column + 1) }

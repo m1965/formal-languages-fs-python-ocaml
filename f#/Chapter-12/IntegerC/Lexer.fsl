@@ -1,0 +1,31 @@
+{
+module IntegerC.Lexer
+open FSharp.Text.Lexing
+open IntegerC.Parser
+let text lexbuf = LexBuffer<char>.LexemeString lexbuf
+let keyword = function
+    | "int" -> INT | "if" -> IF | "else" -> ELSE | "while" -> WHILE | "for" -> FOR | "return" -> RETURN
+    | name -> ID name
+}
+let digit = ['0'-'9']
+let identifier = ['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*
+rule token = parse
+| '0' | ['1'-'9'] digit* { NUMBER(int (text lexbuf)) }
+| identifier { keyword (text lexbuf) }
+| "==" { EQ } | "!=" { NE } | "<=" { LE } | ">=" { GE }
+| "&&" { AND } | "||" { OR } | ".." { RANGE }
+| '+' { PLUS } | '-' { MINUS } | '*' { TIMES } | '/' { DIVIDE } | '%' { MOD }
+| '(' { LPAREN } | ')' { RPAREN } | '{' { LBRACE } | '}' { RBRACE }
+| ';' { SEMICOLON } | ',' { COMMA } | '=' { ASSIGN }
+| '<' { LT } | '>' { GT } | '!' { NOT } | '?' { QUESTION } | ':' { COLON }
+| "//" [^ '\n']* { token lexbuf }
+| "/*" { comment lexbuf; token lexbuf }
+| [' ' '\t' '\r']+ { token lexbuf }
+| '\n' { lexbuf.EndPos <- lexbuf.EndPos.NextLine; token lexbuf }
+| eof { EOF }
+| _ { failwithf "Illegal character %s at line %d, column %d" (text lexbuf) lexbuf.StartPos.Line (lexbuf.StartPos.Column+1) }
+and comment = parse
+| "*/" { () }
+| '\n' { lexbuf.EndPos <- lexbuf.EndPos.NextLine; comment lexbuf }
+| eof { failwith "Unclosed block comment" }
+| _ { comment lexbuf }

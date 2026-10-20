@@ -1,0 +1,16 @@
+\section{Implementing Earley's algorithm in F\#}
+The chart algorithm above is implemented directly using a record for an Earley item.
+\texttt{Rule} identifies its production, \texttt{Dot} its recognized prefix length and \texttt{Origin} its start position.
+Immutable sets prevent duplicate items. The chart is an array whose entries are replaced as prediction and completion
+enlarge each finite set. These representations correspond to the lecture's $Q_0,\ldots,Q_n$ without hiding
+state inside a parser object.
+@@snippet:earley-items@@
+@@snippet:earley-closure@@
+
+At every position, prediction and completion repeat until neither changes the current chart set.
+Only then does scanning move matching terminal items into the next set. This ordering also handles nullable productions:
+an item can be predicted and completed without advancing the input position.
+\href{../../Chapter-08/Earley-Parser-Pure.ipynb}{\nolinkurl{Chapter-08/Earley-Parser-Pure.ipynb}}
+checks recognition; \href{../../Chapter-08/Earley-Parser.ipynb}{\nolinkurl{Chapter-08/Earley-Parser.ipynb}}
+constructs parse trees from completed spans. Tree construction records an active span path to avoid following a
+cyclic nullable derivation forever. The recognition algorithm and tree enumeration remain separate responsibilities.

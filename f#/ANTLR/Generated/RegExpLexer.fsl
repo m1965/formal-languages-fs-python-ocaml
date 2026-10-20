@@ -1,0 +1,16 @@
+{
+module GrammarExamples.RegExpLexer
+open FSharp.Text.Lexing
+open GrammarExamples.RegExpParser
+}
+rule token = parse
+| [' ' '\t' '\r']+ { token lexbuf }
+| '\n' { lexbuf.EndPos <- lexbuf.EndPos.NextLine; token lexbuf }
+| ['a'-'z' 'A'-'Z'] { LETTER (lexbuf.LexemeChar 0) }
+| '+' { PLUS }
+| '⋅' { CONCAT }
+| '*' { STAR }
+| '(' { LPAREN }
+| ')' { RPAREN }
+| eof { EOF }
+| _ { failwithf "Illegal character %A" (LexBuffer<char>.LexemeString lexbuf) }

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup><TargetFramework>net9.0</TargetFramework></PropertyGroup>
+ <ItemGroup>
+  <PackageReference Include="FsLexYacc" Version="11.3.0" />
+  <PackageReference Include="FsLexYacc.Runtime" Version="11.3.0" />
+  <Compile Include="Ast.fs" />
+  <FsYacc Include="Parser.fsy"><OtherFlags>--module LectureGrammar.Parser</OtherFlags></FsYacc>
+  <FsLex Include="Lexer.fsl"><OtherFlags>--unicode</OtherFlags></FsLex>
+  <Compile Include="Parser.fsi" /><Compile Include="Parser.fs" /><Compile Include="Lexer.fs" /><Compile Include="Grammar.fs" />
+ </ItemGroup>
+</Project>

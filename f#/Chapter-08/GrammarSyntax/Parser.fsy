@@ -1,0 +1,14 @@
+%{
+open GrammarSyntax
+%}
+%token <string> VARIABLE TOKEN LITERAL
+%token COLON BAR SEMICOLON EOF
+%start grammar
+%type <GrammarSyntax.Rule list> grammar
+%%
+grammar: rules EOF { $1 }
+rules: rule { $1 } | rules rule { $1 @ $2 }
+rule: VARIABLE COLON alternatives SEMICOLON { List.map (fun body -> { Head = $1; Body = body }) $3 }
+alternatives: body { [$1] } | alternatives BAR body { $1 @ [$3] }
+body: { [] } | body symbol { $1 @ [$2] }
+symbol: VARIABLE { Nonterminal $1 } | TOKEN { Terminal $1 } | LITERAL { Terminal $1 }

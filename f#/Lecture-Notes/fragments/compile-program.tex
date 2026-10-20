@@ -1,0 +1,10 @@
+\subsection{Compiling a program}
+Whole-program compilation reads an Integer-C file, parses it, checks the function names and builds an arity map.
+Every program must have a main function. The filename determines a validated JVM class name.
+The compiler creates the class header, constructor and methods, then writes a neighboring \texttt{.jas} file.
+The filesystem operations use \texttt{System.IO}, independently of the parser and expression transformations.
+@@snippet:compiler-program@@
+
+Assembly and execution are explicit external-tool steps. The repository's verification script invokes Jasmin and Java
+and checks output from the generated classes. Emitting a text file alone does not prove that the JVM accepts it.
+The notebook can inspect the generated instructions even when those optional target tools are unavailable.

@@ -1,0 +1,12 @@
+*.fsx
+IntegerC/bin/
+IntegerC/obj/
+IntegerC/Parser.fs
+IntegerC/Parser.fsi
+IntegerC/Parser.output
+IntegerC/Lexer.fs
+IntegerC/Lexer.fsi
+Examples/*.jas
+Examples/*.class
+Examples/*.dot
+Examples/*.svg

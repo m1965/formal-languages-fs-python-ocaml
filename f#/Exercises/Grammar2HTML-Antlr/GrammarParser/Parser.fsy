@@ -1,0 +1,14 @@
+%{
+open LectureGrammar
+%}
+%token <string> ID LITERAL
+%token COLON BAR SEMICOLON EOF
+%start grammar
+%type <LectureGrammar.Rule list> grammar
+%%
+grammar: rules EOF { $1 }
+rules: rule { [$1] } | rule rules { $1::$2 }
+rule: ID COLON alternatives SEMICOLON { {Head=$1; Alternatives=$3} }
+alternatives: body { [$1] } | body BAR alternatives { $1::$3 }
+body: { [] } | item body { $1::$2 }
+item: ID { Variable $1 } | LITERAL { Literal $1 }

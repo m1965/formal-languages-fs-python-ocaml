@@ -1,0 +1,58 @@
+%{
+open IntegerC
+%}
+%token <int> NUMBER
+%token <string> ID
+%token INT IF ELSE WHILE FOR RETURN
+%token EQ NE LE GE AND OR NOT PLUS MINUS TIMES DIVIDE MOD
+%token LPAREN RPAREN LBRACE RBRACE SEMICOLON COMMA ASSIGN LT GT QUESTION COLON RANGE EOF
+%nonassoc IF
+%nonassoc ELSE
+%start program
+%type <IntegerC.Function list> program
+%%
+program: functions EOF { $1 }
+functions: functionDef { [$1] } | functionDef functions { $1::$2 }
+functionDef: INT ID LPAREN parameters RPAREN LBRACE declarations statements RBRACE
+    { {Name=$2; Parameters=$4; Variables=$7; Body=$8} }
+parameters: { [] } | INT ID { [$2] } | INT ID COMMA parameters { $2::$4 }
+declarations: { [] } | INT ID SEMICOLON declarations { $2::$4 }
+statements: { [] } | statement statements { $1::$2 }
+statement:
+    LBRACE statements RBRACE { Block $2 }
+  | assignment SEMICOLON { $1 }
+  | IF LPAREN expression RPAREN statement %prec IF { If($3,$5,None) }
+  | IF LPAREN expression RPAREN statement ELSE statement { If($3,$5,Some $7) }
+  | WHILE LPAREN expression RPAREN statement { While($3,$5) }
+  | FOR LPAREN assignment SEMICOLON expression SEMICOLON assignment RPAREN statement
+      { Block[$3; While($5,Block[$9;$7])] }
+  | FOR LPAREN ID ASSIGN expression RANGE expression RPAREN statement
+      { Block[Assign($3,$5); While(Binary("<=",Variable $3,$7),Block[$9;Assign($3,Binary("+",Variable $3,Number 1))])] }
+  | RETURN expression SEMICOLON { Return $2 }
+  | expression SEMICOLON { Expression $1 }
+assignment: ID ASSIGN expression { Assign($1,$3) }
+expression: logicalOr { $1 } | logicalOr QUESTION expression COLON expression { Conditional($1,$3,$5) }
+logicalOr: logicalAnd { $1 } | logicalOr OR logicalAnd { Binary("||",$1,$3) }
+logicalAnd: logicalNot { $1 } | logicalAnd AND logicalNot { Binary("&&",$1,$3) }
+logicalNot: comparison { $1 } | NOT logicalNot { Not $2 }
+comparison:
+    arithmetic { $1 }
+  | arithmetic EQ arithmetic { Binary("==",$1,$3) }
+  | arithmetic NE arithmetic { Binary("!=",$1,$3) }
+  | arithmetic LE arithmetic { Binary("<=",$1,$3) }
+  | arithmetic GE arithmetic { Binary(">=",$1,$3) }
+  | arithmetic LT arithmetic { Binary("<",$1,$3) }
+  | arithmetic GT arithmetic { Binary(">",$1,$3) }
+arithmetic:
+    product { $1 }
+  | arithmetic PLUS product { Binary("+",$1,$3) }
+  | arithmetic MINUS product { Binary("-",$1,$3) }
+product:
+    unary { $1 }
+  | product TIMES unary { Binary("*",$1,$3) }
+  | product DIVIDE unary { Binary("/",$1,$3) }
+  | product MOD unary { Binary("%",$1,$3) }
+unary: primary { $1 } | MINUS unary { Binary("-",Number 0,$2) }
+primary: NUMBER { Number $1 } | ID { Variable $1 } | ID LPAREN arguments RPAREN { Call($1,$3) } | LPAREN expression RPAREN { $2 }
+arguments: { [] } | nonemptyArguments { $1 }
+nonemptyArguments: expression { [$1] } | expression COMMA nonemptyArguments { $1::$3 }

@@ -1,0 +1,32 @@
+\subsection{The complete F\# implementation}\label{sec:fsharp-code-generation}
+The context records the actual backend dependencies: local slots, known function arities, target class name,
+a local label allocator and the JVM return convention.
+@@snippet:compiler-context@@
+
+Each expression returns an instruction list and its maximum extra operand-stack requirement.
+For a binary arithmetic operation the left value remains on the stack while the right operand is evaluated,
+so the bound is $\max(s_1,1+s_2)$. Comparisons normalize their result to zero or one.
+Conjunction and disjunction short-circuit their second operand, preserving Integer-C's intended behavior.
+A conditional expression leaves one value along either branch.
+Function calls validate their arity before constructing the target method descriptor.
+@@snippet:compiler-expressions@@
+
+Statement compilation leaves the operand stack at its entry height. Assignment stores its expression value;
+a conditional joins two equal-height branches; a loop returns to its initial height before the backward jump.
+A discarded expression emits \texttt{pop}, while \texttt{println} consumes its argument through a void JVM method.
+Return instructions follow the target method convention.
+@@snippet:compiler-statements@@
+
+Function compilation assigns local slots and computes stack limits from the generated body.
+JVM main reserves slot zero for its \texttt{String[]} parameter, so Integer-C locals begin at slot one.
+Duplicate parameter/local names are rejected. The target signature is a JVM descriptor, not an F\# function signature.
+@@snippet:compiler-functions@@
+
+\section{Check your understanding}
+\begin{enumerate}
+\item Derive the operand-stack bound for a binary arithmetic expression and for a function call.
+\item Explain why an expression statement must discard its result.
+\item Identify the slot reserved by JVM main and the effect of omitting it from local-variable allocation.
+\item Compare short-circuit Boolean code generation with eager bitwise instructions.
+\item Trace an Integer-C factorial program from tokens through its typed AST to JVM instructions.
+\end{enumerate}

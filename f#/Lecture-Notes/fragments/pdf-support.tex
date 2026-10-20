@@ -1,0 +1,13 @@
+% Keep EPS conversions inside the generated edition, leaving original assets intact.
+\usepackage{epstopdf}
+\epstopdfsetup{outdir=converted/}
+% The canonical F# strings use mathematical Unicode symbols. Render their existing
+% TeX equivalents in verbatim listings while retaining the original Atkinson font.
+\DeclareUnicodeCharacter{015D}{\ensuremath{\hat{s}}}
+\DeclareUnicodeCharacter{2022}{\ensuremath{\bullet}}
+\DeclareUnicodeCharacter{2194}{\ensuremath{\leftrightarrow}}
+\DeclareUnicodeCharacter{2192}{\ensuremath{\rightarrow}}
+\DeclareUnicodeCharacter{2228}{\ensuremath{\vee}}
+\DeclareUnicodeCharacter{2227}{\ensuremath{\wedge}}
+\DeclareUnicodeCharacter{22A4}{\ensuremath{\top}}
+\DeclareUnicodeCharacter{22A5}{\ensuremath{\bot}}

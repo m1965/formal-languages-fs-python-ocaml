@@ -1,0 +1,17 @@
+\chapter*{About the F\# evaluation edition}
+This edition combines the original lecture's mathematical theory and figures with F\# implementations.
+The original text is credited to Prof.~Dr.~Karl Stroetmann. The translation is an exploration for evaluating
+whether statically typed notebooks are as understandable as the Python course material.
+The original sources and notebooks remain available unchanged in this repository.
+
+The generated book reads the original active chapter list and extracts its mathematical sections.
+F\# code listings are extracted from the translated notebook cells and FsLexYacc source files at build time.
+They are excerpts of the actual implementations, rather than separate example programs.
+\texttt{coverage.json} beside this book records the preserved ranges, replacements and source hashes.
+
+Run \texttt{python FSharp/tools/build.py} from the repository root to build the notebook libraries,
+and select the \texttt{.NET (F\#)} kernel in Jupyter.
+Code uses immutable sets and maps where their mathematical structure matters. Local mutation is retained
+for algorithms whose counters or chart arrays are clearer that way.
+Graphviz renders automaton and parse-tree diagrams. The compiler still targets JVM bytecode through Jasmin;
+its host language does not determine its target platform.

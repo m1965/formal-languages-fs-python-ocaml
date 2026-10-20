@@ -1,0 +1,14 @@
+\paragraph{The F\# implementation}
+The EBNF operators above have their mathematical repetition, alternative and optional meanings.
+The parser maps repetition to a local recursive accumulator and maps an alternative to pattern matching.
+Each function returns the parsed value and the remaining token list. This explicit result prevents tokens
+from being consumed through a hidden global cursor.
+\texttt{let rec ... and ...} defines the mutually recursive expression, product and factor parsers together.
+@@snippet:recursive-descent@@
+
+The factor parser checks its closing parenthesis before returning the remaining tokens. The entry point
+also requires complete consumption, so trailing input is a syntax error.
+The numeric notebook is \href{../../Chapter-06/2-EBNF-Parser.ipynb}{\nolinkurl{Chapter-06/2-EBNF-Parser.ipynb}};
+\href{../../Chapter-06/2-EBNF-Parser-AST.ipynb}{\nolinkurl{Chapter-06/2-EBNF-Parser-AST.ipynb}}
+returns a discriminated-union syntax tree instead of evaluating each operation immediately.
+\label{fig:differentiate.stlx}

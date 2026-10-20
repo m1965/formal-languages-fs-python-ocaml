@@ -1,0 +1,18 @@
+{
+module GrammarExamples.ExpressionLexer
+open FSharp.Text.Lexing
+open GrammarExamples.ExpressionParser
+}
+let digit = ['0'-'9']
+rule token = parse
+| [' ' '\t' '\r']+ { token lexbuf }
+| '\n' { lexbuf.EndPos <- lexbuf.EndPos.NextLine; token lexbuf }
+| '0' | ['1'-'9'] digit* { NUMBER (int (LexBuffer<char>.LexemeString lexbuf)) }
+| '+' { PLUS }
+| '-' { MINUS }
+| '*' { TIMES }
+| '/' { DIVIDE }
+| '(' { LPAREN }
+| ')' { RPAREN }
+| eof { EOF }
+| _ { failwithf "Illegal character %A at line %d, column %d" (LexBuffer<char>.LexemeString lexbuf) lexbuf.StartPos.Line (lexbuf.StartPos.Column+1) }

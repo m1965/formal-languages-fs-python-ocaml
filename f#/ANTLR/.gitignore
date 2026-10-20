@@ -1,0 +1,10 @@
+Generated/Expression.fs
+Generated/Expression.fsi
+Generated/RegExp.fs
+Generated/RegExp.fsi
+Generated/ExpressionLexer.fs
+Generated/ExpressionLexer.fsi
+Generated/RegExpLexer.fs
+Generated/RegExpLexer.fsi
+*.dot
+*.svg

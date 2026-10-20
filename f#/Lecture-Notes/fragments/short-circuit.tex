@@ -1,0 +1,29 @@
+\subsubsection{Translation of Binary Boolean Operators}
+Integer-C conjunction and disjunction evaluate their left operand first and may skip their right operand.
+This matters when the right operand calls a function or would raise an arithmetic error.
+The F\# backend implements this source-language behavior with JVM conditional branches.
+
+Let $(L_1,s_1)$ and $(L_2,s_2)$ be the instruction lists and stack bounds for the two operands.
+For conjunction, emit the following instructions, with fresh labels $\ell_0$ and $\ell_e$:
+\[
+\begin{aligned}
+&L_1;\ \mytt{ifeq}\ \ell_0;\ L_2;\ \mytt{ifeq}\ \ell_0;\\
+&\mytt{iconst\_1};\ \mytt{goto}\ \ell_e;\
+\ell_0\mytt{:};\ \mytt{iconst\_0};\ \ell_e\mytt{:}.
+\end{aligned}
+\]
+Each \mytt{ifeq} consumes the tested operand. A zero value branches immediately to the false result;
+the second operand is evaluated only after a nonzero first value.
+The two result paths leave exactly one normalized Boolean, zero or one, on the stack.
+Since the left value has been consumed before the right operand runs, the maximum extra stack height is
+\[
+\max(1,s_1,s_2).
+\]
+For disjunction, use \mytt{ifne} for both tests, emit \mytt{iconst\_0} after the second test,
+and emit \mytt{iconst\_1} at the decisive label. Its stack bound is the same.
+The complete \texttt{compileExpr} implementation below uses precisely these two patterns.
+
+The following retained derivation is a comparison with an eager implementation for operands already
+normalized to zero or one. Eager evaluation is suitable only when evaluating the right operand is intended;
+it does not define Integer-C's short-circuit operators. Its larger stack bound follows because the left
+value remains on the stack during the evaluation of the right operand.

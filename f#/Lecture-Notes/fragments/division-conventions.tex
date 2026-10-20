@@ -1,0 +1,9 @@
+        Python's floor quotient is $q=\lfloor a/b\rfloor$, and its remainder is $r=a-bq$;
+        a nonzero remainder has the divisor's sign.
+        Euclidean division instead requires $0\leq r<|b|$.
+        The conventions agree for a positive divisor, but differ for a negative divisor:
+        Python gives $5\,\mathtt{//}\,(-2)=-3$ and remainder $-1$, whereas
+        $5=(-2)(-2)+1$ is the Euclidean quotient/remainder pair.
+        Java and F\# integer division truncate toward zero; their nonzero remainder has the dividend's sign.
+        These are explicit language conventions, as described in the
+        \href{https://docs.python.org/3/reference/expressions.html\#binary-arithmetic-operations}{Python arithmetic reference}.

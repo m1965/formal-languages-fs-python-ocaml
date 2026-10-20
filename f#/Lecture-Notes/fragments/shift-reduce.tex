@@ -1,0 +1,15 @@
+\section{A typed shift-reduce implementation}
+The parser uses the invariant that the state stack contains exactly one more element than the semantic-value stack.
+A table entry contains \texttt{Shift state}, \texttt{Reduce rule}, or \texttt{Accept}.
+The top of an F\# list is its head, so pushing a value uses \texttt{::} rather than appending at the end.
+Reduction removes exactly the production body's length and applies the goto transition to the exposed state.
+An empty production removes zero entries, which is handled explicitly by \texttt{List.take 0} and \texttt{List.skip 0}.
+@@snippet:shift-reduce@@
+
+\texttt{parseBy} accepts a leaf function and a reduction function. The recognizer supplies unit values;
+the AST parser supplies tree constructors. This is a small real interface between table-driven parsing and semantic actions.
+It keeps the actual transition algorithm in one place. An absent entry, an unresolved conflict or an invalid stack
+produces \texttt{Error message}; acceptance produces \texttt{Ok value}.
+
+The abstract action and goto tables below remain the mathematical example from the original lecture.
+Their state numbering is illustrative; generated F\# table state numbers follow structural ordering.

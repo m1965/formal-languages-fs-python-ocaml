@@ -1,0 +1,24 @@
+\section{Developing the scanner and parser in F\#}
+Integer-C is the input language. The compiler's host language is F\# and its target is JVM/Jasmin assembly.
+The grammar and Integer-C sample above therefore retain their original notation.
+The frontend turns that syntax into typed records and union cases.
+@@snippet:compiler-types@@
+
+The FsLex specification recognizes keywords, identifiers, constants, punctuation and comments.
+Longer comparison operators are recognized as complete tokens. Comment scanning is a separate rule;
+unclosed comments and illegal characters carry line/column diagnostics.
+@@snippet:compiler-lexer@@
+
+The FsYacc specification constructs the typed AST. Empty parameter, declaration and statement lists return actual
+empty F\# lists. Function definitions retain their name, parameters, local declarations and body in separate fields.
+Precedence rules and the grammar structure handle arithmetic and comparisons, and the dangling else belongs
+to the nearest unmatched conditional.
+@@snippet:compiler-parser@@
+
+The frontend boundary creates the buffer, initializes its filename/position and turns scanner/parser failures into
+a source location. Generated internals are not exposed as the compiler's public parse API.
+@@snippet:compiler-frontend@@
+
+\href{../../Chapter-12/Compiler.ipynb}{\nolinkurl{Chapter-12/Compiler.ipynb}}
+prints the token stream and AST before code generation. This separates lexical errors, syntax errors and backend errors.
+The source examples include the original sum, factorial and prime-number programs, plus precedence and ternary-expression checks.

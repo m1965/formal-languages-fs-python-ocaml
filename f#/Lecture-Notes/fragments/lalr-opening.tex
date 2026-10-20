@@ -1,0 +1,20 @@
+\chapter{LALR conflicts and precedence with FsYacc}
+\section{Shift-reduce and reduce-reduce conflicts}
+An ambiguous arithmetic grammar has several viable actions after a recognized expression.
+The FsYacc specification below constructs an expression tree and deliberately retains the ambiguous grammar.
+@@snippet:lalr-ambiguous@@
+
+The generated report must be read as a report for this specification and this generator version;
+state numbers from another tool are not evidence about these states.
+\href{../../Chapter-10/01-Conflicts.ipynb}{\nolinkurl{Chapter-10/01-Conflicts.ipynb}}
+shows the actual conflict diagnostics. Adding precedence declarations chooses the intended tree without
+changing the underlying productions.
+
+\section{Operator precedence declarations \label{section:operator-precedence}}
+@@figure:ply-yacc-lalr:fig:grammar-resolved.g@@
+@@snippet:lalr-resolved@@
+The first precedence declaration has the lowest precedence. \texttt{\%left} chooses reduction when equal-precedence
+operators should associate to the left; \texttt{\%right} chooses shifting for right association.
+Thus subtraction parses as $(1-2)-3$, multiplication binds above addition, and exponentiation parses
+as $2^{(3^4)}$. The item-state names in the following mathematical derivation are symbolic names inherited
+from the original illustration, not a claim about the numbered FsYacc report.

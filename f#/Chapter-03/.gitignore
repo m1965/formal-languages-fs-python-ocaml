@@ -1,0 +1,13 @@
+*.fsx
+exam-grades.svg
+05-LaTeX2HTML/example.html
+Scanning/bin/
+Scanning/obj/
+Scanning/Arithmetic.fs
+Scanning/Exam.fs
+Scanning/Html.fs
+Scanning/Latex.fs
+Scanning/Arithmetic.fsi
+Scanning/Exam.fsi
+Scanning/Html.fsi
+Scanning/Latex.fsi

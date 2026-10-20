@@ -1,0 +1,69 @@
+\section{The structure of an FsLex specification}
+A scanner specification has a header containing F\# imports and helpers, named regular expressions,
+and one or more scanner rules. Unlike dynamically adding attributes to a token object, F\# makes each token's payload
+part of a discriminated union. A number token carries an integer, and a symbol token carries its character.
+The arithmetic notebook uses the following shared types.
+@@snippet:scanner-types@@
+
+A rule has the form \texttt{pattern \{ F\# action \}}. The action may return a token or call the scanner again
+to discard whitespace. FsLex selects the longest matching input prefix; among equally long matches the earlier rule wins.
+The following complete specification recognizes natural numbers, arithmetic operators and parentheses.
+It preserves an explicit illegal-character token, rather than silently dropping unexpected input.
+@@snippet:scanner-arithmetic@@
+
+The newline action advances \texttt{EndPos}. This is separate from returning a token, so locations remain available
+even when whitespace is skipped. EOF is an explicit token that ends iteration. The driver constructs a fresh
+buffer, sets its initial position and collects tokens until that marker.
+@@snippet:scanner-driver@@
+\noindent Execute \href{../../Chapter-03/01-Ply-Scanning-Example.ipynb}{\nolinkurl{Chapter-03/01-Ply-Scanning-Example.ipynb}}.
+Its filename retains the source notebook's name for direct comparison; its scanner is implemented with FsLex.
+
+\section{Practical regular expressions in .NET}
+The lecture's algebraic regular expressions use alternatives, concatenation and Kleene star.
+The .NET library adds character classes, capturing groups, assertions, bounded repetition and matching options.
+These operations are library calls, separate from FsLex's scanner-specification syntax.
+F\# verbatim strings begin with \texttt{@} so that regex backslashes are written directly.
+For example, \texttt{@"[0-9]+"} matches a positive-length digit sequence.
+The tutorial defines reusable matching helpers as follows.
+@@snippet:regex-api@@
+
+\texttt{Regex.Matches} returns match objects; their \texttt{Value} is the matched text and
+\texttt{Groups} stores captures. \texttt{RegexOptions.IgnoreCase} and \texttt{RegexOptions.Multiline}
+control matching explicitly. The \texttt{\textbackslash G} anchor is useful for complete tokenization:
+it requires the next match to begin at the previous match's end, so unmatched punctuation cannot disappear.
+\href{../../Chapter-03/02-Regexp-Tutorial.ipynb}{\nolinkurl{Chapter-03/02-Regexp-Tutorial.ipynb}}
+retains the original searches, grouping examples, lookarounds and analysis of \textsl{Alice in Wonderland}.
+
+\section{Evaluating an examination}
+The examination format contains headers, a maximum score, student identifiers and individual exercise scores.
+The scanner returns typed tokens instead of keeping evaluation state inside the lexer.
+A separate evaluator groups scores by student and computes the final grade. This boundary lets us inspect the token stream
+before deciding whether a grading error originated in scanning or calculation.
+@@snippet:exam-scanner@@
+@@snippet:exam-grade@@
+
+See \href{../../Chapter-03/03-Exam-Evaluation.ipynb}{\nolinkurl{Chapter-03/03-Exam-Evaluation.ipynb}}
+and its file-based counterpart. Their data, grade calculations and chart examples are executable notebook cells.
+
+\section{Scanner states}
+A lexical mode selects which patterns are currently active. FsLex expresses modes naturally as mutually recursive
+scanner rules. The HTML example enters a \texttt{header} or \texttt{script} rule and returns to the main rule
+when the corresponding closing tag is found. EOF inside an unfinished mode is reported as an error.
+No runtime state-name registry is needed: the active F\# function represents the mode.
+@@snippet:html-states@@
+
+\texttt{WebUtility.HtmlDecode} handles named and numeric entities through .NET.
+This scanner is an exercise over the lecture's constrained HTML format, not a full HTML5 tree builder.
+\href{../../Chapter-03/04-Html2Text.ipynb}{\nolinkurl{Chapter-03/04-Html2Text.ipynb}}
+and \href{../../Chapter-03/05-LaTeX2HTML/LaTeX2HTML.ipynb}{\nolinkurl{Chapter-03/05-LaTeX2HTML/LaTeX2HTML.ipynb}}
+extend the same separation between lexical modes, text decoding and output formatting.
+
+\section{Check your understanding}
+\begin{enumerate}
+\item Explain longest-match selection and what happens when two rules match equally long prefixes.
+\item Why are the input alphabet, an epsilon transition and an EOF token different concepts?
+\item Modify the arithmetic scanner to include identifier tokens with string payloads.
+\item Explain how the token type and grading evaluator prevent a student identifier from becoming a score.
+\item Add a lexical mode for comments and report an unfinished comment at EOF.
+\item Compare the expressive power of the lecture's regular expressions with .NET backreferences.
+\end{enumerate}

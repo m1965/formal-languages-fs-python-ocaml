@@ -1,0 +1,20 @@
+{
+module LectureScanning.Exam
+open FSharp.Text.Lexing
+open LectureScanning
+let text lexbuf = LexBuffer<char>.LexemeString lexbuf
+}
+let digit = ['0'-'9']
+let natural = '0' | ['1'-'9'] digit*
+let blank = [' ' '\t']
+let letter = ['A'-'Z' 'a'-'z']
+rule token = parse
+| "MaxPoints" blank* '=' blank* natural { Maximum(int ((text lexbuf).Split('=').[1].Trim())) }
+| ("Class:" | "Group:" | "Exercise:") [^ '\n' '\r']* { Header(text lexbuf) }
+| digit digit digit digit digit digit digit ':' { Student((text lexbuf).TrimEnd(':')) }
+| letter [ 'A'-'Z' 'a'-'z' ' ' '-']* ':' { Student((text lexbuf).TrimEnd(':').Trim()) }
+| natural { Points(int (text lexbuf)) }
+| [' ' '\t' '\r' '-']+ { token lexbuf }
+| '\n' { lexbuf.EndPos <- lexbuf.EndPos.NextLine; Newline }
+| eof { ExamEnd }
+| _ { failwithf "Illegal exam character %s at line %d" (text lexbuf) lexbuf.StartPos.Line }

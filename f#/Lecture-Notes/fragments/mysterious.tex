@@ -1,0 +1,14 @@
+\subsection{Mysterious reduce-reduce conflicts}
+Merging two canonical LR states with the same LR(0) core unions their lookahead sets.
+For the grammar below, the unmerged states separate the reductions by the lookahead symbols $y$ and $z$.
+After merging, both productions can reduce on either lookahead, producing two reduce-reduce conflicts.
+@@snippet:lalr-mysterious@@
+
+The merged state has the form
+\[
+ \{a\rightarrow X\bullet:\{y,z\},\quad b\rightarrow X\bullet:\{y,z\}\}.
+\]
+This is an LALR restriction rather than an ambiguity introduced by the F\# AST representation.
+The FsYacc build reports the conflicts for this actual grammar.
+\href{../../Chapter-10/Mysterious-Conflicts.ipynb}{\nolinkurl{Chapter-10/Mysterious-Conflicts.ipynb}}
+checks the canonical-LR and merged-LALR distinction using the same grammar.

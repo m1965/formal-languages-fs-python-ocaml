@@ -1,0 +1,28 @@
+{
+module LectureScanning.Html
+open FSharp.Text.Lexing
+open System.Net
+let text lexbuf = LexBuffer<char>.LexemeString lexbuf
+let decode (value: string) =
+    let terminated = if value.EndsWith(";") then value else value + ";"
+    let decoded = WebUtility.HtmlDecode terminated
+    if decoded = terminated then value else decoded
+}
+rule token = parse
+| "<head>" { header lexbuf }
+| "<script" [^ '>']* '>' { script lexbuf }
+| '<' [^ '>']* '>' { token lexbuf }
+| '&' ['a'-'z' 'A'-'Z']+ ';'? { Some(decode (text lexbuf)) }
+| "&#" ['0'-'9']+ ';'? { Some(decode (text lexbuf)) }
+| "&#x" ['0'-'9' 'a'-'f' 'A'-'F']+ ';'? { Some(decode (text lexbuf)) }
+| [' ' '\t' '\r']* '\n' [' ' '\t' '\r' '\n']* { Some "\n" }
+| eof { None }
+| _ { Some(text lexbuf) }
+and header = parse
+| "</head>" { token lexbuf }
+| eof { failwith "Unclosed HTML head" }
+| _ { header lexbuf }
+and script = parse
+| "</script>" { token lexbuf }
+| eof { failwith "Unclosed HTML script" }
+| _ { script lexbuf }

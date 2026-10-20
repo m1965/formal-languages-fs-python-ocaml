@@ -1,0 +1,8 @@
+*.fsx
+Calculator/bin/
+Calculator/obj/
+Calculator/Parser.fs
+Calculator/Parser.fsi
+Calculator/Parser.output
+Calculator/Lexer.fs
+Calculator/Lexer.fsi

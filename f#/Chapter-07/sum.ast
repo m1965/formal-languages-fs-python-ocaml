@@ -1,0 +1,9 @@
+Block [
+    Assign("n", Call("read", []))
+    Assign("s", Literal(Integer 0I))
+    Assign("i", Literal(Integer 0I))
+    While(Binary(Less, Variable "i", Binary(Multiply, Variable "n", Variable "n")),
+          Block [Assign("i", Binary(Add, Variable "i", Literal(Integer 1I)))
+                 Assign("s", Binary(Add, Variable "s", Variable "i"))])
+    Expression(Call("print", [Variable "s"]))
+]

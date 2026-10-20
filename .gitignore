@@ -1,0 +1,115 @@
+# ========================
+# macOS / OS / Editors
+# ========================
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+*~
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ========================
+# Jupyter Notebooks
+# ========================
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+**/.ipynb_checkpoints/
+.virtual_documents/
+
+# ========================
+# Python
+# ========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.env
+.venv
+env/
+venv/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ========================
+# F# / .NET
+# ========================
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Ll]og/
+[Ll]ogs/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.nupkg
+*.snupkg
+.ionide/
+paket-files/
+.fake/
+
+# ========================
+# OCaml
+# ========================
+_build/
+_opam/
+*.annot
+*.cmo
+*.cmi
+*.cmx
+*.cmxa
+*.cmxs
+*.cmt
+*.cmti
+*.o
+*.a
+*.byte
+*.native
+.merlin
+*.install
+dune-project.bak
+
+# ========================
+# LaTeX / Graphviz / Misc
+# ========================
+*.aux
+*.bbl
+*.blg
+*.dvi
+*.log
+*.out
+*.toc
+*.synctex.gz
+_region_.tex
+_minted-*/
+*.prv

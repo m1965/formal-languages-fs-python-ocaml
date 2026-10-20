@@ -1,0 +1,11 @@
+name: formal-languages-fsharp
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - jupyterlab=4
+  - nbclient
+  - nbformat
+  - graphviz
+  - openjdk=21
+  - pip

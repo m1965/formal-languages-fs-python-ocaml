@@ -1,0 +1,25 @@
+%{
+open FormalLanguages.Lalr
+%}
+%token <float> NUMBER
+%token <string> ID
+%token ASSIGN PLUS MINUS TIMES DIVIDE LPAREN RPAREN SEMICOLON EOF
+%start main
+%type <FormalLanguages.Lalr.Statement> main
+%%
+main: statement EOF { $1 }
+statement:
+  | ID ASSIGN expr SEMICOLON { Assign ($1, $3) }
+  | expr SEMICOLON { Evaluate $1 }
+expr:
+  | expr PLUS product { Binary ("+", $1, $3) }
+  | expr MINUS product { Binary ("-", $1, $3) }
+  | product { $1 }
+product:
+  | product TIMES factor { Binary ("*", $1, $3) }
+  | product DIVIDE factor { Binary ("/", $1, $3) }
+  | factor { $1 }
+factor:
+  | LPAREN expr RPAREN { $2 }
+  | NUMBER { Number $1 }
+  | ID { Name $1 }
