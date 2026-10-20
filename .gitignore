@@ -113,3 +113,7 @@ dune-project.bak
 _region_.tex
 _minted-*/
 *.prv
+
+# FsLexYacc generated files
+*.fsyacc.output
+*.fslex.output
