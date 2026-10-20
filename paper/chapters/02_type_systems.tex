@@ -1,0 +1,17 @@
+% ==============================================================================
+% Chapter 2: Type System Architecture & Static Soundness (Scaffold)
+% ==============================================================================
+\chapter{Type System Architecture and Static Soundness}
+\label{chap:type_systems}
+
+\section{Typing Foundations: Dynamic Duck Typing vs.\ Hindley--Milner Inference}
+This chapter analyzes the formal type-theoretic foundations of Python, OCaml, and F\# \cite{pierce2002types,milner1978theory}.
+
+\section{Algebraic Data Types vs.\ Class Hierarchies}
+Detailed analysis of sum types (variants in OCaml, discriminated unions in F\#) versus Python object hierarchies and \texttt{@dataclass} unions for representing regular expressions and abstract syntax trees.
+
+\section{Exhaustiveness Checking and Total Functions}
+Compile-time exhaustiveness verification and redundancy analysis in ML pattern matching compared with runtime \texttt{MatchError} or unhandled branches in Python.
+
+\section{Modeling Mathematical Sets and Relations}
+Comparison of Python's hash-based \texttt{frozenset} with OCaml's \texttt{FSet} / \texttt{Set.Make} and F\#'s \texttt{Set<'T>} balanced AVL trees \cite{okasaki1999purely}.

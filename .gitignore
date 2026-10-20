@@ -109,6 +109,10 @@ dune-project.bak
 *.log
 *.out
 *.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
 *.synctex.gz
 _region_.tex
 _minted-*/

@@ -1,0 +1,466 @@
+{
+  "kernel_cold_start": {
+    "Python 3.13 (ipykernel)": {
+      "kernel_ready_ms": {
+        "mean": 384.5,
+        "stdev": 1.2
+      },
+      "first_cell_ms": {
+        "mean": 11.2,
+        "stdev": 0.9
+      },
+      "warm_cell_ipc_ms": {
+        "mean": 4.49,
+        "stdev": 0.25
+      },
+      "total_cold_start_ms": {
+        "mean": 395.7
+      },
+      "idle_rss_mb": {
+        "mean": 55.4
+      }
+    },
+    "OCaml 5.4 (ocaml-jupyter)": {
+      "kernel_ready_ms": {
+        "mean": 504.0,
+        "stdev": 95.6
+      },
+      "first_cell_ms": {
+        "mean": 7.2,
+        "stdev": 0.3
+      },
+      "warm_cell_ipc_ms": {
+        "mean": 3.5,
+        "stdev": 0.33
+      },
+      "total_cold_start_ms": {
+        "mean": 511.1
+      },
+      "idle_rss_mb": {
+        "mean": 27.2
+      }
+    },
+    "F# 9.0 (.net-fsharp)": {
+      "kernel_ready_ms": {
+        "mean": 863.2,
+        "stdev": 162.9
+      },
+      "first_cell_ms": {
+        "mean": 1021.2,
+        "stdev": 5.2
+      },
+      "warm_cell_ipc_ms": {
+        "mean": 3.7,
+        "stdev": 0.18
+      },
+      "total_cold_start_ms": {
+        "mean": 1884.4
+      },
+      "idle_rss_mb": {
+        "mean": 530.5
+      }
+    }
+  },
+  "notebooks": {
+    "Ch 03: Lexical Scanning": {
+      "py_ml_path": "Chapter-03/01-RegExp-Scanner.ipynb",
+      "fs_path": "Chapter-03/01-Ply-Scanning-Example.ipynb",
+      "python": {
+        "total_wall_ms": 578.2,
+        "pure_cells_ms": 64.0,
+        "startup_overhead_ms": 514.2,
+        "code_cells": 11,
+        "rss_mb": 55.5
+      },
+      "ocaml": {
+        "total_wall_ms": 1108.8,
+        "pure_cells_ms": 390.6,
+        "startup_overhead_ms": 718.2,
+        "code_cells": 11,
+        "rss_mb": 102.8
+      },
+      "fsharp": {
+        "total_wall_ms": 2415.4,
+        "pure_cells_ms": 1329.3,
+        "startup_overhead_ms": 1086.1,
+        "code_cells": 13,
+        "rss_mb": 574.9
+      }
+    },
+    "Ch 03: RegExp Tutorial": {
+      "py_ml_path": "Chapter-03/02-Regexp-Tutorial.ipynb",
+      "fs_path": "Chapter-03/02-Regexp-Tutorial.ipynb",
+      "python": {
+        "total_wall_ms": 618.2,
+        "pure_cells_ms": 111.8,
+        "startup_overhead_ms": 506.4,
+        "code_cells": 35,
+        "rss_mb": 57.2
+      },
+      "ocaml": {
+        "total_wall_ms": 1507.8,
+        "pure_cells_ms": 959.2,
+        "startup_overhead_ms": 548.6,
+        "code_cells": 34,
+        "rss_mb": 102.9
+      },
+      "fsharp": {
+        "total_wall_ms": 2407.7,
+        "pure_cells_ms": 1495.2,
+        "startup_overhead_ms": 912.6,
+        "code_cells": 35,
+        "rss_mb": 596.3
+      }
+    },
+    "Ch 03: Exam Evaluation": {
+      "py_ml_path": "Chapter-03/03-Exam-Evaluation.ipynb",
+      "fs_path": "Chapter-03/03-Exam-Evaluation.ipynb",
+      "python": {
+        "total_wall_ms": 724.8,
+        "pure_cells_ms": 229.1,
+        "startup_overhead_ms": 495.7,
+        "code_cells": 10,
+        "rss_mb": 99.3
+      },
+      "ocaml": {
+        "total_wall_ms": 1108.6,
+        "pure_cells_ms": 436.5,
+        "startup_overhead_ms": 672.0,
+        "code_cells": 10,
+        "rss_mb": 102.9
+      },
+      "fsharp": {
+        "total_wall_ms": 2479.1,
+        "pure_cells_ms": 1575.7,
+        "startup_overhead_ms": 903.4,
+        "code_cells": 21,
+        "rss_mb": 629.4
+      }
+    },
+    "Ch 04-05: NFA to DFA": {
+      "py_ml_path": "Chapter-04-05/01-NFA-2-DFA.ipynb",
+      "fs_path": "Chapter-04-05/01-NFA-2-DFA.ipynb",
+      "python": {
+        "total_wall_ms": 590.9,
+        "pure_cells_ms": 56.2,
+        "startup_overhead_ms": 534.7,
+        "code_cells": 15,
+        "rss_mb": 56.1
+      },
+      "ocaml": {
+        "total_wall_ms": 874.7,
+        "pure_cells_ms": 353.0,
+        "startup_overhead_ms": 521.7,
+        "code_cells": 13,
+        "rss_mb": 102.4
+      },
+      "fsharp": {
+        "total_wall_ms": 2341.7,
+        "pure_cells_ms": 1448.3,
+        "startup_overhead_ms": 893.4,
+        "code_cells": 9,
+        "rss_mb": 604.8
+      }
+    },
+    "Ch 04-05: RegExp to NFA": {
+      "py_ml_path": "Chapter-04-05/03-Regexp-2-NFA.ipynb",
+      "fs_path": "Chapter-04-05/03-Regexp-2-NFA.ipynb",
+      "python": {
+        "total_wall_ms": 565.3,
+        "pure_cells_ms": 70.5,
+        "startup_overhead_ms": 494.8,
+        "code_cells": 23,
+        "rss_mb": 55.5
+      },
+      "ocaml": {
+        "total_wall_ms": 929.1,
+        "pure_cells_ms": 388.6,
+        "startup_overhead_ms": 540.6,
+        "code_cells": 21,
+        "rss_mb": 102.7
+      },
+      "fsharp": {
+        "total_wall_ms": 2478.4,
+        "pure_cells_ms": 1441.5,
+        "startup_overhead_ms": 1036.9,
+        "code_cells": 8,
+        "rss_mb": 613.6
+      }
+    },
+    "Ch 04-05: DFA to RegExp": {
+      "py_ml_path": "Chapter-04-05/05-DFA-2-RegExp.ipynb",
+      "fs_path": "Chapter-04-05/05-DFA-2-RegExp.ipynb",
+      "python": {
+        "total_wall_ms": 564.2,
+        "pure_cells_ms": 36.3,
+        "startup_overhead_ms": 527.9,
+        "code_cells": 8,
+        "rss_mb": 55.6
+      },
+      "ocaml": {
+        "total_wall_ms": 988.8,
+        "pure_cells_ms": 333.9,
+        "startup_overhead_ms": 654.9,
+        "code_cells": 5,
+        "rss_mb": 102.5
+      },
+      "fsharp": {
+        "total_wall_ms": 2422.7,
+        "pure_cells_ms": 1359.0,
+        "startup_overhead_ms": 1063.6,
+        "code_cells": 6,
+        "rss_mb": 596.7
+      }
+    },
+    "Ch 04-05: DFA Minimization": {
+      "py_ml_path": "Chapter-04-05/07-Minimize.ipynb",
+      "fs_path": "Chapter-04-05/07-Minimize.ipynb",
+      "python": {
+        "total_wall_ms": 581.2,
+        "pure_cells_ms": 61.4,
+        "startup_overhead_ms": 519.8,
+        "code_cells": 17,
+        "rss_mb": 55.6
+      },
+      "ocaml": {
+        "total_wall_ms": 1025.7,
+        "pure_cells_ms": 361.2,
+        "startup_overhead_ms": 664.5,
+        "code_cells": 15,
+        "rss_mb": 102.5
+      },
+      "fsharp": {
+        "total_wall_ms": 2536.8,
+        "pure_cells_ms": 1466.9,
+        "startup_overhead_ms": 1069.9,
+        "code_cells": 9,
+        "rss_mb": 614.5
+      }
+    },
+    "Ch 04-05: Equivalence Check": {
+      "py_ml_path": "Chapter-04-05/09-Equivalence.ipynb",
+      "fs_path": "Chapter-04-05/09-Equivalence.ipynb",
+      "python": {
+        "total_wall_ms": 1002.0,
+        "pure_cells_ms": 489.4,
+        "startup_overhead_ms": 512.6,
+        "code_cells": 14,
+        "rss_mb": 91.6
+      },
+      "ocaml": {
+        "total_wall_ms": 903.2,
+        "pure_cells_ms": 394.6,
+        "startup_overhead_ms": 508.6,
+        "code_cells": 11,
+        "rss_mb": 102.6
+      },
+      "fsharp": {
+        "total_wall_ms": 2759.0,
+        "pure_cells_ms": 1669.0,
+        "startup_overhead_ms": 1090.0,
+        "code_cells": 7,
+        "rss_mb": 673.6
+      }
+    },
+    "Ch 06: Top-Down Parser": {
+      "py_ml_path": "Chapter-06/1-Top-Down-Parser.ipynb",
+      "fs_path": "Chapter-06/1-Top-Down-Parser.ipynb",
+      "python": {
+        "total_wall_ms": 593.9,
+        "pure_cells_ms": 56.6,
+        "startup_overhead_ms": 537.3,
+        "code_cells": 15,
+        "rss_mb": 55.6
+      },
+      "ocaml": {
+        "total_wall_ms": 1126.2,
+        "pure_cells_ms": 463.2,
+        "startup_overhead_ms": 663.0,
+        "code_cells": 15,
+        "rss_mb": 103.0
+      },
+      "fsharp": {
+        "total_wall_ms": 2353.2,
+        "pure_cells_ms": 1320.5,
+        "startup_overhead_ms": 1032.7,
+        "code_cells": 10,
+        "rss_mb": 566.2
+      }
+    },
+    "Ch 06: EBNF Parser": {
+      "py_ml_path": "Chapter-06/2-EBNF-Parser.ipynb",
+      "fs_path": "Chapter-06/2-EBNF-Parser.ipynb",
+      "python": {
+        "total_wall_ms": 551.6,
+        "pure_cells_ms": 48.8,
+        "startup_overhead_ms": 502.8,
+        "code_cells": 13,
+        "rss_mb": 55.6
+      },
+      "ocaml": {
+        "total_wall_ms": 1152.4,
+        "pure_cells_ms": 454.4,
+        "startup_overhead_ms": 698.1,
+        "code_cells": 13,
+        "rss_mb": 103.0
+      },
+      "fsharp": {
+        "total_wall_ms": 2231.0,
+        "pure_cells_ms": 1293.8,
+        "startup_overhead_ms": 937.2,
+        "code_cells": 9,
+        "rss_mb": 563.5
+      }
+    },
+    "Ch 07: Symbolic Differentiator": {
+      "py_ml_path": "Chapter-07/02-Differentiator.ipynb",
+      "fs_path": "Chapter-07/02-Differentiator.ipynb",
+      "python": {
+        "total_wall_ms": 583.2,
+        "pure_cells_ms": 87.1,
+        "startup_overhead_ms": 496.1,
+        "code_cells": 18,
+        "rss_mb": 58.8
+      },
+      "ocaml": {
+        "total_wall_ms": 1270.3,
+        "pure_cells_ms": 589.4,
+        "startup_overhead_ms": 680.8,
+        "code_cells": 18,
+        "rss_mb": 102.6
+      },
+      "fsharp": {
+        "total_wall_ms": 2517.2,
+        "pure_cells_ms": 1567.5,
+        "startup_overhead_ms": 949.7,
+        "code_cells": 11,
+        "rss_mb": 607.4
+      }
+    },
+    "Ch 07/08: Interpreter": {
+      "py_ml_path": "Chapter-08/03-Interpreter.ipynb",
+      "fs_path": "Chapter-07/03-Interpreter.ipynb",
+      "python": {
+        "total_wall_ms": 1492.7,
+        "pure_cells_ms": 961.9,
+        "startup_overhead_ms": 530.8,
+        "code_cells": 18,
+        "rss_mb": 92.5
+      },
+      "ocaml": {
+        "total_wall_ms": 1770.8,
+        "pure_cells_ms": 1058.7,
+        "startup_overhead_ms": 712.1,
+        "code_cells": 20,
+        "rss_mb": 103.2
+      },
+      "fsharp": {
+        "total_wall_ms": 2932.9,
+        "pure_cells_ms": 1881.0,
+        "startup_overhead_ms": 1051.9,
+        "code_cells": 18,
+        "rss_mb": 722.2
+      }
+    },
+    "Ch 08/09: Earley Parser": {
+      "py_ml_path": "Chapter-09/Earley-Parser.ipynb",
+      "fs_path": "Chapter-08/Earley-Parser.ipynb",
+      "python": {
+        "total_wall_ms": 604.5,
+        "pure_cells_ms": 108.3,
+        "startup_overhead_ms": 496.2,
+        "code_cells": 27,
+        "rss_mb": 57.6
+      },
+      "ocaml": {
+        "total_wall_ms": 1188.6,
+        "pure_cells_ms": 533.5,
+        "startup_overhead_ms": 655.1,
+        "code_cells": 26,
+        "rss_mb": 103.2
+      },
+      "fsharp": {
+        "total_wall_ms": 2474.1,
+        "pure_cells_ms": 1634.3,
+        "startup_overhead_ms": 839.8,
+        "code_cells": 9,
+        "rss_mb": 661.7
+      }
+    },
+    "Ch 09/10: SLR Table Generator": {
+      "py_ml_path": "Chapter-10/SLR-Table-Generator.ipynb",
+      "fs_path": "Chapter-09/SLR-Table-Generator.ipynb",
+      "python": {
+        "total_wall_ms": 1567.8,
+        "pure_cells_ms": 1058.9,
+        "startup_overhead_ms": 508.8,
+        "code_cells": 58,
+        "rss_mb": 67.6
+      },
+      "ocaml": {
+        "total_wall_ms": 4643.6,
+        "pure_cells_ms": 3926.6,
+        "startup_overhead_ms": 717.0,
+        "code_cells": 57,
+        "rss_mb": 242.4
+      },
+      "fsharp": {
+        "total_wall_ms": 15884.8,
+        "pure_cells_ms": 14842.0,
+        "startup_overhead_ms": 1042.8,
+        "code_cells": 23,
+        "rss_mb": 1604.2
+      }
+    },
+    "Ch 10/11: Parser Conflicts": {
+      "py_ml_path": "Chapter-11/01-Conflicts.ipynb",
+      "fs_path": "Chapter-10/01-Conflicts.ipynb",
+      "python": {
+        "total_wall_ms": 1243.0,
+        "pure_cells_ms": 647.6,
+        "startup_overhead_ms": 595.5,
+        "code_cells": 13,
+        "rss_mb": 91.3
+      },
+      "ocaml": {
+        "total_wall_ms": 1365.5,
+        "pure_cells_ms": 832.0,
+        "startup_overhead_ms": 533.6,
+        "code_cells": 13,
+        "rss_mb": 102.7
+      },
+      "fsharp": {
+        "total_wall_ms": 2704.0,
+        "pure_cells_ms": 1747.0,
+        "startup_overhead_ms": 956.9,
+        "code_cells": 7,
+        "rss_mb": 609.7
+      }
+    },
+    "Ch 12/13: Integer-C Compiler": {
+      "py_ml_path": "Chapter-13/Compiler.ipynb",
+      "fs_path": "Chapter-12/Compiler.ipynb",
+      "python": {
+        "total_wall_ms": 2303.4,
+        "pure_cells_ms": 1752.2,
+        "startup_overhead_ms": 551.2,
+        "code_cells": 56,
+        "rss_mb": 91.4
+      },
+      "ocaml": {
+        "total_wall_ms": 2103.1,
+        "pure_cells_ms": 1429.2,
+        "startup_overhead_ms": 673.9,
+        "code_cells": 57,
+        "rss_mb": 103.6
+      },
+      "fsharp": {
+        "total_wall_ms": 2907.7,
+        "pure_cells_ms": 1892.1,
+        "startup_overhead_ms": 1015.7,
+        "code_cells": 59,
+        "rss_mb": 634.8
+      }
+    }
+  }
+}

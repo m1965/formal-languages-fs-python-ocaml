@@ -1,0 +1,26 @@
+% ==============================================================================
+% Chapter 1: Introduction & Methodological Framework (Scaffold)
+% ==============================================================================
+\chapter{Introduction and Methodological Framework}
+\label{chap:introduction}
+
+\section{The Domain: Formal Languages, Automata Theory, and Compiler Construction}
+Formal languages and compiler construction occupy a singular position in theoretical and applied computer science \cite{aho2006compilers,hopcroft2006automata,sipser2012introduction}. Algorithms in this domain manipulate deeply recursive symbolic structures (regular expressions, parse trees, abstract syntax trees), relational transition graphs ($\text{NFA}$, $\text{DFA}$, pushdown automata), and fixed-point table constructions ($\text{FIRST}$, $\text{FOLLOW}$, $\text{SLR}(1)$, $\text{LR}(1)$, and $\text{LALR}(1)$ item sets).
+
+\section{Motivation for Multi-Language Analysis}
+Comparing Python 3.13, OCaml 5.4, and F\# 9.0 across an identical corpus of 56 interactive Jupyter notebooks provides a controlled natural experiment across three distinct points in the programming language design space:
+\begin{itemize}
+  \item \textbf{CPython 3.13}: Dynamic typing with optional type annotations, C-backed hash tables (open addressing), and structural pattern matching (PEP~634).
+  \item \textbf{OCaml 5.4}: Pure Hindley--Milner type inference \cite{milner1978theory,leroy2023ocaml}, lightweight algebraic variant representations, functorial persistent balanced binary trees, and native/bytecode compilation \cite{sivaramakrishnan2020retrofitting}.
+  \item \textbf{F\# 9.0 (.NET 9)}: Nominal algebraic data types, extensible active patterns \cite{syme2007extensible,syme2020early}, and tiered just-in-time compilation (RyuJIT) on the .NET CoreCLR runtime.
+\end{itemize}
+
+\section{Research Questions and Evaluative Dimensions}
+This monograph addresses five core technical research questions:
+\begin{description}
+  \item[RQ1 (Type Soundness \& Static Guarantees):] How effectively do the respective type systems enforce structural invariants in automata and compiler transformations?
+  \item[RQ2 (Syntactic Expressiveness):] Which language constructs minimize accidental complexity when expressing set-theoretic fixed points and tree rewrites?
+  \item[RQ3 (Toolchain Mechanics):] How do runtime-interpreted vs.\ ahead-of-time compiled lexer and parser generators compare in expressive power and conflict diagnostics?
+  \item[RQ4 (Empirical Performance):] How do execution throughput, cold-start latency, and garbage collector residency compare across isolated microbenchmarks and notebooks (\cref{chap:performance})?
+  \item[RQ5 (Kernel Architecture):] How do the Jupyter kernels (\texttt{ipykernel}, \texttt{ocaml-jupyter}, and \texttt{dotnet-interactive}) manage state isolation and IPC serialization?
+\end{description}

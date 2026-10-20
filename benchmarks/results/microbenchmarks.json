@@ -1,0 +1,174 @@
+{
+  "Python 3.13 (CPython)": {
+    "lexing_ms": {
+      "mean": 62.068,
+      "stdev": 1.678,
+      "median": 61.55,
+      "min": 60.611,
+      "max": 64.599
+    },
+    "nfa2dfa_ms": {
+      "mean": 9.147,
+      "stdev": 0.074,
+      "median": 9.158,
+      "min": 9.036,
+      "max": 9.228
+    },
+    "minimize_ms": {
+      "mean": 1.121,
+      "stdev": 0.045,
+      "median": 1.137,
+      "min": 1.049,
+      "max": 1.158
+    },
+    "ast_diff_ms": {
+      "mean": 1.42,
+      "stdev": 0.024,
+      "median": 1.424,
+      "min": 1.388,
+      "max": 1.45
+    },
+    "peak_rss_mb": {
+      "mean": 21.79,
+      "stdev": 0.042,
+      "median": 21.78,
+      "min": 21.73,
+      "max": 21.83
+    },
+    "invariants": {
+      "lexing_tokens": 300000,
+      "nfa2dfa_states": 4096,
+      "minimize_blocks": 5,
+      "ast_nodes": 3741
+    }
+  },
+  "OCaml 5.4 (Bytecode)": {
+    "lexing_ms": {
+      "mean": 23.862,
+      "stdev": 7.848,
+      "median": 20.443,
+      "min": 19.912,
+      "max": 37.885
+    },
+    "nfa2dfa_ms": {
+      "mean": 44.427,
+      "stdev": 3.838,
+      "median": 42.693,
+      "min": 42.494,
+      "max": 51.285
+    },
+    "minimize_ms": {
+      "mean": 1.854,
+      "stdev": 0.086,
+      "median": 1.815,
+      "min": 1.801,
+      "max": 2.006
+    },
+    "ast_diff_ms": {
+      "mean": 0.093,
+      "stdev": 0.003,
+      "median": 0.092,
+      "min": 0.091,
+      "max": 0.099
+    },
+    "peak_rss_mb": {
+      "mean": 9.052,
+      "stdev": 0.018,
+      "median": 9.05,
+      "min": 9.03,
+      "max": 9.08
+    },
+    "invariants": {
+      "lexing_tokens": 300000,
+      "nfa2dfa_states": 4096,
+      "minimize_blocks": 5,
+      "ast_nodes": 3741
+    }
+  },
+  "OCaml 5.4 (Native)": {
+    "lexing_ms": {
+      "mean": 3.507,
+      "stdev": 0.93,
+      "median": 3.149,
+      "min": 2.797,
+      "max": 5.089
+    },
+    "nfa2dfa_ms": {
+      "mean": 10.719,
+      "stdev": 2.164,
+      "median": 10.331,
+      "min": 8.795,
+      "max": 14.205
+    },
+    "minimize_ms": {
+      "mean": 0.401,
+      "stdev": 0.063,
+      "median": 0.38,
+      "min": 0.345,
+      "max": 0.497
+    },
+    "ast_diff_ms": {
+      "mean": 0.015,
+      "stdev": 0.002,
+      "median": 0.014,
+      "min": 0.013,
+      "max": 0.018
+    },
+    "peak_rss_mb": {
+      "mean": 8.77,
+      "stdev": 0.0,
+      "median": 8.77,
+      "min": 8.77,
+      "max": 8.77
+    },
+    "invariants": {
+      "lexing_tokens": 300000,
+      "nfa2dfa_states": 4096,
+      "minimize_blocks": 5,
+      "ast_nodes": 3741
+    }
+  },
+  "F# 9.0 (.NET 9 CoreCLR)": {
+    "lexing_ms": {
+      "mean": 1.915,
+      "stdev": 0.027,
+      "median": 1.918,
+      "min": 1.885,
+      "max": 1.948
+    },
+    "nfa2dfa_ms": {
+      "mean": 58.46,
+      "stdev": 0.493,
+      "median": 58.431,
+      "min": 57.903,
+      "max": 59.141
+    },
+    "minimize_ms": {
+      "mean": 3.345,
+      "stdev": 0.031,
+      "median": 3.329,
+      "min": 3.319,
+      "max": 3.395
+    },
+    "ast_diff_ms": {
+      "mean": 0.111,
+      "stdev": 0.003,
+      "median": 0.11,
+      "min": 0.107,
+      "max": 0.114
+    },
+    "peak_rss_mb": {
+      "mean": 411.41,
+      "stdev": 0.736,
+      "median": 411.02,
+      "min": 410.81,
+      "max": 412.33
+    },
+    "invariants": {
+      "lexing_tokens": 300000,
+      "nfa2dfa_states": 4096,
+      "minimize_blocks": 5,
+      "ast_nodes": 3741
+    }
+  }
+}

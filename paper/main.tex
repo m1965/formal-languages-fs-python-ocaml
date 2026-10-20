@@ -1,0 +1,116 @@
+% ==============================================================================
+% Master Document: Comparative Study of Python, OCaml, and F# in Formal Languages
+% ==============================================================================
+\documentclass[
+  11pt,
+  a4paper,
+  twoside=false,
+  numbers=noenddot,
+  chapterprefix=true,
+  headings=normal,
+  toc=listof,
+  toc=bibliography
+]{scrreprt}
+
+\input{preamble}
+
+\begin{document}
+
+% ------------------------------------------------------------------------------
+% TITLE PAGE
+% ------------------------------------------------------------------------------
+\begin{titlepage}
+  \centering
+  \vspace*{1.2cm}
+  {\scshape\Large Technical Monograph \& Empirical Language Evaluation\par}
+  \vspace{1.2cm}
+  \rule{\textwidth}{1.5pt}\\[0.5cm]
+  {\huge\bfseries\color{NavyBlue}
+    Language Paradigms, Type Systems, and Execution Dynamics:\\[0.35em]
+    \Large A Comparative Study of Python, OCaml, and F\#\\
+    in Formal Language Processing and Compiler Construction\par}
+  \vspace{0.3cm}
+  \rule{\textwidth}{1.5pt}\\[1.5cm]
+
+  {\large
+    \textbf{Empirical Evaluation of 56 Interactive Jupyter Notebooks Across}\\
+    \textbf{CPython 3.13, OCaml 5.4, and .NET 9 CoreCLR}\par}
+
+  \vfill
+
+  \begin{tikzpicture}[
+    box/.style={
+      rectangle, rounded corners=4pt, draw=NavyBlue!60, thick,
+      fill=CodeBg, minimum width=4.2cm, minimum height=2.1cm,
+      align=center, font=\small\sffamily
+    }
+  ]
+    \node[box, fill=PythonBlue!10, draw=PythonBlue] (py) at (0,0) {
+      \textbf{\color{PythonBlue}Python 3.13}\\
+      Dynamic Typing $\cdot$ PEP 484\\
+      PLY \& Lark $\cdot$ \texttt{ipykernel}
+    };
+    \node[box, fill=OCamlOrange!10, draw=OCamlOrange] (ml) at (5.2,0) {
+      \textbf{\color{OCamlOrange}OCaml 5.4}\\
+      Hindley--Milner $\cdot$ Functors\\
+      Menhir \& \texttt{ocamllex} $\cdot$ Toplevel
+    };
+    \node[box, fill=FSharpPurple!10, draw=FSharpPurple] (fs) at (10.4,0) {
+      \textbf{\color{FSharpPurple}F\# 9.0 (.NET 9)}\\
+      Nominal ADTs $\cdot$ Active Patterns\\
+      \texttt{FsLexYacc} $\cdot$ CoreCLR RyuJIT
+    };
+    \draw[<->, thick, NavyBlue!70] (py) -- (ml);
+    \draw[<->, thick, NavyBlue!70] (ml) -- (fs);
+  \end{tikzpicture}
+
+  \vfill
+
+  {\large
+    Department of Computer Science\\
+    Formal Languages, Automata Theory, and Compiler Construction\\[0.8em]
+    \today\par}
+\end{titlepage}
+
+% ------------------------------------------------------------------------------
+% ABSTRACT
+% ------------------------------------------------------------------------------
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Formal languages, automata theory, and compiler construction constitute a foundational domain of computer science whose core abstractions---regular expressions, non-deterministic and deterministic finite automata ($\text{NFA}$, $\text{DFA}$), context-free grammars ($\text{CFG}$), shift-reduce $\text{LR}(1)/\text{LALR}(1)$ parsing tables, abstract syntax trees ($\text{AST}$), and stack-machine compilers---place stringent demands on a programming language's type system, pattern-matching semantics, data-structure representations, and runtime execution engine.
+
+This monograph presents a comprehensive, empirically grounded comparative evaluation of three complete, semantically equivalent implementations of a thirteen-chapter Formal Languages curriculum hosted in interactive Jupyter Notebooks:
+\begin{enumerate}
+  \item \textbf{Python 3.13 (CPython)}, representing dynamic duck typing with PEP~484 gradual type hints, hash-based immutable collections (\texttt{frozenset}), and runtime parser generators (\texttt{PLY}, \texttt{Lark});
+  \item \textbf{OCaml 5.4}, representing classical ML Hindley--Milner type inference, algebraic variant types, functorial collection modules (\texttt{Set.Make}, \texttt{Map.Make}), and ahead-of-time $\text{LR}(1)$ parser generation (\texttt{ocamllex}, \texttt{Menhir}); and
+  \item \textbf{F\# 9.0 on .NET 9 CoreCLR}, representing pragmatic typed functional programming with nominal discriminated unions, extensible active patterns, compiled \texttt{FsLexYacc} assemblies, and tiered RyuJIT native code generation.
+\end{enumerate}
+
+Rather than surveying subjective student impressions, our study investigates the intrinsic technical properties of the three language platforms across five orthogonal dimensions: (i)~type system architecture and static soundness guarantees, (ii)~syntactic expressiveness and algorithmic conciseness, (iii)~lexer and parser generator toolchain mechanics, (iv)~empirical execution performance and memory residency across both isolated algorithmic microbenchmarks and end-to-end Jupyter notebook macrobenchmarks, and (v)~interactive notebook kernel architecture and state isolation.
+
+\cleardoublepage
+\tableofcontents
+\cleardoublepage
+\listoffigures
+\listoftables
+\cleardoublepage
+
+% ------------------------------------------------------------------------------
+% CHAPTERS
+% ------------------------------------------------------------------------------
+\input{chapters/01_introduction}
+\input{chapters/02_type_systems}
+\input{chapters/03_expressiveness}
+\input{chapters/04_toolchains}
+\input{chapters/05_performance}
+\input{chapters/06_interactive_kernels}
+\input{chapters/07_recommendation}
+
+% ------------------------------------------------------------------------------
+% BIBLIOGRAPHY
+% ------------------------------------------------------------------------------
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}

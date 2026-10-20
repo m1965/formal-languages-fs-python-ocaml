@@ -1,0 +1,144 @@
+% ==============================================================================
+% Scientific Monograph Preamble: Formal Languages in Python, OCaml, and F#
+% ==============================================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+
+% Typography: Palatino / NewPX with microtype for high-grade academic typesetting
+\usepackage{mathpazo}
+\usepackage[scaled=0.92]{helvet}
+\usepackage{courier}
+\usepackage[htt]{hyphenat}
+\usepackage[protrusion=true,expansion=true]{microtype}
+
+% Page Geometry (designed for a spacious, readable 60-page monograph)
+\usepackage[
+  a4paper,
+  top=2.8cm,
+  bottom=3.0cm,
+  inner=3.0cm,
+  outer=2.6cm,
+  headheight=16pt
+]{geometry}
+
+\usepackage{setspace}
+\setstretch{1.12}
+
+% Mathematics & Symbols
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{mathtools}
+
+% Table cell line-breaks and column width formatting
+\usepackage{makecell}
+\renewcommand\theadfont{\bfseries\small}
+\renewcommand\theadalign{lc}
+
+% List formatting to prevent margin overflows in description labels
+\usepackage{enumitem}
+\setlist[description]{style=nextline,leftmargin=1.2em,itemsep=6pt}
+
+% Tables & Figures
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{siunitx}
+\sisetup{
+  detect-all,
+  group-separator={,},
+  group-minimum-digits=4
+}
+
+% Color Palette (Academic / Publication Grade)
+\usepackage[dvipsnames,table]{xcolor}
+\definecolor{NavyBlue}{RGB}{20, 50, 100}
+\definecolor{PythonBlue}{RGB}{48, 105, 152}
+\definecolor{OCamlOrange}{RGB}{217, 95, 2}
+\definecolor{FSharpPurple}{RGB}{117, 112, 179}
+\definecolor{CodeBg}{RGB}{248, 249, 251}
+\definecolor{CodeFrame}{RGB}{215, 220, 228}
+\definecolor{CommentGray}{RGB}{110, 120, 130}
+\definecolor{KeywordBlue}{RGB}{0, 64, 150}
+\definecolor{StringRed}{RGB}{163, 21, 21}
+
+% Plots & Diagrams
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc,backgrounds,fit}
+
+% Code Listings Configuration
+\usepackage{listings}
+
+\lstdefinelanguage{FSharp}{
+  morekeywords={
+    let, rec, mutable, module, open, type, of, match, with, when, function,
+    fun, if, then, else, elif, for, in, do, while, yield, return, try,
+    finally, raise, failwith, true, false, null, and, or, not, as, begin,
+    end, struct, val, member, interface, inherit, abstract, override, default,
+    static, private, internal, public, inline, new
+  },
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[s]{(*}{*)},
+  morestring=[b]"
+}
+
+\lstdefinestyle{academiccode}{
+  backgroundcolor=\color{CodeBg},
+  basicstyle=\ttfamily\footnotesize\linespread{1.05}\selectfont,
+  breakatwhitespace=false,
+  breaklines=true,
+  captionpos=b,
+  commentstyle=\itshape\color{CommentGray},
+  frame=single,
+  rulecolor=\color{CodeFrame},
+  keepspaces=true,
+  keywordstyle=\bfseries\color{KeywordBlue},
+  numbers=left,
+  numbersep=8pt,
+  numberstyle=\tiny\color{CommentGray},
+  showspaces=false,
+  showstringspaces=false,
+  showtabs=false,
+  stringstyle=\color{StringRed},
+  tabsize=2,
+  xleftmargin=14pt,
+  xrightmargin=4pt,
+  framexleftmargin=10pt
+}
+
+\lstset{style=academiccode}
+
+% Theorem & Analysis Environments
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{observation}{Observation}[chapter]
+\newtheorem{finding}{Empirical Finding}[chapter]
+\newtheorem{criterion}{Evaluation Criterion}[chapter]
+
+% Headers and Footers
+\usepackage{scrlayer-scrpage}
+\pagestyle{scrheadings}
+\clearpairofpagestyles
+\ihead{\headmark}
+\ohead{\pagemark}
+\automark[section]{chapter}
+
+% Hyperlinks & References
+\usepackage[
+  colorlinks=true,
+  linkcolor=NavyBlue,
+  citecolor=NavyBlue,
+  urlcolor=PythonBlue,
+  bookmarksnumbered=true,
+  pdfauthor={Formal Languages Research Group},
+  pdftitle={Language Paradigms, Type Systems, and Execution Dynamics: Python, OCaml, and F-Sharp in Formal Language Processing}
+]{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}

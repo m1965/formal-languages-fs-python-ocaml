@@ -1,0 +1,26 @@
+{
+  "Python": {
+    "notebooks": 49,
+    "code_cells": 1013,
+    "markdown_cells": 936,
+    "sloc": 5333,
+    "avg_sloc_per_nb": 108.8,
+    "avg_cells_per_nb": 20.7
+  },
+  "OCaml": {
+    "notebooks": 50,
+    "code_cells": 991,
+    "markdown_cells": 968,
+    "sloc": 6453,
+    "avg_sloc_per_nb": 129.1,
+    "avg_cells_per_nb": 19.8
+  },
+  "FSharp": {
+    "notebooks": 56,
+    "code_cells": 667,
+    "markdown_cells": 667,
+    "sloc": 3486,
+    "avg_sloc_per_nb": 62.2,
+    "avg_cells_per_nb": 11.9
+  }
+}
