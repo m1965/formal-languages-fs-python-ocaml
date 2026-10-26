@@ -1,71 +1,62 @@
 % ==============================================================================
-% Chapter 2: Type System Architecture & Static Soundness
+% Kapitel 2: Typsystem-Architektur und statische Korrektheit
 % ==============================================================================
-\chapter{Type System Architecture and Static Soundness}
+\chapter{Typsystem-Architektur und statische Korrektheit}
 \label{chap:type_systems}
 
-In formal languages and compiler construction, the type system is not merely a tool for memory safety; it is the mathematical foundation for enforcing structural invariants across language transformations~\cite{pierce2002types}. An abstract syntax tree must be well-formed, an automaton transition relation must map valid states to valid target sets, and an LR item must represent a consistent grammar configuration.
+In den theoretischen Grundlagen der Informatik und im Compilerbau dient ein Typsystem nicht lediglich der Verhinderung von Speicherzugriffsfehlern auf unterster Systemebene. Es fungiert vielmehr als das formale Gerüst, mit dem sich strukturelle Invarianten über komplexe Sprach- und Graphentransformationen hinweg mathematisch beweisbar absichern lassen~\cite{pierce2002types}. Ein abstrakter Syntaxbaum muss zwingend wohlgeformt sein, eine Übergangsrelation eines Automaten darf Zustände nur auf gültige Nachfolgemengen abbilden, und ein LR-Zustandselement muss eine konsistente Konfiguration der zugrunde liegenden Grammatik widerspiegeln.
 
-This chapter examines the type-theoretic foundations of Python~3.13, OCaml~5.4, and F\#~9.0. We analyze how each paradigm represents symbolic structures, guarantees compiler pass totality, and models mathematical sets and relations.
+In diesem Kapitel untersuchen wir die typentheoretischen Fundamente von Python~3.13, OCaml~5.4 und F\#~9.0. Wir analysieren, wie die jeweiligen Paradigmen symbolische Datenstrukturen abbilden, wie sie die Vollständigkeit rekursiver Compilerphasen garantieren und mit welchen Speicher- und Laufzeiteigenschaften sie mathematische Mengen und Relationen modellieren.
 
 % ------------------------------------------------------------------------------
-\section{Type-Theoretic Foundations: Dynamic, Inferred, and Nominal Typing}
+\section{Typentheoretische Grundlagen: Dynamisch, inferiert und nominal}
 \label{sec:typing_foundations}
 % ------------------------------------------------------------------------------
 
-The three languages inhabit three distinct regions of the programming language design space (\cref{tab:type_system_comparison}):
-\begin{enumerate}
-  \item \textbf{CPython 3.13: Dynamic Duck Typing with Gradual Annotations.}
-  Python is dynamically typed: variables are untyped names bound to runtime heap objects. Types are checked at execution time when operations are dispatched. While modern Python supports gradual type hints via PEP~484 (\texttt{typing.Union}, \texttt{tuple}, \texttt{Callable}), these annotations are \emph{completely erased at runtime} and ignored by the CPython interpreter. Static type checkers (such as \texttt{mypy} or \texttt{pyright}) can analyze annotations offline, but the language runtime enforces no static guarantees.
-  
-  \item \textbf{OCaml 5.4: Damas--Hindley--Milner Polymorphic Inference.}
-  OCaml implements the classical Damas--Hindley--Milner (HM) type system with let-polymorphism~\cite{milner1978theory}. Types are reconstructed automatically through syntactic unification (Algorithm~$\mathcal{W}$). OCaml satisfies the foundational \emph{Soundness Theorem} (often summarized as "well-typed programs cannot go wrong"~\cite{wright1994syntactic}):
-  \begin{equation}
-    \vdash e : \tau \implies \text{eval}(e) \Downarrow v \text{ where } \vdash v : \tau \quad \lor \quad \text{eval}(e) \Uparrow.
-  \end{equation}
-  Explicit type annotations are entirely optional; the compiler infers the most general (principal) type.
+Die drei untersuchten Programmiersprachen besetzen drei grundlegend verschiedene Positionen im Spektrum moderner Programmiersprachen-Architekturen (\Cref{tab:type_system_comparison}):
 
-  \item \textbf{F\# 9.0: Multi-Paradigm Functional-First Nominal System.}
-  F\# builds upon ML-style Hindley--Milner type inference but embeds it within the nominal Common Type System (CTS) of the .NET CoreCLR runtime~\cite{syme2020early}. Types in F\# are primarily nominal: while generic parameters (\texttt{'T}) are inferred via constraint-based inference, user-defined algebraic data types and records are registered as distinct nominal CLI classes. Furthermore, F\# provides reified runtime generics, allowing runtime reflection and zero-overhead monomorphization of value types.
-\end{enumerate}
+Python folgt dem Paradigma der dynamischen Duck-Typisierung. Variablen sind reine Bezeichner, die zur Laufzeit an beliebige Objekte im Heap gebunden werden. Ob eine Operation zulässig ist, wird erst in dem Augenblick geprüft, in dem der Methodenaufruf zur Ausführung gelangt. Zwar verfügt das moderne Python über ein System gradueller Typ-Annotationen nach dem Standard PEP~484, doch werden diese Typangaben vom CPython-Interpreter zur Laufzeit vollständig ignoriert. Sie dienen lediglich externen statischen Analysatoren wie Pyright oder Mypy zur Vorab-Prüfung. Der eigentliche Sprachkern bietet keinerlei statische Korrektheitsgarantien.
+
+OCaml implementiert das klassische Damas--Hindley--Milner-Typsystem mit parametrischem Let-Polymorphismus~\cite{milner1978theory}. Typen müssen vom Entwickler praktisch nie manuell deklariert werden, sondern werden vom Compiler über syntaktische Unifikation nach Algorithmus~W vollständig und global rekonstruiert. OCaml erfüllt das fundamentale Korrektheitstheorem der Typentheorie, wonach ein statisch fehlerfrei typisiertes Programm zur Laufzeit niemals in einen nicht definierten Typzustand geraten kann~\cite{wright1994syntactic}. Der Compiler ermittelt stets den allgemeinsten, sogenannten prinzipalen Typ eines Ausdrucks.
+
+F\# verbindet das Konzept der funktionalen ML-Typinferenz mit dem stark nominal geprägten Typmodell der Microsoft .NET CoreCLR~\cite{syme2020early}. Generische Typparameter werden wie in OCaml automatisch abgeleitet, benutzerdefinierte algebraische Datentypen und Verbundtypen (Records) werden jedoch als vollwertige, eigenständige Klassen in den .NET-Metadaten registriert. Ein entscheidender technischer Vorteil von F\# besteht in den sogenannten reifizierten Generics der .NET-Laufzeitumgebung: Generische Typinformationen bleiben auch zur Laufzeit vollständig erhalten, was eine hochgradig optimierte Spezialisierung für Werttypen und den vollständigen Verzicht auf unnötiges Boxing bei primitiven Datentypen ermöglicht.
 
 \begin{table}[htbp]
   \centering
-  \caption{Comparison of type system characteristics across Python, OCaml, and F\#.}
-  \label{tab:type_system_comparison}
   \small
-  \begin{tabularx}{\textwidth}{@{}lXXX@{}}
+  \caption{Vergleich der typentheoretischen Merkmale von Python, OCaml und F\#.}
+  \label{tab:type_system_comparison}
+  \begin{tabularx}{\textwidth}{lXXX}
     \toprule
-    \textbf{Dimension} & \textbf{Python 3.13} & \textbf{OCaml 5.4} & \textbf{F\# 9.0 (.NET 9)} \\
+    \textbf{Kriterium} & \textbf{Python 3.13} & \textbf{OCaml 5.4} & \textbf{F\# 9.0 (.NET 9)} \\
     \midrule
-    \textbf{Type Enforcement} & Dynamic (runtime check) & Static (compile-time HM) & Static (compile-time HM + nominal) \\
+    \textbf{Typprüfung} & Dynamisch zur Laufzeit & Vollständig statisch (HM) & Statisch (HM und nominal) \\
     \addlinespace[3pt]
-    \textbf{Type Inference} & None (runtime duck typing) & Full principal type inference (Algorithm $\mathcal{W}$) & Local and global constraint-based inference \\
+    \textbf{Typinferenz} & Keine (reine Duck-Typisierung) & Globale prinzipale Inferenz & Lokale und globale Inferenz \\
     \addlinespace[3pt]
-    \textbf{Type Soundness} & Unsound (hints are erased) & Sound (no runtime type faults) & Sound within safe functional subset \\
+    \textbf{Statische Korrektheit} & Nicht garantiert (Annotationen flüchtig) & Beweisbar typsicher ohne Ausnahmen & Typsicher im funktionalen Kern \\
     \addlinespace[3pt]
-    \textbf{Algebraic Data Types} & Emulated via \texttt{@dataclass} or untyped tuples & Native sum types (tagged variants) & Native discriminated unions (nominal CLI classes) \\
+    \textbf{Algebraische Typen} & Nachbildung über Datenklassen & Native getaggte Varianten & Native nominale Unions \\
     \addlinespace[3pt]
-    \textbf{Generics Architecture} & Erased runtime wrappers (\texttt{list[T]}) & Uniform representation (boxed word pointers) & Reified runtime generics (CLR metadata + RyuJIT) \\
+    \textbf{Generics-Architektur} & Reine Dokumentationshüllen & Einheitliche Zeiger-Repräsentation & Vollwertige reifizierte CLR-Generics \\
     \addlinespace[3pt]
-    \textbf{Null / None Safety} & Pervasive \texttt{None} (runtime \texttt{AttributeError}) & No \texttt{null} (\texttt{'a option} monad required) & No nulls for F\# types (\texttt{'T option}); interop nulls possible \\
+    \textbf{Null-Sicherheit} & Allgegenwärtige None-Werte & Kein null (Option-Monade nötig) & Kein null für native F\#-Typen \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
 % ------------------------------------------------------------------------------
-\section{Algebraic Data Types (ADTs) vs.\ Class Hierarchies}
+\section{Algebraische Datentypen im Vergleich zu Klassenhierarchien}
 \label{sec:adts_vs_classes}
 % ------------------------------------------------------------------------------
 
-In formal languages, inductive data structures---such as regular expressions and abstract syntax trees---are mathematically characterized as \textbf{initial algebras} over signature functors. A language's ability to model disjoint sum types ($\sum$) and product types ($\prod$) directly governs its fidelity to this mathematical definition.
+In der theoretischen Informatik werden induktive symbolische Strukturen wie reguläre Ausdrücke oder abstrakte Syntaxbäume mathematisch als initiale Algebren über Signaturfunktoren definiert. Die Güte einer Programmiersprache bemisst sich daran, wie direkt und elegant sie disjunkte Summentypen und Produkttypen darstellen kann.
 
-\subsection{Sum Types in ML vs.\ OOP Subtyping in Python}
-In OCaml and F\#, an AST is defined as an algebraic sum type (variant in OCaml, discriminated union in F\#):
+In OCaml und F\# werden diese Strukturen als echte Summentypen deklariert, in OCaml als Varianten und in F\# als Discriminated Unions (\Cref{fig:adt_definitions}). Beide Systeme erlauben die Aufzählung aller möglichen Konstruktoren in einer kompakten, wenigen Zeilen langen Deklaration. In Python hingegen müssen Summentypen über eine Hierarchie separater Klassen mit Datenklassen-Dekoratoren und einem abschließenden Union-Typ mühsam nachgebildet werden:
 
 \begin{figure}[htbp]
 \begin{subfigure}[b]{\textwidth}
-\begin{lstlisting}[language=Caml,caption={OCaml: Concise algebraic variant definition of Regular Expressions.}]
+\begin{lstlisting}[language=Caml,caption={OCaml: Kompakte Definition regulärer Ausdrücke über Varianten.}]
 type regexp =
   | Empty
   | Epsilon
@@ -77,7 +68,7 @@ type regexp =
 \end{subfigure}
 
 \begin{subfigure}[b]{\textwidth}
-\begin{lstlisting}[language=FSharp,caption={F\#: Strongly typed nominal discriminated union.}]
+\begin{lstlisting}[language=FSharp,caption={F\#: Streng typisierte nominale Discriminated Union.}]
 type RegExp =
     | Empty
     | Epsilon
@@ -89,7 +80,7 @@ type RegExp =
 \end{subfigure}
 
 \begin{subfigure}[b]{\textwidth}
-\begin{lstlisting}[language=Python,caption={Python: Object-oriented class hierarchy using dataclasses.}]
+\begin{lstlisting}[language=Python,caption={Python: Objektorientierte Nachbildung mittels Datenklassen.}]
 @dataclass(frozen=True)
 class Empty: pass
 
@@ -105,134 +96,82 @@ class Alt:
     left: 'RegExp'
     right: 'RegExp'
 
-RegExp = Empty | Epsilon | Char | Alt  # PEP 604 Union
+RegExp = Empty | Epsilon | Char | Alt  # Vereinigung nach PEP 604
 \end{lstlisting}
 \end{subfigure}
-\caption{Representations of regular expressions across OCaml, F\#, and Python.}
+\caption{Repräsentation regulärer Ausdrücke in OCaml, F\# und Python.}
 \label{fig:adt_definitions}
 \end{figure}
 
-The architectural differences between these representations are profound:
-\begin{enumerate}
-  \item \textbf{Closed vs.\ Open Polymorphism:} In OCaml and F\#, an algebraic type is \textbf{closed}: all possible variants are explicitly enumerated in a single definition. This allows compilers to verify totality across all consumers. In Python OOP, class hierarchies are \textbf{open}: any module can subclass \texttt{RegExp}, making it impossible for a static type checker to prove that all variants are handled without explicit finality constraints.
-  \item \textbf{Syntactic Density:} Defining the regular expression algebra requires $7$ lines in OCaml and F\#, versus $35+$ lines of boilerplate in Python (\texttt{@dataclass}, \texttt{frozen=True}, constructors, and forward string references).
-\end{enumerate}
+Die softwaretechnischen Unterschiede zwischen diesen Darstellungen sind grundlegend:
+In den funktionalen Sprachen sind algebraische Typen \textbf{abgeschlossen}. Alle gültigen Varianten sind in der Typdeklaration ein für alle Mal vollständig fixiert. Dadurch ist der Compiler in der Lage, jede Funktion, die diesen Typ verarbeitet, formal auf Vollständigkeit zu prüfen. 
+Im objektorientierten Modell von Python sind Klassenhierarchien hingegen prinzipiell \textbf{offen}. Jedes Modul kann jederzeit eine neue Unterklasse von \texttt{RegExp} deklarieren, wodurch es für statische Analysatoren unmöglich wird, ohne spezielle Zusatzbeschränkungen zu beweisen, dass alle Fälle abgedeckt sind.
+Hinzu kommt die syntaktische Dichte: Während OCaml und F\# für die vollständige Grammatik lediglich sieben Zeilen benötigen, erfordert Python mehr als dreißig Zeilen an Klassen-Boilerplate, Dekorator-Aufrufen und Vorwärtsreferenzen in Anführungszeichen.
 
-\subsection{Physical Memory Layout and Pointer Chasing}
-The memory representation of these data structures dictates cache locality and Garbage Collection (GC) pressure:
-\begin{itemize}
-  \item \textbf{OCaml 5.4 Representation:} OCaml represents variants with surgical efficiency. Constant constructors (\texttt{Empty}, \texttt{Epsilon}) are encoded as \emph{unboxed tagged integers} ($2k+1$), consuming zero heap bytes! Valued constructors (\texttt{Char c}, \texttt{Alt(r1, r2)}) are allocated on the minor heap as a single flat array: an 8-byte header containing the variant tag, followed immediately by payload pointers.
-  \item \textbf{F\# 9.0 (.NET CoreCLR):} Discriminated unions are compiled into an abstract base class with a nested subclass per case. Each heap-allocated node carries a 16-byte CLI object header (8-byte MethodTable pointer + 8-byte sync block index) plus a 4-byte integer tag field and field alignment padding. An \texttt{Alt} node requires 40 bytes on 64-bit systems.
-  \item \textbf{Python 3.13 Objects:} Every Python object carries a \texttt{PyObject} header consisting of an 8-byte reference count and an 8-byte type pointer (\texttt{ob\_type}), alongside a dynamic dictionary (\texttt{\_\_dict\_\_}) or slots pointer. A trivial frozen dataclass instance consumes 56 to 72 bytes on macOS \texttt{arm64}.
-\end{itemize}
+Auch bezüglich der physischen Speicherorganisation zeigen sich deutliche Diskrepanzen:
+OCaml repräsentiert Variantenkonstruktoren mit chirurgischer Präzision. Konstruktoren ohne Parameter wie \texttt{Empty} oder \texttt{Epsilon} werden als einfache getaggte Ganzzahlen direkt im Register oder auf dem Stack gespeichert und belegen exakt null Byte auf dem Heap. Konstruktoren mit Nutzlast werden als flache Blöcke im extrem schnellen Minor Heap angelegt.
+F\# erzeugt für jeden Fall eine abgeleitete Unterklasse unterhalb einer abstrakten Basisklasse. Jedes Objekt im Heap trägt die standardmäßige 16-Byte-Objektkopfzeile der .NET-Laufzeitumgebung zuzüglich eines 4-Byte-Tags.
+In Python trägt jedes Datenklassen-Objekt einen schweren \texttt{PyObject}-Kopf mit Referenzzähler und Typzeiger sowie Verweisen auf Wörterbücher, was zu einem Speicherbedarf von 56 bis 72 Byte pro Trivialknoten führt und die Prozessor-Caches unnötig belastet.
 
 % ------------------------------------------------------------------------------
-\section{Exhaustiveness Checking and Total Functions}
+\section{Vollständigkeitsprüfung und totale Funktionen}
 \label{sec:exhaustiveness_checking}
 % ------------------------------------------------------------------------------
 
-A major source of latent defects in language processing systems is the \emph{partial function problem}: a compiler pass (such as code generation or type analysis) that fails to account for a valid syntactic form.
+Eine der häufigsten Ursachen für schwer auffindbare Softwarefehler im Compilerbau ist das Problem partieller Funktionen: Ein Analyseschritt oder Codegenerator deckt versehentlich eine syntaktisch gültige Baumform nicht ab und stürzt während der Ausführung unvorhergesehen ab.
 
-\subsection{Matrix-Based Totality Proofs in ML}
-Both OCaml and F\# implement compiler algorithms for \textbf{pattern matching exhaustiveness and redundancy analysis}~\cite{maranget2007warnings}. When a developer writes:
-\begin{lstlisting}[language=Caml]
-let rec string_of_regexp (r : regexp) : string =
-  match r with
-  | Empty -> "{}"
-  | Epsilon -> "eps"
-  | Char c -> String.make 1 c
-  | Alt (r1, r2) -> (string_of_regexp r1) ^ " | " ^ (string_of_regexp r2)
-  (* Omitted: Cat and Star *)
-\end{lstlisting}
-The OCaml compiler halts compilation with a fatal warning:
-\begin{lstlisting}
-Characters 49-215:
-Warning 8 [partial-match]: this pattern-matching is not exhaustive.
-Here is an example of a case that is not matched:
-(Cat (_, _) | Star _)
-\end{lstlisting}
-The compiler synthesizes a concrete counterexample demonstrating which constructor combinations were missed.
+OCaml und F\# eliminieren dieses Risiko durch hochentwickelte Algorithmen zur \textbf{Vollständigkeits"= und Redundanzanalyse von Mustern}~\cite{maranget2007warnings}. Versäumt ein Entwickler in einer rekursiven Auswertungsfunktion die Behandlung bestimmter Konstruktoren, bricht der Compiler die Übersetzung mit einer präzisen Warnung ab und konstruiert ein konkretes Gegenbeispiel, welcher Fall nicht behandelt wurde.
 
-\subsection{Type-Driven Refactoring in Curriculum Evolution}
-This static guarantee transforms software maintenance into a deterministic process:
-\begin{observation}[The Expression Problem in Compiler Refactoring]
-When adding a new feature to a formal language (such as extending an Integer-C compiler in Chapter~13 with a \texttt{for} loop or adding complement to a regular expression algebra), the developer simply adds the constructor to the ADT:
-\begin{lstlisting}[language=FSharp]
-type Statement =
-    | Assign of string * Expression
-    | While of Expression * Statement
-    | For of Statement * Expression * Statement * Statement  // New construct!
-\end{lstlisting}
-In F\# and OCaml, the compiler immediately identifies every single function across all modules that inspects \texttt{Statement} (lexer, parser, type checker, Jasmin code generator, AST visualizer) and highlights the exact lines requiring updates. In Python, the developer receives zero static guidance; missing cases fail only when the new construct is executed at runtime.
+Dieser Mechanismus erweist sich bei der schrittweisen Weiterentwicklung eines Compilers im Lehrbetrieb als unschätzbarer Vorteil:
+\begin{observation}[\textbf{Typgesteuertes Refactoring im Compilerbau}]
+Wird die Grammatik einer formalen Sprache im Laufe des Semesters um ein neues Sprachelement erweitert---beispielsweise um eine Schleifenkonstruktion in einem Integer-C-Compiler---, fügt die Lehrperson oder der Studierende lediglich einen neuen Konstruktor zum algebraischen Typ hinzu.
+In F\# und OCaml lokalisiert der Compiler sofort und ohne einen einzigen Testlauf jede Funktion im gesamten Projekt, die diesen Typ verarbeitet (Lexer, Parser, Typprüfung, Codegenerator und Visualisierung), und markiert die exakte Zeile, die angepasst werden muss. In Python existiert keinerlei vergleichbare Unterstützung; fehlende Regelfälle fallen erst dann auf, wenn ein Testfall zufällig die entsprechende Quelltextzeile zur Laufzeit ausführt.
 \end{observation}
 
 % ------------------------------------------------------------------------------
-\section{Modeling Mathematical Sets and Relational Algebra}
+\section{Modellierung mathematischer Mengen und relationaler Algebra}
 \label{sec:set_models}
 % ------------------------------------------------------------------------------
 
-Automata theory is set-theoretic: an automaton is formally defined as a 5-tuple:
-\begin{equation}
-  M = (Q, \Sigma, \delta, q_0, F),
-\end{equation}
-where $Q$ is a finite set of states, $\Sigma$ is a finite alphabet, $\delta \subseteq Q \times \Sigma \to \mathcal{P}(Q)$ is the transition relation, $q_0 \in Q$ is the initial state, and $F \subseteq Q$ is the set of accepting states.
+Die Automatentheorie ist in ihrem Kern mengentheoretisch aufgebaut. Ein deterministischer oder nichtdeterministischer endlicher Automat wird mathematisch als Fünftupel definiert, bestehend aus einer endlichen Zustandsmenge, einem Eingabealphabet, einer Zustandsübergangsfunktion, einem eindeutigen Startzustand sowie einer Menge von Endzuständen.
 
-The three languages adopt radically different collection paradigms for modeling sets and relations:
+Die drei untersuchten Programmiersprachen nutzen grundlegend verschiedene Ansätze zur Realisierung dieser Mengenstrukturen:
 
-\subsection{1. Python: Open-Addressing Hash Sets (\texttt{set} and \texttt{frozenset})}
-Python models sets through hash tables using open addressing with quadratic probing:
-\begin{itemize}
-  \item \textbf{Amortized $O(1)$ Operations:} Membership testing ($e \in S$), insertion, and deletion execute in $O(1)$ expected time.
-  \item \textbf{Cached Hash Codes:} An immutable \texttt{frozenset} computes its 64-bit hash code once and caches it on the struct, making nested set lookups ($S' \in \text{visited}$) exceptionally fast in C code.
-  \item \textbf{Non-Deterministic Iteration Order:} To prevent hash-collision denial-of-service attacks, Python randomizes hash seeds per process invocation (\texttt{PYTHONHASHSEED}). Consequently, converting sets to lists produces non-deterministic orderings, requiring explicit sorting (\texttt{sorted(states)}) to ensure reproducible automata renderings.
-\end{itemize}
+Python modelliert Mengen über Hash-Tabellen mit offener Adressierung und quadratischem Sondieren. Dies ermöglicht das Einfügen, Löschen und Prüfen auf Elementzugehörigkeit in amortisierter konstanter Zeit. Zudem berechnen unveränderliche \texttt{frozenset}-Mengen ihren 64-Bit-Hashwert genau einmal und cachen ihn, was das Auffinden verschachtelter Mengen extrem beschleunigt. Der gravierende Nachteil für die Lehre besteht jedoch in der Zufallskomponente: Um Angriffe über Hashkollisionen abzuwehren, randomisiert Python den Hash-Seed bei jedem Prozessstart. Dadurch ist die Iterationsreihenfolge über Zustandsmengen nichtdeterministisch, was ohne manuelles Sortieren reproduzierbare Darstellungen von Automaten erschwert.
 
-\subsection{2. OCaml: Functorial Persistent Balanced Binary Trees (\texttt{Set.Make})}
-OCaml models sets through purely functional balanced binary search trees (AVL trees with balance factor $\le 2$)~\cite{okasaki1999purely}:
-\begin{itemize}
-  \item \textbf{Functorial Interface:} To construct a set of integers, the developer instantiates the \texttt{Set.Make} functor over an ordered module:
-\begin{lstlisting}[language=Caml]
-module IntSet = Set.Make(Int)
-module StateSet = Set.Make(IntSet)  (* Nested Set-of-Sets *)
-\end{lstlisting}
-  \item \textbf{Structural Sharing and Persistence:} Because trees are immutable, inserting or removing an element creates a new root sharing $O(\log n)$ unmodified subtrees. Previous versions of the set remain perfectly intact.
-  \item \textbf{Deterministic Traversal:} In-order tree traversal is guaranteed to iterate in strict ascending order, eliminating non-determinism without sorting passes.
-\end{itemize}
+OCaml realisiert Mengen als rein funktionale, persistente AVL-Suchbäume über den Funktor \texttt{Set.Make}~\cite{okasaki1999purely}. Da diese Bäume vollkommen unveränderlich sind, erzeugt das Hinzufügen oder Entfernen eines Elements eine neue Wurzel, die unveränderte Teilbäume mit der vorherigen Version teilt. Dies garantiert absolute Nebenwirkungsfreiheit und eine streng deterministische Traversierung in aufsteigender Sortierreihenfolge.
 
-\subsection{3. F\#: Generic Balanced Trees (\texttt{Set<'T>})}
-F\# implements immutable sets via balanced binary search trees parameterized over .NET's generic \texttt{IComparable<'T>} interface:
-\begin{itemize}
-  \item \textbf{Seamless Generic Syntax:} F\# avoids OCaml's functor boilerplate; developers write \texttt{set [1; 2; 3]} or \texttt{Set<int>}.
-  \item \textbf{Interface Call Overhead on Nested Sets:} While integer comparisons are fast, comparing nested sets (\texttt{Set<Set<int>>}) relies on .NET's dynamic \texttt{LanguagePrimitives.GenericComparer}, incurring virtual interface calls at every tree node. As demonstrated empirically in Chapter~5, this creates substantial constant-factor overhead during powerset determinization.
-\end{itemize}
+F\# implementiert Mengen ebenfalls als unveränderliche balancierte Binärbäume, bindet diese jedoch an die generische Vergleichsschnittstelle von .NET an. Dadurch entfällt der syntaktische Aufwand funktorieller Moduldeklarationen, wie sie in OCaml erforderlich sind. Allerdings führt der rekursive Vergleich tief verschachtelter Mengenstrukturen (wie Mengen von Zustandsmengen bei der Potenzmengenkonstruktion) zu wiederholten dynamischen Schnittstellenaufrufen, was sich bei großen Automaten in messbaren Laufzeitverzögerungen niederschlägt.
 
 % ------------------------------------------------------------------------------
-\section{Synthesis: The Static Soundness Matrix}
+\section{Synthese: Die Matrix statischer Garantien}
 \label{sec:soundness_synthesis}
 % ------------------------------------------------------------------------------
 
+In \Cref{tab:soundness_matrix} sind die zentralen Eigenschaften der drei Sprachsysteme hinsichtlich ihrer statischen Verifikationsfähigkeiten zusammengefasst.
+
 \begin{table}[htbp]
   \centering
-  \caption{Static soundness and invariant verification capabilities across language paradigms.}
-  \label{tab:soundness_matrix}
   \small
-  \begin{tabularx}{\textwidth}{@{}lXXX@{}}
+  \caption{Fähigkeiten zur statischen Invarianten-Verifikation im Paradigmenvergleich.}
+  \label{tab:soundness_matrix}
+  \begin{tabularx}{\textwidth}{lXXX}
     \toprule
-    \textbf{Verification Dimension} & \textbf{Python 3.13} & \textbf{OCaml 5.4} & \textbf{F\# 9.0 (.NET 9)} \\
+    \textbf{Dimension} & \textbf{Python 3.13} & \textbf{OCaml 5.4} & \textbf{F\# 9.0 (.NET 9)} \\
     \midrule
-    \textbf{AST Structural Validity} & Dynamic duck typing; checked at evaluation & Full compile-time static guarantee via ADT variants & Full compile-time static guarantee via discriminated unions \\
+    \textbf{Gültigkeit von Syntaxbäumen} & Dynamisch; Prüfung erst bei Auswertung & Statisch garantiert durch geschlossene Varianten & Statisch garantiert durch Discriminated Unions \\
     \addlinespace[3pt]
-    \textbf{Exhaustiveness Checking} & None (silent fallthrough or runtime \texttt{MatchError}) & Comprehensive compile-time check (Warning 8) & Comprehensive compile-time check with warnings/errors \\
+    \textbf{Vollständigkeitsprüfung} & Keine (stiller Durchfall oder Ausnahmefehler) & Umfassend zur Kompilierzeit mit Warnungen & Umfassend zur Kompilierzeit mit Gegenbeispielen \\
     \addlinespace[3pt]
-    \textbf{Total Functions} & Requires defensive \texttt{else} or \texttt{assert\_never} & Naturally enforced on closed sum types & Naturally enforced on closed discriminated unions \\
+    \textbf{Totale Compilerfunktionen} & Erfordert defensive Fallback-Klauseln & Natürlich erzwungen auf geschlossenen Summentypen & Natürlich erzwungen auf geschlossenen Unions \\
     \addlinespace[3pt]
-    \textbf{Collection Immutability} & Mutable \texttt{set} by default; manual \texttt{frozenset} & Immutable persistent trees by default & Immutable persistent trees by default \\
+    \textbf{Unveränderlichkeit} & Veränderlich per Default (\texttt{set}); manuell & Persistent und unveränderlich per Default & Persistent und unveränderlich per Default \\
     \addlinespace[3pt]
-    \textbf{State Space Determinism} & Non-deterministic due to hash seed randomization & Strict mathematical ordering via AVL trees & Strict mathematical ordering via AVL trees \\
+    \textbf{Deterministische Zustände} & Nicht"=deterministisch durch Hash-Randomisierung & Mathematisch streng geordnet durch AVL-Bäume & Mathematisch streng geordnet durch Suchbäume \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-\begin{finding}[Static Soundness vs.\ Prototyping Friction]
-For formal language implementations, \textbf{static soundness provides an immense productivity dividend}. While Python enables rapid initial drafting, the lack of compile-time exhaustiveness checking and structural invariant verification forces developers to write extensive defensive assertions. OCaml and F\# eliminate entire classes of symbolic transformation bugs at compile time, providing a mathematically trustworthy substrate for compiler construction.
+\begin{finding}[\textbf{Statische Korrektheit als Produktivitätsfaktor}]
+In der formalen Sprachverarbeitung bietet statische Typsicherheit einen immensen Produktivitätsvorteil. Während Python eine scheinbar schnellere erste Niederschrift erlaubt, zwingt das Fehlen automatischer Vollständigkeitsprüfungen zu umfangreichen manuellen Plausibilitätstests. OCaml und F\# schließen ganze Fehlerklassen symbolischer Transformationen bereits zur Übersetzungszeit verlässlich aus und stellen damit ein mathematisch weitaus vertrauenswürdigeres Fundament für den Compilerbau dar.
 \end{finding}

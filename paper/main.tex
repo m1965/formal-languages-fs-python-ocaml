@@ -1,5 +1,5 @@
 % ==============================================================================
-% Master Document: Comparative Study of Python, OCaml, and F# in Formal Languages
+% Hauptdokument: Vergleichende Studie von Python, OCaml und F#
 % ==============================================================================
 \documentclass[
   11pt,
@@ -17,27 +17,28 @@
 \begin{document}
 
 % ------------------------------------------------------------------------------
-% TITLE PAGE
+% TITELSEITE
 % ------------------------------------------------------------------------------
 \begin{titlepage}
   \centering
   \vspace*{1.2cm}
-  {\scshape\Large Technical Monograph \& Empirical Language Evaluation\par}
+  {\scshape\Large Technische Monographie \& Empirische Sprachevaluation\par}
   \vspace{1.2cm}
   \rule{\textwidth}{1.5pt}\\[0.5cm]
   {\huge\bfseries\color{NavyBlue}
-    Language Paradigms, Type Systems, and Execution Dynamics:\\[0.35em]
-    \Large A Comparative Study of Python, OCaml, and F\#\\
-    in Formal Language Processing and Compiler Construction\par}
+    Sprachparadigmen, Typsysteme und Ausf{\"u}hrungsdynamik:\\[0.35em]
+    \Large Eine vergleichende Studie von Python, OCaml und F\#\\
+    in der formalen Sprachverarbeitung und im Compilerbau\par}
   \vspace{0.3cm}
   \rule{\textwidth}{1.5pt}\\[1.5cm]
 
   {\large
-    \textbf{Empirical Evaluation of 56 Interactive Jupyter Notebooks Across}\\
-    \textbf{CPython 3.13, OCaml 5.4, and .NET 9 CoreCLR}\par}
+    \textbf{Empirische Evaluation von 56 interaktiven Jupyter-Notebooks unter}\\
+    \textbf{CPython 3.13, OCaml 5.4 und .NET 9 CoreCLR}\par}
 
   \vfill
 
+  \resizebox{\linewidth}{!}{%
   \begin{tikzpicture}[
     box/.style={
       rectangle, rounded corners=4pt, draw=NavyBlue!60, thick,
@@ -47,47 +48,48 @@
   ]
     \node[box, fill=PythonBlue!10, draw=PythonBlue] (py) at (0,0) {
       \textbf{\color{PythonBlue}Python 3.13}\\
-      Dynamic Typing $\cdot$ PEP 484\\
+      Dynamische Typisierung $\cdot$ PEP 484\\
       PLY \& Lark $\cdot$ \texttt{ipykernel}
     };
     \node[box, fill=OCamlOrange!10, draw=OCamlOrange] (ml) at (5.2,0) {
       \textbf{\color{OCamlOrange}OCaml 5.4}\\
-      Hindley--Milner $\cdot$ Functors\\
+      Hindley--Milner $\cdot$ Funktoren\\
       Menhir \& \texttt{ocamllex} $\cdot$ Toplevel
     };
     \node[box, fill=FSharpPurple!10, draw=FSharpPurple] (fs) at (10.4,0) {
       \textbf{\color{FSharpPurple}F\# 9.0 (.NET 9)}\\
-      Nominal ADTs $\cdot$ Active Patterns\\
+      Nominale ADTs $\cdot$ Active Patterns\\
       \texttt{FsLexYacc} $\cdot$ CoreCLR RyuJIT
     };
     \draw[<->, thick, NavyBlue!70] (py) -- (ml);
     \draw[<->, thick, NavyBlue!70] (ml) -- (fs);
-  \end{tikzpicture}
+  \end{tikzpicture}%
+  }
 
   \vfill
 
   {\large
-    Department of Computer Science\\
-    Formal Languages, Automata Theory, and Compiler Construction\\[0.8em]
+    Institut f{\"u}r Informatik\\
+    Formale Sprachen, Automatentheorie und Compilerbau\\[0.8em]
     \today\par}
 \end{titlepage}
 
 % ------------------------------------------------------------------------------
-% ABSTRACT
+% KURZZUSAMMENFASSUNG (ABSTRACT)
 % ------------------------------------------------------------------------------
-\chapter*{Abstract}
-\addcontentsline{toc}{chapter}{Abstract}
+\chapter*{Kurzzusammenfassung}
+\addcontentsline{toc}{chapter}{Kurzzusammenfassung}
 
-Formal languages, automata theory, and compiler construction constitute a foundational domain of computer science whose core abstractions---regular expressions, non-deterministic and deterministic finite automata ($\text{NFA}$, $\text{DFA}$), context-free grammars ($\text{CFG}$), shift-reduce $\text{LR}(1)/\text{LALR}(1)$ parsing tables, abstract syntax trees ($\text{AST}$), and stack-machine compilers---place stringent demands on a programming language's type system, pattern-matching semantics, data-structure representations, and runtime execution engine.
+Die Theorie der formalen Sprachen, die Automatentheorie und der Compilerbau bilden ein unverzichtbares Fundament der Informatik. Ihre zentralen Abstraktionen---reguläre Ausdrücke, nichtdeterministische und deterministische endliche Automaten, kontextfreie Grammatiken, Schiebe-Reduziere-Parsertabellen für LR- und LALR-Verfahren, abstrakte Syntaxbäume und Stack-Maschinen-Compiler---stellen höchste Anforderungen an das Typsystem, die Musterabgleichssemantik, die Datenstrukturen und die Ausführungsleistung einer Programmiersprache.
 
-This monograph presents a comprehensive, empirically grounded comparative evaluation of three complete, semantically equivalent implementations of a thirteen-chapter Formal Languages curriculum hosted in interactive Jupyter Notebooks:
+Diese Monographie präsentiert eine umfassende, empirisch fundierte vergleichende Evaluation dreier vollständiger und semantisch äquivalenter Implementierungen eines dreizehn Kapitel umfassenden Curriculums der formalen Sprachen, bereitgestellt in Form interaktiver Jupyter-Notebooks:
 \begin{enumerate}
-  \item \textbf{Python 3.13 (CPython)}, representing dynamic duck typing with PEP~484 gradual type hints, hash-based immutable collections (\texttt{frozenset}), and runtime parser generators (\texttt{PLY}, \texttt{Lark});
-  \item \textbf{OCaml 5.4}, representing classical ML Hindley--Milner type inference, algebraic variant types, functorial collection modules (\texttt{Set.Make}, \texttt{Map.Make}), and ahead-of-time $\text{LR}(1)$ parser generation (\texttt{ocamllex}, \texttt{Menhir}); and
-  \item \textbf{F\# 9.0 on .NET 9 CoreCLR}, representing pragmatic typed functional programming with nominal discriminated unions, extensible active patterns, compiled \texttt{FsLexYacc} assemblies, and tiered RyuJIT native code generation.
+  \item \textbf{Python 3.13 (CPython)}, als Repräsentant dynamischer Duck-Typisierung mit optionalen Typhilfen nach PEP~484, hashbasierten unveränderlichen Mengensammlungen (\texttt{frozenset}) und laufzeitbasierten Parsergeneratoren (\texttt{PLY}, \texttt{Lark});
+  \item \textbf{OCaml 5.4}, als klassischer Vertreter des Hindley--Milner-Typsystems mit statischer Typinferenz, algebraischen Summentypen, funktoriellen Mengenmodulen (\texttt{Set.Make}) und Ahead-of-Time-Parsergenerierung (\texttt{ocamllex}, \texttt{Menhir}); sowie
+  \item \textbf{F\# 9.0 unter .NET 9 CoreCLR}, als moderne, pragmatische funktionale Sprache mit nominalen discriminated unions, erweiterbaren aktiven Mustern (Active Patterns), vorab kompilierten \texttt{FsLexYacc}-Bibliotheken und nativer RyuJIT-Codeerzeugung.
 \end{enumerate}
 
-Rather than surveying subjective student impressions, our study investigates the intrinsic technical properties of the three language platforms across five orthogonal dimensions: (i)~type system architecture and static soundness guarantees, (ii)~syntactic expressiveness and algorithmic conciseness, (iii)~lexer and parser generator toolchain mechanics, (iv)~empirical execution performance and memory residency across both isolated algorithmic microbenchmarks and end-to-end Jupyter notebook macrobenchmarks, and (v)~interactive notebook kernel architecture and state isolation.
+Anstelle subjektiver Umfragen untersucht diese Studie die intrinsischen technischen Eigenschaften der drei Sprachplattformen entlang fünf orthogonaler Dimensionen: erstens die Typsystem-Architektur und ihre statischen Korrektheitsgarantien, zweitens die syntaktische Ausdrucksstärke und algorithmische Eleganz, drittens die Funktionsweise der Lexer- und Parser-Werkzeuge, viertens die empirische Rechenleistung und Speicherbelegung in isolierten Mikrobenchmarks sowie vollständigen Notizbuch-Läufen und fünftens die Architektur und Zustandsisolation der interaktiven Jupyter-Kernel.
 
 \cleardoublepage
 \tableofcontents
@@ -97,7 +99,7 @@ Rather than surveying subjective student impressions, our study investigates the
 \cleardoublepage
 
 % ------------------------------------------------------------------------------
-% CHAPTERS
+% KAPITEL
 % ------------------------------------------------------------------------------
 \input{chapters/01_introduction}
 \input{chapters/02_type_systems}
@@ -108,7 +110,7 @@ Rather than surveying subjective student impressions, our study investigates the
 \input{chapters/07_recommendation}
 
 % ------------------------------------------------------------------------------
-% BIBLIOGRAPHY
+% LITERATURVERZEICHNIS
 % ------------------------------------------------------------------------------
 \bibliographystyle{plain}
 \bibliography{references}

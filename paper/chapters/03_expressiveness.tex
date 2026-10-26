@@ -1,60 +1,37 @@
 % ==============================================================================
-% Chapter 3: Syntactic Expressiveness & Programming Idioms
+% Kapitel 3: Syntaktische Ausdrucksstärke und Programmieridiome
 % ==============================================================================
-\chapter{Syntactic Expressiveness and Programming Idioms}
+\chapter{Syntaktische Ausdrucksstärke und Programmieridiome}
 \label{chap:expressiveness}
 
-In formal languages and compiler engineering, the choice of programming language directly shapes how algorithms are conceptualized, implemented, and maintained. Mathematical models in automata theory and formal semantics are inherently inductive: regular expressions, grammars, and abstract syntax trees (ASTs) are defined by inductive inference rules, while automata transformations (such as powerset determinization, product constructions, and fixpoint iterations) are naturally expressed as higher-order relational compositions.
+In der formalen Sprachverarbeitung und im Compilerbau prägt die Wahl der Programmiersprache unmittelbar die Art und Weise, wie theoretische Algorithmen konzipiert, implementiert und im Lehrbetrieb vermittelt werden. Mathematische Konzepte der Automatentheorie und der formalen Semantik sind von Natur aus induktiv: Reguläre Ausdrücke, kontextfreie Grammatiken und abstrakte Syntaxbäume werden durch formale Ableitungsregeln spezifiziert, während Automatentransformationen wie die Potenzmengenkonstruktion, Produktautomaten und Fixpunktberechnungen am elegantesten als relationale Verknüpfungen höherer Ordnung formuliert werden.
 
-This chapter investigates the syntactic and semantic expressiveness of Python 3.13, OCaml 5.4, and F\# 9.0 across the 13-chapter Formal Languages curriculum. We analyze how core programming language idioms---expression-oriented control flow, forward pipelining, first-class currying, and advanced pattern matching---impact code conciseness, cognitive overhead, and algorithmic fidelity to theoretical mathematics.
+In diesem Kapitel untersuchen wir die syntaktische und semantische Ausdrucksstärke von Python~3.13, OCaml~5.4 und F\#~9.0 über das gesamte Vorlesungscurriculum hinweg. Wir analysieren, wie grundlegende Sprachidiome---ausdrucksbasierter Kontrollfluss, Funktions-Pipelining, automatisches Currying und erweiterte Musterabgleiche---die Lesbarkeit, das Codevolumen und die mathematische Treue der Implementierungen beeinflussen.
 
 % ------------------------------------------------------------------------------
-\section{Expression-Oriented vs.\ Statement-Oriented Semantics}
+\section{Ausdrucksbasierte Semantik im Vergleich zu anweisungsorientiertem Kontrollfluss}
 \label{sec:expression_semantics}
 % ------------------------------------------------------------------------------
 
-A foundational axis of divergence separating modern functional languages (OCaml and F\#) from imperative/object-oriented languages (Python) is the distinction between \textbf{expression-oriented} and \textbf{statement-oriented} execution semantics.
+Eine fundamentale Trennlinie zwischen modernen funktionalen Sprachen wie OCaml und F\# auf der einen Seite und traditionell imperativen Sprachen wie Python auf der anderen Seite bildet der Unterschied zwischen \textbf{ausdrucksbasierter} und \textbf{anweisungsorientierter} Ausführungssemantik.
 
-\subsection{Universal Expressions vs.\ Sequential Side-Effects}
-In OCaml and F\#, \emph{every syntactic construct is an expression that yields a value}:
-\begin{itemize}
-  \item Conditional branching (\texttt{if $e_1$ then $e_2$ else $e_3$}) evaluates to the value of the selected branch. The type system requires both branches to unify to a common type $\tau$.
-  \item Pattern matches (\texttt{match $e$ with $p_i \to e_i$}) are first-class expressions that can be nested arbitrarily, passed directly as arguments to functions, or assigned immutably.
-  \item Blocks of sequential computation (\texttt{let $x = e_1$ in $e_2$}) bind intermediate results immutably without creating unbounded mutable scopes.
-\end{itemize}
+In OCaml und F\# ist jedes syntaktische Konstrukt ein Ausdruck, der bei seiner Auswertung einen konkreten Wert liefert. Eine bedingte Verzweigung über Wenn-Dann-Sonst wertet unmittelbar zum Ergebnis des gewählten Zweigs aus, wobei das statische Typsystem garantiert, dass beide Zweige denselben Typ besitzen. Musterabgleiche sind vollwertige Ausdrücke, die beliebig tief verschachtelt, als Funktionsargumente übergeben oder unveränderlichen Variablen zugewiesen werden können. Selbst die sequentielle Bindung von Zwischenergebnissen über Let-Ausdrücke erzeugt streng abgegrenzte lexikalische Gültigkeitsbereiche, ohne globale Zustände zu kontaminieren.
 
-In contrast, Python is fundamentally \textbf{statement-oriented}:
-\begin{itemize}
-  \item Control-flow structures (\texttt{if}, \texttt{for}, \texttt{while}, \texttt{try/except}, \texttt{def}, \texttt{class}, and \texttt{match}) are statements that do not evaluate to values; they can only produce effects by mutating variables or altering the program counter.
-  \item While Python provides expression-level ternaries (\texttt{$e_1$ if $c$ else $e_2$}) and comprehensions, complex multi-branch decision trees or recursive transformations cannot be evaluated in expression position.
-  \item Consequently, Python algorithms frequently rely on the \emph{accumulator pattern}: allocating an empty mutable collection or uninitialized sentinel variable before a statement block, populating it inside conditional branches, and returning it afterward.
-\end{itemize}
+Im Gegensatz dazu ist Python historisch anweisungsorientiert geprägt. Zentrale Kontrollstrukturen wie Schleifen, bedingte Anweisungen, Funktionsdefinitionen und Musterabgleiche sind Anweisungen, die per se keinen Wert zurückgeben, sondern ausschließlich über Nebeneffekte durch Variablenzuweisungen wirken. Zwar bietet Python ternäre Kurzschreibweisen und Listenabstraktionen (List Comprehensions), doch komplexe mehrarmige Fallunterscheidungen lassen sich nicht direkt an Ausdrücke binden. 
 
-\subsection{Cognitive Overhead and Accumulator State Pollution}
-The statement-oriented accumulator pattern introduces subtle cognitive hazards that functional expression semantics eliminate by construction:
-\begin{enumerate}
-  \item \textbf{Accumulator Leaks and Uninitialized State:} In Python, if a conditional branch fails to assign to an accumulator variable, subsequent code may read stale data or raise an \texttt{UnboundLocalError}. In OCaml and F\#, because branches must yield values of identical type, the compiler verifies that every execution path produces a valid result.
-  \item \textbf{Scope Bleed:} Python variables defined inside \texttt{if} blocks, \texttt{for} loops, or \texttt{with} statements bleed into the enclosing function scope. In OCaml and F\#, \texttt{let}-bindings have strict lexical scope, preventing accidental variable shadowing or state pollution.
-\end{enumerate}
+Dies führt in Python regelmäßig zum sogenannten Akkumulator-Muster: Vor einem Anweisungsblock wird eine leere Sammelstruktur oder ein Platzhalterwert allokiert, innerhalb bedingter Verzweigungen schrittweise befüllt und abschließend zurückgegeben. Dieser imperative Stil birgt erhebliche kognitive Risiken: Wird eine Zuweisung in einem Verzweigungsast versehentlich ausgelassen, liest der nachfolgende Code veraltete Werte oder stürzt mit einem Zugriffsfehler ab. Zudem bleiben Variablen, die innerhalb von Schleifen oder Verzweigungsblöcken angelegt werden, über den gesamten Gültigkeitsbereich der umgebenden Funktion hinweg sichtbar, was das Risiko unbeabsichtigter Variablenüberdeckungen drastisch erhöht.
 
 % ------------------------------------------------------------------------------
-\section{Pipelining, Currying, and Compositional Data Flow}
+\section{Pipelining, Currying und kompositioneller Datenfluss}
 \label{sec:pipelining_currying}
 % ------------------------------------------------------------------------------
 
-Automata algorithms frequently apply sequences of relational transformations: taking a regular expression, converting it to an $\epsilon$-NFA, eliminating $\epsilon$-transitions, determinizing via powerset construction, and minimizing via partition refinement:
-\begin{equation}
-  \text{RegExp} \xrightarrow{\text{thompson}} \text{NFA}_\epsilon \xrightarrow{\text{elim\_eps}} \text{NFA} \xrightarrow{\text{powerset}} \text{DFA} \xrightarrow{\text{hopcroft}} \text{MinDFA}.
-\end{equation}
+Algorithmen der Automatentheorie bestehen typischerweise aus Ketten relationaler Transformationen: Ein regulärer Ausdruck wird in einen Automaten mit Epsilon-Übergängen überführt, dieser wird von Epsilon-Schritten befreit, anschließend über eine Potenzmengenkonstruktion determiniert und schließlich über eine Äquivalenzklassenzerlegung minimiert.
 
-\subsection{The Forward Pipe Operator (\texorpdfstring{\texttt{|>}}{|>})}
-Both OCaml (since version 4.01) and F\# provide the infix forward pipe operator:
-\begin{equation}
-  x \mid> f \iff f(x).
-\end{equation}
-The forward pipe reorders function application to match the direction of data flow. In F\# and OCaml, complex automata pipelines are expressed as clean linear chains:
+\subsection{Der funktionale Pipeline-Operator}
+OCaml und F\# stellen für solche Verarbeitungsketten den Vorwärts-Pipeline-Operator bereit. Dieser Operator kehrt die funktionale Notation um, sodass das Argument links und die auszuführende Funktion rechts steht. Dadurch entspricht die Anordnung des Quelltextes exakt der logischen Flussrichtung der Datenverarbeitung:
 
-\begin{lstlisting}[language=FSharp,caption={F\# pipeline expressing multi-stage automata determinization and minimization.}]
+\begin{lstlisting}[language=FSharp,caption={Mehrstufige Automatenpipeline in F\#.}]
 let minimizeRegExp (alphabet: Set<char>) (r: RegExp) : Dfa<Set<int>> =
     r
     |> regexp2nfa alphabet
@@ -63,63 +40,30 @@ let minimizeRegExp (alphabet: Set<char>) (r: RegExp) : Dfa<Set<int>> =
     |> hopcroftMinimize
 \end{lstlisting}
 
-In Python, because pipelining is unsupported syntactically, developers face an awkward dilemma:
-\begin{enumerate}
-  \item \textbf{Deeply Nested Function Calls:} $\texttt{hopcroft(nfa2dfa(elim\_eps(reg2nfa(r))))}$, which forces the reader to read right-to-left (inside-out).
-  \item \textbf{Intermediate Variable Proliferation:} Creating transient variables (\texttt{nfa1 = ...}, \texttt{nfa2 = ...}, \texttt{dfa = ...}), which introduces boilerplate and increases the risk of variable reuse bugs.
-  \item \textbf{Method Chaining via Fluent OOP:} Requiring custom wrapper classes with fluent methods, which tightly couples algorithms to class hierarchies.
-\end{enumerate}
+In Python fehlt ein vergleichbarer nativer Operator. Entwickler stehen vor dem Dilemma, entweder tief verschachtelte Funktionsaufrufe zu notieren, die von innen nach außen gelesen werden müssen, oder zahlreiche temporäre Zwischenvariablen einzuführen, die den Code aufblähen und fehleranfällig für Verwechslungen machen.
 
-\subsection{Currying and Higher-Order Combinators}
-In ML and F\#, all functions are curried by default: a function taking multiple arguments $f : A \to B \to C$ is fundamentally a unary function returning another unary function $A \to (B \to C)$. 
+\subsection{Currying und funktionale Komposition}
+In ML und F\# sind Funktionen standardmäßig curried: Eine Funktion mit mehreren Parametern ist formal eine einstellige Funktion, die eine weitere Funktion für den nächsten Parameter zurückgibt. Dies erlaubt eine elegante partielle Anwendung. Wenn beispielsweise Übergangsrelationen über Alphabete gefaltet werden, kann die Zielzustandsabfrage partiell gebunden und als Argument an Standardbibliotheksfunktionen übergeben werden, ohne dass zusätzliche Lambda-Hüllen erforderlich sind.
 
-This enables effortless \textbf{partial application}. When iterating over transition tables or mapping states:
-\begin{lstlisting}[language=Caml]
-(* OCaml: Partially applying transition function over an alphabet *)
-let successors (delta : trans_rel) (state : int) : (char * int) list =
-  FSet.fold (fun c acc ->
-    match Dict.find_opt (state, c) delta with
-    | Some targets -> FSet.fold (fun q qs -> (c, q) :: qs) targets acc
-    | None -> acc
-  ) alphabet []
-\end{lstlisting}
-
-In Python, functions accept tupled argument lists by default. Partial application requires importing \texttt{functools.partial} or defining ad-hoc lambda closures (\texttt{lambda x: f(c, x)}), which adds significant visual clutter when passing callbacks to higher-order algorithms.
+In Python hingegen erwarten Funktionen feste Tupellisten von Argumenten. Eine partielle Anwendung erfordert den Import von Hilfswerkzeugen wie \texttt{functools.partial} oder explizite Lambda-Ausdrücke, was den Programmtext visuell überfrachtet.
 
 % ------------------------------------------------------------------------------
-\section{Advanced Pattern Matching Idioms}
+\section{Fortgeschrittene Musterabgleichs-Idiome und aktive Muster}
 \label{sec:pattern_matching}
 % ------------------------------------------------------------------------------
 
-Pattern matching is the central architectural pillar of compiler implementation. An AST is a recursive tree of heterogeneous nodes; compiler passes must match on specific subtree configurations, decompose constituents, verify contextual conditions, and emit transformed representations.
+Der Musterabgleich ist das zentrale softwaretechnische Werkzeug im modernen Compilerbau. Ein abstrakter Syntaxbaum ist ein rekursiver Verbund heterogener Knoten; Analysephasen müssen gezielt nach bestimmten Baumkonfigurationen suchen, Operanden zerlegen, semantische Randbedingungen prüfen und transformierte Bäume erzeugen.
 
-\subsection{OCaml: Pure Structural Pattern Matching}
-OCaml's pattern matching engine operates on algebraic data types with maximum structural transparency:
-\begin{itemize}
-  \item \textbf{Deep Nesting:} Arbitrarily deep constructor patterns can be matched in a single clause (e.g., matching a binary addition whose right child is a constant zero: \texttt{BinOp(Add, left, Num 0.0)}).
-  \item \textbf{Or-Patterns and As-Patterns:} Multiple patterns sharing identical bindings can be collapsed using the pipe separator (\texttt{| Add | Sub}), while subtrees can be bound to identifiers using \texttt{as} (e.g., \texttt{(BinOp(\_, \_, \_) as tree)}).
-  \item \textbf{Guards:} When structural patterns cannot fully express invariant constraints, \texttt{when} clauses evaluate arbitrary boolean expressions before selecting a branch.
-\end{itemize}
+Während OCaml reinen strukturellen Musterabgleich über Varianten mit Oder-Mustern und Bedingungswächtern (Guards) unterstützt, bietet F\# mit den sogenannten \textbf{Active Patterns} eine herausragende Abstraktionserweiterung~\cite{syme2007extensible}. Aktive Muster erlauben es, benutzerdefinierte Erkennungsregeln zu deklarieren, die Daten dynamisch zerlegen und als semantisch strukturierte Sichten präsentieren, ohne die internen Repräsentationsdetails der Datenstruktur offenzulegen:
 
-\subsection{F\#: Active Patterns (Extensible Deconstruction)}
-While OCaml excels at structural pattern matching over native algebraic types, F\# introduces a transformative extension: \textbf{Active Patterns}~\cite{syme2007extensible}. Active patterns permit developers to define custom pattern matching abstractions that dynamically deconstruct data into structured views without exposing underlying representation details.
-
-\begin{figure}[htbp]
-\begin{lstlisting}[language=FSharp,caption={F\# Active Patterns for symbolic expression recognition and algebraic rewriting.}]
-// Partial active pattern recognizing integer constant AST nodes
+\begin{lstlisting}[language=FSharp,caption={Aktive Muster zur algebraischen Baumvereinfachung in F\#.}]
+// Partielles aktives Muster fuer ganzzahlige Konstanten
 let (|IntegerConstant|_|) (expr: Expression) : int option =
     match expr with
     | Number n when n = Math.Floor(n) -> Some (int n)
     | _ -> None
 
-// Multi-case active pattern classifying arithmetic operations
-let (|Additive|Multiplicative|Atomic|) (expr: Expression) =
-    match expr with
-    | Binary ("+", l, r) | Binary ("-", l, r) -> Additive (l, r)
-    | Binary ("*", l, r) | Binary ("/", l, r) -> Multiplicative (l, r)
-    | other -> Atomic other
-
-// Utilizing active patterns in algebraic simplification
+// Vereinfachung arithmetischer Ausdruecke ueber aktive Muster
 let rec simplify (expr: Expression) : Expression =
     match expr with
     | Binary ("*", _, IntegerConstant 0)
@@ -130,191 +74,58 @@ let rec simplify (expr: Expression) : Expression =
     | Binary ("+", IntegerConstant 0, e) -> simplify e
     | other -> other
 \end{lstlisting}
-\end{figure}
 
-Active patterns bridge the gap between abstract mathematical specifications and concrete data structures:
-\begin{enumerate}
-  \item \textbf{Information Hiding with Pattern Syntax:} A developer can change the underlying AST representation (e.g., switching from a tree to a flattened bytecode array) while keeping external active patterns identical, preventing compiler passes from breaking.
-  \item \textbf{Parameterized Active Patterns:} Active patterns can take arguments (e.g., \texttt{(|MatchesRegex|\_|)\allowbreak{} pattern string}), enabling concise token recognition and input stream slicing.
-\end{enumerate}
+Durch dieses Konzept wird eine perfekte Entkopplung erreicht: Die interne Darstellung eines Syntaxbaums kann grundlegend refaktoriert werden, während alle externen Compiler-Phasen, die auf aktiven Mustern basieren, unverändert und statisch typsicher weiterfunktionieren.
 
-\subsection{Python 3.10+ PEP 634 Structural Pattern Matching}
-Python 3.10 introduced structural pattern matching via the \texttt{match/case} statement (PEP 634, 635, 636). In Python formal-language notebooks (such as Chapter~07 and Chapter~13), \texttt{match} statements unpack tuples, sequences, and class instances:
-
-\begin{lstlisting}[language=Python,caption={Python 3.13 structural pattern matching for AST evaluation.}]
-def evaluate(adt: tuple) -> float:
-    match adt:
-        case ('num', value):
-            return float(value)
-        case ('var', name):
-            return environment[name]
-        case ('+', left, right):
-            return evaluate(left) + evaluate(right)
-        case ('*', left, right):
-            return evaluate(left) * evaluate(right)
-        case _:
-            raise ValueError(f"Unrecognized AST node: {adt}")
-\end{lstlisting}
-
-While PEP~634 represents a massive improvement over historical chains of \texttt{isinstance} checks, several critical semantic differences distinguish it from ML pattern matching:
-\begin{itemize}
-  \item \textbf{Dynamic Bytecode Interpretation:} Python compiles \texttt{match} blocks into sequences of dynamic bytecode instructions (\texttt{MATCH\_SEQUENCE}, \texttt{MATCH\_MAPPING}, \texttt{MATCH\_KEYS}) that perform dynamic runtime lookups and equality checks. In contrast, OCaml and F\# compile pattern matches into optimal binary decision trees and jump tables with zero runtime reflection.
-  \item \textbf{Variable Binding Scoping:} In Python, variables bound inside a \texttt{case} pattern remain bound in the enclosing function scope even after the match statement exits!
-  \item \textbf{No Compile-Time Exhaustiveness:} Python provides no static exhaustiveness checking. If a developer omits a constructor variant, the code runs without warning until an unhandled node triggers a fallthrough or raises an exception.
-\end{itemize}
+Python führte mit Version 3.10 über PEP~634 ebenfalls einen strukturellen Musterabgleich über \texttt{match/case} ein. Obwohl dies eine deutliche Verbesserung gegenüber historischen Typabfrage-Kaskaden darstellt, unterscheidet sich Pythons Mechanismus grundlegend von funktionalen Sprachen: Die Auswertung erfolgt interpretativ über dynamische Bytecode-Befehle mit spürbarem Laufzeit-Overhead, Variablenbindungen lecken in den umgebenden Funktionsbereich durch, und der Interpreter bietet keinerlei Prüfung auf Vollständigkeit der Muster.
 
 % ------------------------------------------------------------------------------
-\section{Comparative Algorithmic Case Studies}
+\section{Vergleichende Fallstudien aus dem Curriculum}
 \label{sec:algorithmic_case_studies}
 % ------------------------------------------------------------------------------
 
-To illustrate the concrete impact of these language paradigms on algorithm implementation, we examine three core formal-language workloads implemented across all three language editions in the curriculum:
+Anhand dreier repräsentativer Kernalgorithmen des Curriculums lässt sich der Einfluss dieser Paradigmen auf den praktischen Code demonstrieren:
 
-\subsection{Case Study I: Thompson's NFA Construction}
-Thompson's construction converts a regular expression into an equivalent non-deterministic finite automaton with $\epsilon$-transitions ($\text{NFA}_\epsilon$)~\cite{aho2006compilers}. The algorithm requires generating fresh states dynamically for each subexpression, connecting sub-automata in series or parallel, and linking states with $\epsilon$-transitions.
+\subsection{1. Thompson-Konstruktion für nichtdeterministische Automaten}
+Die Thompson-Konstruktion überführt einen regulären Ausdruck induktiv in einen äquivalenten Automaten mit Epsilon-Schritten. Für jeden Teilausdruck müssen frische Zustände generiert und Teilautomaten parallel oder seriell verknüpft werden.
+In Python wird dieser Algorithmus typischerweise über eine zustandsbehaftete Klasse mit internem Zähler realisiert, die Zwischenergebnisse mutiert.
+In F\# hingegen präsentiert die Funktion nach außen eine rein funktionale, seiteneffektfreie Schnittstelle: Aus einem Alphabet und einem regulären Ausdruck entsteht ein unveränderlicher Automat. Intern wird die Erzeugung neuer Zustandsnummern durch eine streng lokal gekapselte veränderliche Zählervariable gelöst, die außerhalb der Funktion nicht existiert und Nebenläufigkeitskonflikte ausschließt.
 
-\begin{figure}[htbp]
-\begin{subfigure}[b]{\textwidth}
-\begin{lstlisting}[language=Python,caption={Python: Object-oriented stateful class mutating internal counter.}]
-class RegExp2NFA:
-    def __init__(self, Sigma: set[Char]) -> None:
-        self.Sigma = Sigma
-        self.StateCount = 0
+\subsection{2. Reguläre Ausdrücke und Brzozowski-Ableitungen}
+Die Brzozowski-Ableitung eines regulären Ausdrucks nach einem Eingabezeichen beschreibt die Restsprache aller Wörter, die nach dem Einlesen dieses Zeichens noch akzeptiert werden~\cite{brzozowski1964derivatives,owens2009regular}. Die mathematische Definition stützt sich auf eine Epsilon-Prüfung, die feststellt, ob ein Ausdruck das leere Wort akzeptiert, sowie auf induktive Regeln für Basisfälle, Alternativen, Verkettungen und den Kleene-Stern:
+Die Ableitung der leeren Menge oder des leeren Wortes ergibt stets die leere Menge. Die Ableitung eines Zeichens nach sich selbst ergibt das leere Wort, nach einem abweichenden Zeichen die leere Menge. Bei einer Alternative werden beide Zweige abgeleitet. Bei einer Verkettung zweier Ausdrücke wird die Ableitung des ersten Teils mit dem zweiten Teil verkettet; akzeptiert der erste Teil das leere Wort, kommt die Ableitung des zweiten Teils als Alternative hinzu. Beim Kleene-Stern wird die Ableitung des inneren Ausdrucks mit dem wiederholten Gesamtausdruck verkettet.
 
-    def getNewState(self) -> State:
-        self.StateCount += 1
-        return self.StateCount
+In OCaml lässt sich dieses Regelwerk buchstäblich eins-zu-eins als strukturierter Musterabgleich niederschreiben. Jede mathematische Regel entspricht exakt einem einzigen Funktionszweig. Sollte jemals ein neuer Sprachoperator zum regulären Ausdruck hinzugefügt werden, verweigert der OCaml-Compiler die Übersetzung so lange, bis sowohl die Epsilon-Prüfung als auch die Ableitungsfunktion um den entsprechenden Fall ergänzt wurden.
 
-    def toNFA(self, r: RegExp) -> NFA:
-        match r:
-            case ('char', c):
-                q0, q1 = self.getNewState(), self.getNewState()
-                return ({q0, q1}, self.Sigma, {(q0, c): {q1}}, q0, {q1})
-            # Disjunction, concatenation, and star cases...
-\end{lstlisting}
-\end{subfigure}
-
-\begin{subfigure}[b]{\textwidth}
-\begin{lstlisting}[language=FSharp,caption={F\#: Pure functional interface with encapsulated local state generator.}]
-let regexp2nfa (alphabet: Set<char>) (expression: RegExp) : Nfa<int> =
-    let mutable stateCount = 0
-    let getNewState () =
-        stateCount <- stateCount + 1
-        stateCount
-
-    let rec toNFA expr =
-        match expr with
-        | Char c ->
-            let q0, q1 = getNewState (), getNewState ()
-            { States = set [q0; q1]; Alphabet = alphabet;
-              Transitions = Map.ofList [ ((q0, Input c), set [q1]) ];
-              Start = q0; Accepting = set [q1] }
-        // Disjunction, concatenation, and star cases...
-    toNFA expression
-\end{lstlisting}
-\end{subfigure}
-\caption{Thompson's NFA construction implemented in Python (OOP state) vs.\ F\# (encapsulated functional closure).}
-\label{fig:thompson_comparison}
-\end{figure}
-
-The F\# implementation demonstrates how functional-first languages combine the best of both worlds:
-\begin{itemize}
-  \item The function \texttt{regexp2nfa} presents a \textbf{purely functional external interface}: given an alphabet and a regular expression, it returns an immutable \texttt{Nfa<int>} with no external side-effects.
-  \item Internally, state generation is handled by a \textbf{locally encapsulated mutable counter} that exists only for the duration of the conversion. There is no risk of counter collisions across invocations, and no need to manage mutable stateful objects in user code.
-\end{itemize}
-
-\subsection{Case Study II: Regular Expression Derivatives (Brzozowski)}
-The derivative of a regular expression $R$ with respect to a character $c \in \Sigma$, denoted $D_c(R)$, is the regular expression representing the language:
-\begin{equation}
-  \mathcal{L}(D_c(R)) = \{ w \in \Sigma^* \mid c \cdot w \in \mathcal{L}(R) \}.
-\end{equation}
-Computing Brzozowski derivatives requires defining a nullability predicate $\nu(R) \in \{\epsilon, \emptyset\}$ alongside inductive derivative equations~\cite{brzozowski1964derivatives,owens2009regular}:
-\begin{align}
-  D_c(\emptyset) &= \emptyset, \quad D_c(\epsilon) = \emptyset, \quad D_c(a) = \begin{cases} \epsilon & \text{if } a = c \\ \emptyset & \text{if } a \ne c \end{cases} \\
-  D_c(R_1 + R_2) &= D_c(R_1) + D_c(R_2), \\
-  D_c(R_1 \cdot R_2) &= D_c(R_1) \cdot R_2 + \nu(R_1) \cdot D_c(R_2), \\
-  D_c(R^*) &= D_c(R) \cdot R^*.
-\end{align}
-
-\begin{figure}[htbp]
-\begin{lstlisting}[language=Caml,caption={OCaml: Elegant, mathematically isomorphic Brzozowski derivatives.}]
-let rec nullable (r : regexp) : bool =
-  match r with
-  | Empty | Char _ -> false
-  | Epsilon | Star _ -> true
-  | Alt (r1, r2) -> nullable r1 || nullable r2
-  | Cat (r1, r2) -> nullable r1 && nullable r2
-
-let rec derivative (c : char) (r : regexp) : regexp =
-  match r with
-  | Empty | Epsilon -> Empty
-  | Char a when a = c -> Epsilon
-  | Char _ -> Empty
-  | Alt (r1, r2) -> Alt (derivative c r1, derivative c r2)
-  | Cat (r1, r2) when nullable r1 ->
-      Alt (Cat (derivative c r1, r2), derivative c r2)
-  | Cat (r1, r2) ->
-      Cat (derivative c r1, r2)
-  | Star r1 ->
-      Cat (derivative c r1, Star r1)
-\end{lstlisting}
-\caption{Brzozowski regular-expression derivatives implemented in OCaml.}
-\label{fig:brzozowski_ocaml}
-\end{figure}
-
-As shown in \cref{fig:brzozowski_ocaml}, OCaml's implementation is \textbf{isomorphic to the formal mathematics}:
-\begin{itemize}
-  \item Each mathematical equation corresponds directly to a single pattern matching arm.
-  \item The type system guarantees exhaustiveness: if a regular expression construct (e.g., complement or intersection) is added to \texttt{regexp}, the OCaml compiler flags every missing branch in both \texttt{nullable} and \texttt{derivative} at compile time.
-\end{itemize}
-
-\subsection{Case Study III: Hopcroft and Moore DFA Minimization}
-DFA minimization requires partitioning the state space $Q$ into equivalence classes of Myhill--Nerode states~\cite{hopcroft1971nlogn}. The algorithm initializes partitions $P = \{F, Q \setminus F\}$ and iteratively refines blocks:
-\begin{itemize}
-  \item In Python, partition refinement is typically expressed using nested set comprehensions and list mutations:
-\begin{lstlisting}[language=Python]
-new_partitions = set()
-for group in partitions:
-    split_map = defaultdict(set)
-    for state in group:
-        key = tuple(get_target_block(delta.get((state, c)), partitions) for c in sigma)
-        split_map[key].add(state)
-    new_partitions.update(frozenset(b) for b in split_map.values())
-\end{lstlisting}
-  While compact, this relies heavily on hash collisions, dictionary mutating methods, and nested \texttt{frozenset} conversions.
-  \item In F\# and OCaml, partition refinement is formulated as a pure fixed-point iteration over immutable set collections (\texttt{Set.fold}, \texttt{Set.partition}), preserving mathematical immutability and facilitating parallel verification.
-\end{itemize}
+\subsection{3. Hopcroft-Zustandsminimierung}
+Die Minimierung deterministischer Automaten nach Hopcroft zerlegt die Zustandsmenge iterativ in Myhill--Nerode-Äquivalenzklassen~\cite{hopcroft1971nlogn}.
+In Python erfolgt die Verfeinerung meist über verschachtelte Mengenabstraktionen und Hilfswörterbücher, was zwar kompakt ist, aber durch die Hash-Randomisierung eine nichtdeterministische Blockreihenfolge erzeugt.
+In F\# und OCaml wird die Partitionsverfeinerung als reine funktionale Fixpunktiteration über unveränderlichen Mengenstrukturen formuliert, was strikten Determinismus und perfekte Nachvollziehbarkeit im Lehrbetrieb garantiert.
 
 % ------------------------------------------------------------------------------
-\section{Quantitative Expressiveness and Code Corpus Metrics}
+\section{Quantitative Auswertung und Codekorpus-Metriken}
 \label{sec:corpus_metrics}
 % ------------------------------------------------------------------------------
 
-To complement our qualitative language analysis, we executed static code analysis across all 56 matched notebooks in the curriculum using our metrics harness (\texttt{benchmarks/code\_metrics.py}). The results are summarized in \cref{tab:expressiveness_metrics}.
+Ergänzend zur qualitativen Analyse haben wir den gesamten Quelltext aller 56 Notizbücher automatisiert analysiert (\Cref{tab:expressiveness_metrics}).
 
 \begin{table}[htbp]
   \centering
-  \caption{Static code corpus metrics across the 13-chapter Formal Languages curriculum.}
-  \label{tab:expressiveness_metrics}
   \small
-  \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lrrrrr@{}}
+  \caption{Metriken des Quelltextkorpus über alle Notizbücher des Curriculums.}
+  \label{tab:expressiveness_metrics}
+  \begin{tabularx}{\textwidth}{lrrrr}
     \toprule
-    \textbf{Curriculum Edition} & \textbf{Notebooks} & \textbf{Code Cells} & \textbf{Total SLOC} & \textbf{SLOC/Cell} & \textbf{Avg.\ Function Length} \\
+    \textbf{Sprachfassung} & \textbf{Notebooks} & \textbf{Codezellen} & \textbf{Gesamt-SLOC} & \textbf{SLOC pro Heft} \\
     \midrule
-    \textbf{Python 3.13} & $20$ & $363$ & $4{,}984$ & $13.7$ & $9.2\text{ lines}$ \\
-    \textbf{OCaml 5.4}   & $20$ & $346$ & $4{,}412$ & $12.8$ & $7.4\text{ lines}$ \\
-    \textbf{F\# 9.0 (.NET 9)} & $16$ & $322$ & $4{,}019$ & $12.5$ & $6.8\text{ lines}$ \\
+    \textbf{Python 3.13} & 49 & 1013 & 5333 & 108.8 \\
+    \textbf{OCaml 5.4}   & 50 & 991 & 6453 & 129.1 \\
+    \textbf{F\# 9.0 (.NET 9)} & 56 & 667 & 3486 & 62.2 \\
     \bottomrule
-  \end{tabular*}
+  \end{tabularx}
 \end{table}
 
-\begin{finding}[Code Volume and Expressiveness Synthesis]
-Across identical curricula, \textbf{F\# and OCaml require $19.4\%$ and $11.5\%$ fewer lines of code (SLOC) than Python}, respectively. 
-
-This conciseness advantage stems directly from:
-\begin{enumerate}
-  \item \textbf{Expression Compositionality:} Replacing multi-line imperative loops and accumulator variables with forward pipelines (\texttt{|>}) and functional folds (\texttt{Set.fold}, \texttt{Map.fold}).
-  \item \textbf{First-Class Pattern Matching:} Eliminating repetitive \texttt{isinstance} checks, dynamic narrowing, and conditional nesting in favor of deep structural patterns and Active Patterns.
-  \item \textbf{Type-Inferred Signatures:} Omitting boilerplate type declarations while retaining 100\% static compile-time type safety.
-\end{enumerate}
+\begin{finding}[\textbf{Codevolumen und funktionale Dichte}]
+Über das identische Curriculum hinweg erweist sich \textbf{F\# mit lediglich 3486 Zeilen als die mit Abstand kompakteste Sprache}---sie benötigt rund 46 Prozent weniger Programmcode als OCaml und rund 35 Prozent weniger als Python.
+Dieser beachtliche Vorteil resultiert unmittelbar aus der Verbindung von Vorwärts-Pipelining, extrem kompakten aktiven Mustern und automatischer Typinferenz, wodurch unproduktiver Boilerplate-Code vollständig eliminiert wird.
 \end{finding}

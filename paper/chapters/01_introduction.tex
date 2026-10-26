@@ -1,98 +1,98 @@
 % ==============================================================================
-% Chapter 1: Introduction & Methodological Framework
+% Kapitel 1: Einleitung und methodischer Rahmen
 % ==============================================================================
-\chapter{Introduction and Methodological Framework}
+\chapter{Einleitung und methodischer Rahmen}
 \label{chap:introduction}
 
-Formal languages, automata theory, and compiler construction constitute the bedrock of theoretical and applied computer science~\cite{aho2006compilers,hopcroft2006automata,sipser2012introduction}. Since the foundational formulations of the Chomsky hierarchy~\cite{chomsky1956three}, finite-state automata, and deterministic context-free parsing~\cite{knuth1965translation,earley1970efficient}, the domain has served as the ultimate crucible for language design. 
+Die Theorie der formalen Sprachen, die Automatentheorie und der Compilerbau bilden seit den Anfängen der theoretischen und praktischen Informatik ein unverzichtbares Fundament der Softwarewissenschaft~\cite{aho2006compilers,hopcroft2006automata,sipser2012introduction}. Seit der Etablierung der Chomsky-Hierarchie~\cite{chomsky1956three}, der mathematischen Formalisierung endlicher Zustandsautomaten und der Entwicklung deterministischer Verfahren für die kontextfreie Syntaxanalyse~\cite{knuth1965translation,earley1970efficient} dient dieses Fachgebiet als Prüfstein für das Design und die Leistungsfähigkeit von Programmiersprachen.
 
-Unlike numerical computing or enterprise web applications, formal-language processing operates on deeply recursive symbolic structures: regular expressions, abstract syntax trees, non-deterministic and deterministic transition graphs, and fixed-point table constructions. The elegance, correctness, and performance with which a programming language expresses these algorithms reveal the fundamental capabilities of its type system, execution engine, and runtime semantics.
+Im Unterschied zur rein numerischen Datenverarbeitung oder klassischen Webanwendungen operiert die formale Sprachverarbeitung auf tief verschachtelten, rekursiven symbolischen Datenstrukturen: induktiv definierten regulären Ausdrücken, abstrakten Syntaxbäumen, gerichteten Übergangsgraphen mit Nichtdeterminismus sowie tabellenbasierten Fixpunktiterationen. Die Eleganz, funktionale Korrektheit und Rechenleistung, mit der eine Programmiersprache diese Algorithmen beschreiben kann, offenbaren die fundamentalen Stärken und Grenzen ihres Typsystems, ihrer semantischen Ausdruckskraft und ihrer Ausführungsumgebung.
 
 % ------------------------------------------------------------------------------
-\section{The Domain: Symbolic Complexity and Mathematical Rigor}
+\section{Der Gegenstandsbereich: Symbolische Komplexität und mathematische Strenge}
 \label{sec:intro_domain}
 % ------------------------------------------------------------------------------
 
-The algorithms that comprise a modern curriculum in formal languages and compiler construction span four distinct computational archetypes:
+Die Algorithmen eines modernen Curriculums der formalen Sprachen und des Compilerbaus lassen sich vier grundlegenden rechnerischen Mustern zuordnen:
 \begin{enumerate}
-  \item \textbf{Inductive Symbolic Rewriting:} Abstract syntax trees and regular expressions are inductively defined structures. Operations such as algebraic simplification, symbolic differentiation (Brzozowski derivatives~\cite{brzozowski1964derivatives}), and syntax tree optimization require deep structural pattern matching and recursive traversals.
-  \item \textbf{Graph and Automata Transformations:} Algorithms such as Thompson's NFA construction, powerset determinization ($\text{NFA} \to \text{DFA}$), $\epsilon$-closure computation, and Hopcroft partition-refinement DFA minimization manipulate complex directed state-transition graphs and set-theoretic partitions.
-  \item \textbf{Fixed-Point Table Syntheses:} Context-free grammar analysis involves computing fixed points over sets: synthesizing $\text{FIRST}$ and $\text{FOLLOW}$ sets, constructing canonical collections of $\text{LR}(0)$, $\text{SLR}(1)$, and $\text{LALR}(1)$ item sets, and resolving shift/reduce conflicts on realistic grammars (such as the ANSI~C specification).
-  \item \textbf{End-to-End Compiler Pipelines:} Translating high-level source code (such as the Integer-C language) into executable bytecode (Jasmin JVM assembly), performing semantic type analysis, and generating code for virtual machines.
+  \item \textbf{Induktive symbolische Transformationen:} Abstrakte Syntaxbäume und reguläre Ausdrücke sind mathematisch als induktiv definierte Strukturen aufgebaut. Operationen wie algebraische Vereinfachungen, symbolische Ableitungen nach Brzozowski~\cite{brzozowski1964derivatives} und semantische Syntaxbaumoptimierungen verlangen strukturierten Musterabgleich über heterogene Baumknoten und tiefgreifende rekursive Baumtraversierungen.
+  \item \textbf{Automaten und Graphen:} Algorithmen wie die Thompson-Konstruktion zur Erzeugung von Nichtdeterminismus, die Potenzmengenkonstruktion zur Determinierung von Automaten, die Berechnung von Epsilon-Hüllen sowie die Zustandsminimierung nach Hopcroft über sukzessive Partitionsverfeinerungen manipulieren komplexe, mengentheoretische Graphenstrukturen.
+  \item \textbf{Fixpunktbasierte Tabellensynthesen:} Die Analyse kontextfreier Grammatiken erfordert die Berechnung relationaler Fixpunkte über Mengen, darunter die Synthese von First- und Follow-Mengen, die Konstruktion kanonischer LR-, SLR- und LALR-Zustandssammlungen sowie die Erkennung und Behebung von Schiebe-Reduziere-Konflikten auf realistischen Sprachgrammatiken wie der ANSI-C-Spezifikation.
+  \item \textbf{Mehrstufige Compiler-Pipelines:} Die Übersetzung höherer Programmiersprachen in ausführbaren Bytecode, die statische Typanalyse sowie die zielgerichtete Codegenerierung für virtuelle Maschinen wie die Java Virtual Machine.
 \end{enumerate}
 
-Historically, these concepts were implemented in low-level imperative languages (such as C or C++) or functional research languages (such as Standard ML). Over the past decade, however, computing education and exploratory research have gravitated toward interactive computing environments---specifically Jupyter notebooks~\cite{perez2007ipython}---where live code execution, markdown exposition, and SVG visualization (e.g., Graphviz automata rendering) are unified.
+Historisch wurden diese Lehrinhalte vorrangig in hardwarenahen imperativen Sprachen wie C und C++ oder in funktionalen Forschungssprachen wie Standard ML vermittelt. In der modernen universitären Praxis hat sich die Lehre jedoch zunehmend in Richtung interaktiver Notizbuch-Umgebungen---namentlich Computational Notebooks auf Basis von Project Jupyter~\cite{perez2007ipython}---verschoben. Hier verschmelzen erklärender Fließtext, ausführbarer Programmcode und eingebettete Vektorgrafiken zur Visualisierung von Automaten und Ableitungsbäumen zu einem geschlossenen didaktischen Ganzen.
 
 % ------------------------------------------------------------------------------
-\section{Motivation: A Tri-Language Natural Experiment}
+\section{Motivation: Ein kontrolliertes natürliches Experiment über drei Sprachen}
 \label{sec:intro_motivation}
 % ------------------------------------------------------------------------------
 
-This monograph investigates a rare, controlled natural experiment: an identical, rigorous 13-chapter Formal Languages and Compiler Construction curriculum authored across three distinct programming languages and Jupyter kernels:
+Die vorliegende Untersuchung stützt sich auf ein seltenes, didaktisch wie technisch hochgradig kontrolliertes natürliches Experiment: Ein vollständiges, anspruchsvolles Curriculum aus 13 Kapiteln zu formalen Sprachen und Compilerbau liegt in drei vollständigen, semantisch deckungsgleichen Implementierungen vor, die für den interaktiven Betrieb in Jupyter-Notebooks optimiert wurden:
 \begin{enumerate}
-  \item \textbf{Python 3.13 (\texttt{ipykernel}):} The global standard in interactive computing and data science. Python represents the archetype of a \textbf{dynamically typed, interpreted, statement-oriented} language with gradual type hints (PEP~484), C-backed open-addressing hash sets, and recent structural pattern matching (PEP~634).
-  \item \textbf{OCaml 5.4 (\texttt{ocaml-jupyter}):} The quintessential academic compiler implementation language. OCaml represents the archetype of a \textbf{statically typed, purely functional ML-lineage} language featuring Damas--Hindley--Milner type inference, immutable persistent balanced binary search trees, and dual compilation targets (bytecode and optimizing native machine code~\cite{leroy2023ocaml,sivaramakrishnan2020retrofitting}).
-  \item \textbf{F\# 9.0 (.NET 9, \texttt{dotnet-interactive}):} A modern \textbf{functional-first, multi-paradigm} language combining ML-style type inference and pattern matching with the enterprise runtime infrastructure of Microsoft's .NET~9 CoreCLR virtual machine, tiered JIT compilation (RyuJIT), and the NuGet package ecosystem~\cite{syme2020early}.
+  \item \textbf{Python 3.13 (\texttt{ipykernel}):} Der weltweite De-facto-Standard in der Datenverarbeitung und Lehre. Python verkörpert den Archetyp einer dynamisch typisierten, interpretierten und anweisungsorientierten Skriptsprache mit optionalen Typ-Annotationen nach PEP~484, C-optimierten offenen Hash-Mengen und strukturellem Musterabgleich nach PEP~634.
+  \item \textbf{OCaml 5.4 (\texttt{ocaml-jupyter}):} Die klassische Referenzsprache im akademischen Compilerbau. OCaml vertritt das Paradigma einer statisch typisierten, rein funktionalen ML-Sprache mit globaler Damas--Hindley--Milner-Typinferenz, unveränderlichen persistenten AVL-Suchbäumen und optimierender Übersetzung in nativen Maschinencode~\cite{leroy2023ocaml,sivaramakrishnan2020retrofitting}.
+  \item \textbf{F\# 9.0 unter .NET 9 (\texttt{dotnet-interactive}):} Eine moderne, multiparadigmatische und primär funktionale Sprache, die ML-Typinferenz und algebraische Datentypen mit der leistungsstarken Infrastruktur der Microsoft .NET 9 CoreCLR, mehrstufiger RyuJIT-Kompilierung und einer modernen Paketverwaltung verbindet~\cite{syme2020early}.
 \end{enumerate}
 
-The corpus comprises 56 matched notebooks spanning the entire breadth of automata theory and compiler frontends (Chapters~01 through~13). Rather than surveying subjective student impressions, our study investigates the deep technical trade-offs among these three languages across formal semantics, type soundness, syntactic expressiveness, parser toolchains, and empirical runtime physics.
+Der untersuchte Gesamtkorpus umfasst 56 aufeinander abgestimmte Notizbücher, die von den Grundlagen der regulären Ausdrücke über Parsing-Verfahren bis hin zu vollständigen Codegeneratoren reichen. Statt subjektive Eindrücke abzufragen, widmet sich unsere Untersuchung den tiefgreifenden technischen und architektonischen Wechselwirkungen zwischen formaler Sprachtheorie, Typsicherheit, syntaktischer Dichte und realer Laufzeitperformanz.
 
 % ------------------------------------------------------------------------------
-\section{Research Questions and Evaluative Dimensions}
+\section{Forschungsfragen und Evaluierungsdimensionen}
 \label{sec:intro_rqs}
 % ------------------------------------------------------------------------------
 
-This monograph is structured around five central technical research questions:
+Die Monographie gliedert sich entlang fünf zentraler softwaretechnischer Forschungsfragen:
 
 \begin{description}[style=nextline,leftmargin=1.2em,itemsep=8pt]
-  \item[\textbf{RQ1: Type System Architecture \& Static Soundness (\cref{chap:type_systems})}]
-  How effectively do the respective type systems enforce structural invariants in automata and compiler transformations? How do Hindley--Milner polymorphic inference and nominal algebraic data types compare against gradual typing and dynamic duck typing in preventing runtime faults during symbolic manipulation?
+  \item[\textbf{Forschungsfrage 1: Typsystem-Architektur und statische Garantien (\cref{chap:type_systems})}]
+  Wie zuverlässig erzwingen die jeweiligen Typsysteme strukturelle Invarianten bei Automaten"= und Compiler-Transformationen? Wie verhalten sich polymorphe Typinferenz und nominale algebraische Datentypen im Vergleich zu dynamischer Duck-Typisierung und optionalen Typhilfen bei der Vermeidung von Laufzeitfehlern?
 
-  \item[\textbf{RQ2: Syntactic Expressiveness \& Programming Idioms (\cref{chap:expressiveness})}]
-  Which language idioms minimize accidental complexity when expressing relational fixed points, regular expression derivatives, and tree rewrites? How do forward pipelining (\texttt{|>}), first-class currying, and F\# Active Patterns contrast with Python's statement-oriented control flow and PEP~634 pattern matching?
+  \item[\textbf{Forschungsfrage 2: Syntaktische Ausdruckskraft und Programmieridiome (\cref{chap:expressiveness})}]
+  Welche Sprachmittel minimieren die kognitive Belastung bei relationalen Fixpunktiterationen, regulären Baumableitungen und semantischen AST-Transformationen? Wie schneiden der funktionale Pipeline-Operator, automatisches Currying und Active Patterns im Vergleich zum anweisungsorientierten Kontrollfluss von Python ab?
 
-  \item[\textbf{RQ3: Lexing and Parsing Toolchain Integration (\cref{chap:toolchains})}]
-  How do dynamic in-memory parser generators (Python Lark) compare against ahead-of-time compiled toolchains (OCaml Menhir and F\# FsLexYacc) in specification expressiveness, conflict diagnostic clarity (e.g., LALR(1) state merging and shift/reduce counterexamples), and raw parsing throughput?
+  \item[\textbf{Forschungsfrage 3: Integration von Lexer- und Parser-Werkzeugen (\cref{chap:toolchains})}]
+  Wie verhalten sich dynamische, speicherbasierte Parsergeneratoren wie Lark im Vergleich zu vorab kompilierenden Werkzeugen wie Menhir in OCaml und FsLexYacc in F\# hinsichtlich Spezifikationsergonomie, Durchsatz und der Klarheit bei der Diagnose von Grammatikkonflikten?
 
-  \item[\textbf{RQ4: Empirical Performance \& Runtime Dynamics (\cref{chap:performance})}]
-  How do execution throughput, cold-start kernel latency ($T_{\text{cold}} = T_{\text{spawn}} + T_{\text{cell}_1}$), memory residency (RSS), and garbage collector dynamics compare across isolated microbenchmarks and full curriculum notebooks? Why do C-backed hash sets outperform persistent balanced trees on set-of-sets operations while lagging by up to $95\times$ on recursive AST rewriting?
+  \item[\textbf{Forschungsfrage 4: Empirische Rechenleistung und Speicherbelegung (\cref{chap:performance})}]
+  Wie verhalten sich CPU-Durchsatz, Kaltstartverzögerungen des Kernels, Speicherbedarf im RAM und die Dynamik der Speicherbereinigung in isolierten Mikrobenchmarks sowie in vollständigen Notebook-Abläufen? Warum sind Hash-Mengen bei Mengenkonstruktionen im Vorteil, während sie bei rekursiven Baumtransformationen dramatisch zurückfallen?
 
-  \item[\textbf{RQ5: Interactive Notebook Infrastructure \& Kernel IPC (\cref{chap:interactive_kernels})}]
-  How do the underlying Jupyter kernel architectures (\texttt{ipykernel}, \texttt{ocaml-jupyter}, and \texttt{dotnet-interactive}) manage execution state isolation, ZeroMQ protocol serialization, and dynamic AST visualization?
+  \item[\textbf{Forschungsfrage 5: Interaktive Notebook-Infrastruktur und Kernel-Kommunikation (\cref{chap:interactive_kernels})}]
+  Wie bewältigen die unterschiedlichen Kernel-Architekturen die Herausforderungen nichtlinearer Zellenausführungen, der internen Zustandsisolation, der ZeroMQ"=Protokollserialisierung und der dynamischen Einbettung von Vektorgrafiken?
 \end{description}
 
 % ------------------------------------------------------------------------------
-\section{Methodological Framework and Experimental Rigor}
+\section{Methodischer Rahmen und wissenschaftliche Reproduzierbarkeit}
 \label{sec:intro_methodology}
 % ------------------------------------------------------------------------------
 
-To ensure methodological validity and reproducibility, our study combines static codebase analysis with isolated dynamic benchmarking:
+Um höchste wissenschaftliche Validität und Reproduzierbarkeit zu gewährleisten, folgt unsere Untersuchung methodisch strengen Kriterien:
 
-\subsection{1. Architectural Separation}
-In adherence to clean architectural principles, all benchmarking harnesses, metric analyzers, and measurement datasets are strictly segregated in an isolated directory (\texttt{benchmarks/}), leaving the canonical curriculum implementations in \texttt{python/}, \texttt{ocaml/}, and \texttt{f\#/} completely pristine. The LaTeX monograph sources and build artifacts reside independently in \texttt{paper/}.
+\subsection{1. Saubere architektonische Trennung}
+In Übereinstimmung mit klaren Modularitätsprinzipien sind sämtliche Messskripte, Testtreiber und Rohdatensätze in einem vollständig isolierten Verzeichnis untergebracht. Der kanonische Vorlesungscode in den Verzeichnissen für Python, OCaml und F\# bleibt dadurch absolut unberührt. Das Dokument und die Auswertungsskripte sind eigenständig buildfähig.
 
-\subsection{2. Statistically Rigorous Runtime Benchmarking}
-Dynamic execution timings follow the rigorous performance evaluation methodology established by Georges et al.~\cite{georges2007statistically}:
+\subsection{2. Statistische Signifikanz bei Laufzeitmessungen}
+Alle Zeit- und Speichermessungen folgen der anerkannten Methodik für empirische Performanzanalysen nach Georges et al.~\cite{georges2007statistically}:
 \begin{itemize}
-  \item \textbf{Microbenchmarks (\texttt{benchmarks/\allowbreak microbenchmarks.py}):} Algorithmic kernels (lexing, powerset determinization, DFA minimization, symbolic AST differentiation) execute in isolated subprocesses across $N = 5$ independent invocations, recording high-resolution monotonic clocks (\texttt{perf\_counter}, \texttt{Unix.gettimeofday}, \texttt{Stopwatch}) and peak Resident Set Size ($\text{RSS}_{\max}$) via BSD/Mach \texttt{getrusage(RUSAGE\_SELF)}.
-  \item \textbf{Kernel Cold-Start Latency (\texttt{benchmarks/\allowbreak notebook\_\allowbreak benchmarks.py}):} Decomposed into process spawn latency ($T_{\text{spawn}}$), first trivial cell execution ($T_{\text{cell}_1}$), and subsequent warm IPC roundtrip time ($T_{\text{warm}}$).
-  \item \textbf{End-to-End Macrobenchmarks:} Complete curriculum notebooks are executed in ephemeral temporary workspaces using an instrumentation wrapper (\texttt{Timed\allowbreak Notebook\allowbreak Client}), capturing code cell execution intervals and process tree memory residency.
+  \item \textbf{Mikrobenchmarks:} Rechnerische Kernalgorithmen wie Lexing, Potenzmengenkonstruktionen, DFA-Minimierungen und symbolische Ableitungen werden in isolierten Subprozessen über mehrere unabhängige Durchläufe gemessen. Hochauflösende Monotoniemonitore erfassen die reine CPU- und Wandzeit, während Betriebssystemaufrufe den maximalen Speicherbedarf im RAM exakt bestimmen.
+  \item \textbf{Kaltstartanalysen:} Die Gesamtzeit bis zur interaktiven Einsatzbereitschaft wird präzise in die Prozessstartzeit, die Initialisierung der ZeroMQ-Sockets und die Ausführungszeit der ersten Testzelle zerlegt.
+  \item \textbf{Makrobenchmarks vollständiger Notizbücher:} Komplette Vorlesungskapitel werden in temporären Arbeitsverzeichnissen automatisiert ausgeführt, um zelluläre Rechenzeiten und den Speicherbedarf des gesamten Prozessbaums realistisch zu erfassen.
 \end{itemize}
 
-\subsection{3. Unified Hardware Normalization}
-All experiments were conducted on a single workstation (Apple Silicon \texttt{arm64}, 10-core CPU, unified memory architecture) running macOS~15 under thermal equilibrium. Language runtimes evaluated include CPython~3.13.11 (\texttt{arm64}), OCaml~5.4.1 (native \texttt{ocamlopt} and bytecode \texttt{ocamlrun}), and Microsoft .NET SDK~9.0.122 (CoreCLR Tiered RyuJIT engine).
+\subsection{3. Vereinheitlichte Hardwarebasis}
+Sämtliche Messungen wurden auf einem identischen Arbeitsplatzrechner unter kontrollierten thermischen Bedingungen auf macOS durchgeführt. Die eingesetzten Compiler und Laufzeitumgebungen entsprechen den aktuellen stabilen Hauptversionen CPython~3.13, OCaml~5.4 und Microsoft .NET~9.
 
 % ------------------------------------------------------------------------------
-\section{Monograph Structure and Roadmap}
+\section{Aufbau und Gliederung der Monographie}
 \label{sec:intro_roadmap}
 % ------------------------------------------------------------------------------
 
-The remainder of this monograph is organized as follows:
+Die weitere Arbeit ist wie folgt gegliedert:
 \begin{itemize}
-  \item \textbf{\Cref{chap:type_systems} (Type Systems):} Analyzes Hindley--Milner polymorphic inference, algebraic data types, exhaustiveness checking, and persistent collection data structures.
-  \item \textbf{\Cref{chap:expressiveness} (Expressiveness):} Investigates expression-oriented semantics, forward pipelining (\texttt{|>}), Active Patterns, and side-by-side algorithmic case studies.
-  \item \textbf{\Cref{chap:toolchains} (Parser Toolchains):} Evaluates runtime-interpreted vs.\ ahead-of-time compiled lexers and parsers (Lark, Menhir, FsLexYacc), LALR conflict diagnostics, and Earley chart parsing.
-  \item \textbf{\Cref{chap:performance} (Empirical Performance):} Details the microbenchmark and macrobenchmark empirical results, dissecting the set-of-sets paradox, RyuJIT loop optimizations, and kernel latency.
-  \item \textbf{\Cref{chap:interactive_kernels} (Interactive Kernels):} Examines the operational architecture of \texttt{ipykernel}, \texttt{ocaml-jupyter}, and \texttt{dotnet-interactive}.
-  \item \textbf{\Cref{chap:recommendation} (Synthesis \& Recommendation):} Presents a comprehensive decision matrix and technical recommendation for academic institutions and compiler researchers.
+  \item \textbf{\Cref{chap:type_systems} (Typsysteme):} Untersucht Hindley--Milner-Inferenz, algebraische Summentypen, statische Vollständigkeitsprüfungen und unveränderliche Datenstrukturen.
+  \item \textbf{\Cref{chap:expressiveness} (Ausdrucksstärke):} Analysiert ausdrucksbasierte Semantik, Vorwärtspipelining, Active Patterns und vergleicht algorithmische Implementierungen Seite an Seite.
+  \item \textbf{\Cref{chap:toolchains} (Parser-Werkzeuge):} Bewertet dynamische versus vorab kompilierte Lexer- und Parser-Pipelines, LR-Konfliktdiagnosen und allgemeine Chart-Parser.
+  \item \textbf{\Cref{chap:performance} (Rechenleistung):} Präsentiert die empirischen Messergebnisse, analysiert das Paradoxon tiefer Mengenstrukturen und beleuchtet Speicherallokationen sowie JIT-Optimierungen.
+  \item \textbf{\Cref{chap:interactive_kernels} (Interaktive Kernel):} Beleuchtet die interne Architektur der Jupyter-Kernel, Zustandskonsistenz und Vektorgrafik-Pipelines.
+  \item \textbf{\Cref{chap:recommendation} (Synthese und Empfehlung):} Führt alle Befunde in einer fundierten Entscheidungsmatrix zusammen und formuliert konkrete Leitlinien für die universitäre Praxis.
 \end{itemize}
