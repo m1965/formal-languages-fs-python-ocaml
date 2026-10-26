@@ -1,11 +1,478 @@
 % ==============================================================================
-% Chapter 4: Lexing and Parsing Toolchain Integration (Scaffold)
+% Chapter 4: Lexing and Parsing Toolchain Integration
 % ==============================================================================
 \chapter{Lexing and Parsing Toolchain Integration}
 \label{chap:toolchains}
 
-\section{Scanner and Parser Generation Paradigms}
-Comparison of runtime-interpreted parser generators (\texttt{PLY}, \texttt{Lark}) with ahead-of-time code generators (\texttt{ocamllex}/\texttt{Menhir} \cite{pottier2005menhir} and \texttt{FsLex}/\texttt{FsYacc}).
+Parsing transforms unstructured sequences of characters into structured symbolic syntax trees. Within the theory of formal languages and compiler construction, parsing represents both a foundational mathematical discipline---encompassing the Chomsky hierarchy, context-free grammars (CFGs), deterministic pushdown automata, and generalized chart parsing~\cite{chomsky1956three,knuth1965translation,earley1970efficient}---and an engineering discipline demanding robust developer ergonomics, informative error diagnostics, and high execution throughput.
 
-\section{Conflict Detection, Reporting, and Resolution}
-Analysis of Shift/Reduce and Reduce/Reduce conflict diagnostics in $\text{SLR}(1)$ and $\text{LALR}(1)$ parser construction \cite{knuth1965translation,earley1970efficient}.
+The tri-language curriculum examined in this monograph explores this duality across two distinct planes:
+\begin{enumerate}
+  \item \textbf{Production Toolchain Integration:} How industrial parser generators---Lark in Python, \texttt{ocamllex} and Menhir in OCaml, and \texttt{FsLex} and \texttt{FsYacc} in F\#---integrate with interactive Jupyter notebooks and language runtimes, synthesize parsing tables, enforce semantic action typing, and diagnose grammar conflicts.
+  \item \textbf{Algorithmic Implementations from First Principles:} How the curriculum implements parsing engines from scratch in each language: top-down recursive descent with $\text{LL}(1)$ combinators (Chapter~06), general context-free parsing via the Earley algorithm (Chapters~08--09), and bottom-up LR table synthesis ($\text{LR}(0)$, $\text{SLR}(1)$, and $\text{LALR}(1)$ canonical collections) applied to the full ANSI~C grammar (Chapters~09--10).
+\end{enumerate}
+
+This chapter presents a detailed technical comparison of both planes across Python, OCaml, and F\#.
+
+% ------------------------------------------------------------------------------
+\section{Architectural Paradigms: Dynamic Interpretation vs.\ AOT Compilation}
+\label{sec:toolchain_architectures}
+% ------------------------------------------------------------------------------
+
+The three languages embody radically different engineering paradigms for integrating lexers and parsers into interactive computing workflows. These differences are summarized in \cref{tab:toolchain_architectures} and illustrated in \cref{fig:toolchain_pipelines}.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Architectural and structural comparison of parser toolchains across the three curriculum environments.}
+  \label{tab:toolchain_architectures}
+  \small
+  \begin{tabularx}{\textwidth}{@{}lXXX@{}}
+    \toprule
+    \textbf{Dimension} & \textbf{Python (Lark)} & \textbf{OCaml (ocamllex + Menhir)} & \textbf{F\# (FsLexYacc)} \\
+    \midrule
+    \textbf{Toolchain Archetype} & Dynamic in-memory interpreter / generator & Orchestrated hybrid AOT subprocess & Pre-compiled AOT via MSBuild task \\
+    \addlinespace[3pt]
+    \textbf{Specification Syntax} & Extended BNF (EBNF) string in notebook cell & Lexer (\texttt{.mll}) and grammar (\texttt{.mly}) specification strings & Separate source files (\texttt{.fsl}, \texttt{.fsy}) in project directory \\
+    \addlinespace[3pt]
+    \textbf{Parsing Algorithms} & LALR(1), Earley, CYK & LR(1), LALR(1), GLR & LALR(1) \\
+    \addlinespace[3pt]
+    \textbf{Compilation Target} & In-memory Python parse table structures & Standalone \texttt{.ml}/\texttt{.mli} modules, compiled to bytecode & Strongly typed F\# source code compiled into \texttt{.dll} assembly \\
+    \addlinespace[3pt]
+    \textbf{Semantic Action Typing} & Untyped dynamic Python tuples / \texttt{Transformer} & Statically typed via OCaml type inference / \texttt{\%type} & Statically typed discriminated unions verified by FCS \\
+    \addlinespace[3pt]
+    \textbf{Conflict Diagnostics} & Runtime exceptions (\texttt{GrammarError}) or silent resolution & Detailed \texttt{.conflicts} derivation graphs and state automata & Textual \texttt{.output} state automata tables \\
+    \addlinespace[3pt]
+    \textbf{Interactive Ergonomics} & Instant cell re-evaluation; zero external tools & Transparent build orchestration via \texttt{parser\_generator.ml} & Decoupled CLI build (\texttt{dotnet build}); DLL referenced via \texttt{\#r} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    node distance=1.1cm and 0.8cm,
+    box/.style={rectangle, draw=black!70, rounded corners=3pt, fill=CodeBg, inner sep=5pt, font=\scriptsize, align=center},
+    pybox/.style={box, fill=PythonBlue!10, draw=PythonBlue!80},
+    ocbox/.style={box, fill=OCamlOrange!10, draw=OCamlOrange!80},
+    fsbox/.style={box, fill=FSharpPurple!10, draw=FSharpPurple!80},
+    arrow/.style={-{Stealth[scale=0.9]}, draw=black!70, thick}
+  ]
+    % Python pipeline
+    \node[pybox] (p1) {\textbf{Python Notebook Cell}\\Grammar string (EBNF)};
+    \node[pybox, right=of p1] (p2) {\textbf{Lark Engine}\\In-memory LALR/Earley\\table construction};
+    \node[pybox, right=of p2] (p3) {\textbf{Parse Tree}\\Generic \texttt{lark.Tree} nodes\\Untyped tuples};
+    \draw[arrow] (p1) -- node[above, font=\tiny] {\texttt{Lark(...)}} (p2);
+    \draw[arrow] (p2) -- node[above, font=\tiny] {\texttt{parse()}} (p3);
+
+    % OCaml pipeline
+    \node[ocbox, below=1.2cm of p1] (o1) {\textbf{OCaml Notebook Cell}\\\texttt{.mll} and \texttt{.mly} strings};
+    \node[ocbox, right=of o1] (o2) {\textbf{Orchestrator}\\Subprocess: \texttt{ocamllex} +\\\texttt{menhir --lalr} $\to$ \texttt{\_build/}};
+    \node[ocbox, right=of o2] (o3) {\textbf{Toplevel Loader}\\\texttt{Toploop.load\_file}\\\texttt{Parse\_tree.tree} / ADT};
+    \draw[arrow] (o1) -- node[above, font=\tiny] {\texttt{generate\_parser}} (o2);
+    \draw[arrow] (o2) -- node[above, font=\tiny] {\texttt{ocamlc -c}} (o3);
+
+    % F# pipeline
+    \node[fsbox, below=1.2cm of o1] (f1) {\textbf{Project Sources}\\\texttt{Lexer.fsl}, \texttt{Parser.fsy}\\in \texttt{.fsproj} project};
+    \node[fsbox, right=of f1] (f2) {\textbf{MSBuild Pipeline}\\\texttt{fslex} + \texttt{fsyacc} tasks\\emits \texttt{Parser.fs}, \texttt{Lexer.fs}};
+    \node[fsbox, right=of f2] (f3) {\textbf{Jupyter Notebook Cell}\\\texttt{\#r "Syntax.dll"}\\Direct native execution};
+    \draw[arrow] (f1) -- node[above, font=\tiny] {\texttt{dotnet build}} (f2);
+    \draw[arrow] (f2) -- node[above, font=\tiny] {\texttt{CoreCLR RyuJIT}} (f3);
+  \end{tikzpicture}
+  \caption{Compilation and execution lifecycles of parser specifications across Python, OCaml, and F\#.}
+  \label{fig:toolchain_pipelines}
+\end{figure}
+
+\subsection{Python: Dynamic In-Memory Generation via Lark}
+In the Python curriculum (Chapters~07, 09, 10, and~13), parsing is driven by Lark~\cite{lark2024parser}. Rather than invoking an ahead-of-time compiler or requiring build steps, Lark operates entirely in-memory at runtime:
+\begin{enumerate}
+  \item \textbf{Self-Contained Notebook Syntax:} The context-free grammar is defined directly within a multi-line Python string literal using an extended Backus--Naur form (EBNF) that supports regex terminals, optional clauses, and inline constructor tags (\texttt{-> add}).
+  \item \textbf{Dynamic Table Synthesis:} Instantiating \texttt{Lark(grammar, parser='lalr')} triggers Lark's internal grammar analyzer to compute terminal FIRST sets, LR(0) items, and LALR(1) lookahead sets dynamically in memory ($T_{\text{gen}} \approx 3.67\text{ ms}$).
+  \item \textbf{Visitor-Based Tree Transformation:} The parser produces a generic \texttt{lark.Tree} object. Semantic actions are subsequently executed via subclassing \texttt{lark.Transformer}, where each grammar rule maps to an untyped Python method receiving unpacked children:
+\begin{lstlisting}[language=Python]
+@v_args(inline=True)
+class ASTBuilder(Transformer):
+    def add(self, left, right):
+        return ('+', left, right)
+    def num(self, token):
+        return ('num', float(token))
+\end{lstlisting}
+\end{enumerate}
+
+This architecture maximizes pedagogical agility: a student can modify a production directly in a notebook cell, press \texttt{Shift+Enter}, and observe immediate feedback without leaving the browser. However, as demonstrated in \cref{sec:toolchain_empirical}, dynamic table construction incurs runtime latency on every fresh session, while dynamic tree transformations incur heavy object allocation overhead.
+
+\subsection{OCaml: Subprocess-Orchestrated Hybrid AOT via Menhir}
+OCaml presents a challenging tension between ahead-of-time compiler design and the interactive Jupyter notebook environment. The standard OCaml lexing and parsing ecosystem consists of \texttt{ocamllex} (an automated lexer generator translating regular expressions into deterministic finite automata in OCaml) and Menhir~\cite{pottier2005menhir} (an industrial-strength LR(1) parser generator supporting parameterized nonterminals and automated conflict explanation). Neither tool natively executes inside an interactive top-level.
+
+To reconcile this without compromising the notebook medium, the curriculum implements an automated orchestration layer in \texttt{ocaml/\allowbreak lib/\allowbreak parser\_generator.ml}:
+\begin{enumerate}
+  \item In-cell specification strings containing the \texttt{ocamllex} lexer and Menhir grammar are passed to \texttt{generate\_parser}.
+  \item The orchestrator writes specifications to an ephemeral build directory (e.g., \texttt{\_build/}\allowbreak\texttt{calc\_lexer.mll} and \texttt{\_build/}\allowbreak\texttt{calc\_parser.mly}), executes \texttt{ocamllex} and \texttt{menhir --lalr} via \texttt{Sys.command}, and compiles generated \texttt{.ml} modules via \texttt{ocamlc -c}.
+  \item The generated bytecode modules (\texttt{Calc\_parser} and \texttt{Calc\_lexer}) are dynamically linked into the active top-level session via \texttt{Toploop.load\_file}.
+  \item Any conflict warnings or syntax errors produced by Menhir are intercepted and rendered directly into the notebook display.
+\end{enumerate}
+
+This hybrid approach preserves the interactive convenience of Jupyter notebooks while harnessing Menhir's formal LR verification and high-performance table encoding.
+
+\subsection{F\#: Project-Decoupled Ahead-of-Time Compilation via FsLexYacc}
+F\# strictly separates grammar definition from notebook execution. Rather than embedding grammar specifications inside notebook strings or orchestrating ad-hoc subprocesses, F\# delegates lexing and parsing to the standard .NET build toolchain via the \texttt{FsLexYacc} MSBuild package~\cite{fslexyacc2024}:
+\begin{enumerate}
+  \item The lexer (\texttt{Lexer.fsl}) and parser (\texttt{Parser.fsy}) reside in independent project subdirectories (e.g., \texttt{f\#/\allowbreak Chapter-07/\allowbreak CalculatorSyntax/}) governed by a standard MSBuild project file (\texttt{CalculatorSyntax.fsproj}).
+  \item Executing \texttt{dotnet build} triggers custom MSBuild targets that invoke \texttt{fslex} and \texttt{fsyacc} ahead of time. These generators emit strongly typed source files (\texttt{Lexer.fs}, \texttt{Parser.fs}, and interface signatures \texttt{Parser.fsi}), compiled into a standalone CLI assembly (\texttt{CalculatorSyntax.dll}).
+  \item Notebooks interact with the compiled toolchain exclusively by referencing the pre-compiled assembly:
+\begin{lstlisting}[language=FSharp]
+#r "CalculatorSyntax/bin/Debug/net9.0/FsLexYacc.Runtime.dll"
+#r "CalculatorSyntax/bin/Debug/net9.0/CalculatorSyntax.dll"
+open CalculatorSyntax
+
+let ast = Parse.statement "x := 1 + 2 * 3;"
+\end{lstlisting}
+\end{enumerate}
+
+This separation provides absolute static guarantees and maximum runtime throughput (compiled to native \texttt{arm64} code by RyuJIT). However, it establishes a high barrier to exploratory interactive editing: students cannot modify a grammar rule directly inside a Jupyter notebook cell; any grammar change mandates leaving the notebook, editing external files on disk, and executing an external build command.
+
+% ------------------------------------------------------------------------------
+\section{Formal Grammar Specification and Action Typing}
+\label{sec:action_typing}
+% ------------------------------------------------------------------------------
+
+A parser generator's safety profile is dictated by the degree to which its host language's type system governs semantic actions. A semantic action is a block of code associated with a grammar production that computes the semantic value (typically an abstract syntax tree node) of the reduced nonterminal from the semantic values of its constituent symbols.
+
+\subsection{Syntactic Specification: EBNF vs.\ Strict BNF}
+The three environments differ fundamentally in their syntactic expressiveness:
+\begin{itemize}
+  \item \textbf{Lark (Python):} Supports full EBNF. Productions may embed regular-expression literals directly within rules (\texttt{NUMBER: /[0-9]+/}), denote optionality with brackets (\texttt{[expr]}), use Kleene star/plus repetitions (\texttt{item*}), and tag alternatives with constructor aliases (\texttt{expr "+" product -> add}). This eliminates the need to declare artificial recursive nonterminals for lists and sequences.
+  \item \textbf{Menhir (OCaml):} Adheres to strict BNF with powerful extensions: Menhir supports \emph{parameterized nonterminals} (e.g., \texttt{separated\_list(SEMI, stmnt)}), allowing standard library idioms without macro preprocessing.
+  \item \textbf{FsYacc (F\#):} Adheres to classical Yacc-style strict BNF. Repetitions must be encoded manually via left- or right-recursive nonterminals, and all tokens and nonterminals must be explicitly enumerated.
+\end{itemize}
+
+\subsection{Action Typing and Compile-Time Verification}
+The fundamental divergence across the three platforms lies in how semantic actions construct abstract syntax trees:
+
+\begin{figure}[htbp]
+\begin{subfigure}[b]{\textwidth}
+\begin{lstlisting}[language=Python,caption={Python (Lark): Dynamic AST construction with untyped tuples.}]
+def add(self, left, right):
+    return ('+', left, right)   # Return type is an untyped tuple; no compile-time checks!
+\end{lstlisting}
+\end{subfigure}
+
+\begin{subfigure}[b]{\textwidth}
+\begin{lstlisting}[language=Caml,caption={OCaml (Menhir): Statically typed semantic actions constructing algebraic variants.}]
+expr:
+  | e = expr PLUS p = product { BinOp (Add, e, p) }  (* Menhir infers or checks: Ast.expr *)
+  | p = product               { p }
+\end{lstlisting}
+\end{subfigure}
+
+\begin{subfigure}[b]{\textwidth}
+\begin{lstlisting}[language=FSharp,caption={F\# (FsYacc): Nominal discriminated unions verified against .fsi signature.}]
+expr:
+  | expr PLUS product  { Binary(Add, $1, $3) }  (* Verified strictly against CalculatorSyntax.Statement *)
+  | product            { $1 }
+\end{lstlisting}
+\end{subfigure}
+\caption{Syntactic and type-theoretic representation of semantic actions across the three platforms.}
+\label{fig:action_code_comparison}
+\end{figure}
+
+\subsubsection{Dynamic Tuples in Python: The Latent Failure Problem}
+In Python, semantic actions return untyped Python objects---conventionally nested tuples such as \texttt{('+', ('num', 1.0), ('var', 'x'))}. This simplicity conceals significant architectural risks:
+\begin{enumerate}
+  \item \textbf{Arity and Misindexing Errors:} If a grammar production adds a symbol but the developer fails to update the corresponding \texttt{Transformer} method signature, or if an action indexes a tuple incorrectly (e.g., accessing \texttt{node[2]} instead of \texttt{node[1]}), no error is flagged during grammar compilation. The error manifests only when that specific AST node is evaluated at runtime, resulting in a latent \texttt{IndexError} or \texttt{TypeError}.
+  \item \textbf{Lack of Total Invariant Enforcement:} Because Python's type checker cannot verify that all grammar nonterminals produce valid AST variants, subsequent compiler passes (such as type analysis or bytecode generation in Chapter~13) must implement runtime fallback guards and dynamic \texttt{isinstance} checks.
+\end{enumerate}
+
+\subsubsection{Hindley--Milner Inference in Menhir: Guaranteed Well-Formedness}
+Menhir integrates seamlessly with OCaml's type system. Every nonterminal $A$ in a Menhir grammar possesses an OCaml type $\tau_A$:
+\begin{itemize}
+  \item When Menhir runs with type checking, it verifies that the semantic action associated with production $A \to X_1 \dots X_k$ has type $\tau_A$, assuming each variable $X_i$ bound in the production has type $\tau_{X_i}$.
+  \item If an action attempts to construct an invalid variant (e.g., passing an integer where a string variable name is expected), Menhir rejects the grammar at generation time with a type mismatch error.
+  \item Consequently, \emph{a Menhir parser is guaranteed to produce well-typed ASTs if and only if it compiles without error}. Run-time shape mismatches in the resulting syntax trees are impossible.
+\end{itemize}
+
+\subsubsection{Nominal Discriminated Unions in FsYacc: Strict Assembly Contracts}
+FsYacc enforces nominal typing through explicit \texttt{\%type} directives:
+\begin{lstlisting}[language=FSharp]
+%token <float> NUMBER
+%token <string> IDENTIFIER
+%start statement
+%type <CalculatorSyntax.Statement> statement
+%type <CalculatorSyntax.Expression> expr product factor
+\end{lstlisting}
+During generation, \texttt{fsyacc} generates a strongly typed interface file \texttt{Parser.fsi} and implementation \texttt{Parser.fs}. In FsYacc, the symbols on the right-hand side are accessed via positional identifiers (\texttt{\$1}, \texttt{\$2}, \dots, \texttt{\$k}). If the expression \texttt{Binary(Add, \$1, \$3)} does not conform to the algebraic type definition \texttt{Expression}, the .NET compiler halts the build. 
+
+Crucially, because F\# uses nominal typing rather than structural typing, an AST constructed in one project assembly cannot be accidentally confounded with an AST from another module, ensuring strict architectural boundaries across compiler phases.
+
+% ------------------------------------------------------------------------------
+\section{Conflict Detection, Diagnostics, and Disambiguation Mechanics}
+\label{sec:conflict_mechanics}
+% ------------------------------------------------------------------------------
+
+A primary pedagogical objective of a compiler construction curriculum is teaching students how to identify, interpret, and resolve grammar ambiguities. Bottom-up parser generators construct a deterministic finite automaton whose states are sets of LR items. Ambiguities manifest as \textbf{Shift/Reduce} conflicts (where the automaton cannot determine whether to shift the lookahead token or reduce a completed production) or \textbf{Reduce/Reduce} conflicts (where the automaton cannot choose which of two completed productions to reduce).
+
+\subsection{Conflict Diagnostics: A Diagnostic Gulf}
+The curriculum exposes an immense contrast in how the three toolchains communicate grammar conflicts to the developer:
+
+\subsubsection{Menhir's Formal Conflict Explanation Graph}
+Menhir represents the gold standard in parser diagnostics. When invoked with the \texttt{--explain} flag, Menhir not only reports the conflicting state and lookahead token, but \emph{synthesizes two distinct rightmost derivations} demonstrating exactly why the grammar is ambiguous~\cite{pottier2005menhir}:
+\begin{lstlisting}
+** Conflict (shift/reduce) in state 42.
+** Token involved: ELSE
+** This state is reached from the start symbol by:
+   IF expr THEN stmnt . ELSE stmnt
+** Explanation:
+   There are two distinct rightmost derivations leading to this situation:
+   1. stmnt -> IF expr THEN stmnt
+   2. stmnt -> IF expr THEN stmnt ELSE stmnt
+\end{lstlisting}
+By inspecting \texttt{\_build/calc\_parser.conflicts}, students receive a concrete counterexample string demonstrating the ambiguity, dramatically accelerating grammar debugging.
+
+\subsubsection{FsYacc's Machine Automaton Listing}
+In contrast to Menhir's derivation explanations, FsYacc outputs a raw textual representation of the LALR(1) state machine in \texttt{<Name>.fsyacc.output}. For each state, it lists the constituent items, actions, gotos, and default resolution steps:
+\begin{lstlisting}
+state 4:  items:    expr -> expr . 'PLUS' expr
+                    expr -> expr 'PLUS' expr . 
+                    expr -> expr . 'TIMES' expr
+  actions:    action 'PLUS' (noprec):   shift 6
+              action 'TIMES' (noprec):  shift 7
+              action 'EOF' (noprec):    reduce expr --> expr 'PLUS' expr
+\end{lstlisting}
+When conflicts arise without precedence declarations, FsYacc applies classical Yacc heuristics:
+\begin{itemize}
+  \item \textbf{Shift/Reduce conflicts:} Resolved by shifting (favoring longer matches, such as binding an \texttt{else} to the innermost \texttt{if}).
+  \item \textbf{Reduce/Reduce conflicts:} Resolved by reducing the production that appears \emph{first textually} in the grammar file.
+\end{itemize}
+While these heuristics ensure that a parser is always generated, they run the danger of silently masking grave grammar bugs unless the student diligently inspects the \texttt{.output} logs.
+
+\subsubsection{Lark's Runtime Exception vs.\ Earley Parsing}
+Lark handles grammar ambiguities according to the selected engine:
+\begin{itemize}
+  \item In \textbf{LALR mode} (\texttt{parser='lalr'}), Lark throws a runtime \texttt{GrammarError} if conflicts cannot be resolved via operator priorities.
+  \item In \textbf{Earley mode} (\texttt{parser='earley'}), Lark accepts arbitrary context-free grammars, including ambiguous grammars. Instead of failing, Lark explores all non-deterministic paths in parallel and constructs a Shared Packed Parse Forest (SPPF), allowing the developer to inspect all valid parse trees simultaneously.
+\end{itemize}
+
+\subsection{Case Study: The Classic LALR(1) Mysterious Conflict}
+\label{subsec:mysterious_conflict}
+
+To demonstrate the theoretical subtleties of table construction, Chapter~10 of the F\# curriculum (\texttt{f\#/\allowbreak Chapter-10/\allowbreak Lalr/\allowbreak Mysterious.fsy}) introduces the canonical "Mysterious Conflict"~\cite{aho2006compilers}:
+\begin{align}
+  S &\to V\, a\, Y \;\mid\; W\, b\, Y \;\mid\; V\, b\, Z \;\mid\; W\, a\, Z \\
+  a &\to X \\
+  b &\to X
+\end{align}
+
+\begin{observation}[LALR(1) Lookahead Conflation]
+In a canonical $\text{LR}(1)$ parser, this grammar is completely deterministic and conflict-free. When scanning the prefix $V\, X$, the lookahead set for $a \to X \cdot$ is $\{Y\}$, whereas the lookahead set for $b \to X \cdot$ is $\{Z\}$. When scanning the prefix $W\, X$, the lookahead set for $a \to X \cdot$ is $\{Z\}$, whereas the lookahead set for $b \to X \cdot$ is $\{Y\}$. Because the lookaheads are disjoint in each state, the $\text{LR}(1)$ parser never hesitates.
+
+However, in $\text{LALR}(1)$, states with identical $\text{LR}(0)$ cores are merged to prevent exponential state blowup. Both $\text{LR}(1)$ states share the identical core $\{a \to X \cdot,\; b \to X \cdot\}$. Merging these states unifies their lookahead sets:
+\begin{equation}
+  \text{Merged State: } \bigl\{ [a \to X \cdot,\; \{Y, Z\}],\; [b \to X \cdot,\; \{Y, Z\}] \bigr\}.
+\end{equation}
+Upon encountering lookahead token $Y$ or $Z$, the LALR parser cannot decide whether to reduce to $a$ or to $b$, introducing a fatal \textbf{Reduce/Reduce conflict} that did not exist in $\text{LR}(1)$!
+\end{observation}
+
+Inspection of FsYacc's generated \texttt{Mysterious.fsyacc.output} reveals how FsYacc resolves this dilemma:
+\begin{lstlisting}
+state 14:  items:    a -> 'X' . 
+                     b -> 'X' . 
+  actions:    action 'Y' (noprec):   reduce a --> 'X'
+              action 'Z' (noprec):   reduce a --> 'X'
+\end{lstlisting}
+FsYacc silently chooses \texttt{reduce a --> 'X'} because rule $a$ was defined before rule $b$, permanently disabling the language's $W\, b\, Y$ and $V\, b\, Z$ derivations! This real-world curriculum example provides an invaluable case study on why compiler engineers must understand the mathematical distinction between $\text{LR}(1)$ and $\text{LALR}(1)$.
+
+\subsection{Disambiguation Directives: Precedence and Associativity}
+To resolve shift/reduce conflicts cleanly without artificially complicating grammar productions, all three ecosystems support precedence and associativity declarations. In \texttt{f\#/\allowbreak Chapter-10/\allowbreak Lalr/\allowbreak Resolved.fsy}:
+\begin{lstlisting}[language=FSharp]
+%left PLUS MINUS
+%left TIMES DIVIDE
+%right POWER
+\end{lstlisting}
+These directives assign integer precedence levels and associativity rules:
+\begin{itemize}
+  \item \textbf{Associativity:} When a state contains \texttt{expr -> expr PLUS expr .} and the lookahead is \texttt{PLUS}, declaring \texttt{\%left PLUS} resolves the shift/reduce ambiguity in favor of \textbf{reduce}, ensuring left-associativity ($(1 + 2) + 3$). Declaring \texttt{\%right POWER} resolves the conflict in favor of \textbf{shift}, ensuring right-associativity ($2^{(3^4)}$).
+  \item \textbf{Precedence:} When the state contains \texttt{expr -> expr PLUS expr .} and the lookahead is \texttt{TIMES}, declaring \texttt{TIMES} with higher precedence than \texttt{PLUS} forces a \textbf{shift}, binding multiplication before addition.
+\end{itemize}
+
+% ------------------------------------------------------------------------------
+\section{Hand-Crafted Parsers in the Curriculum: Pedagogy vs.\ Production}
+\label{sec:handcrafted_parsers}
+% ------------------------------------------------------------------------------
+
+In addition to industrial parser generators, the curriculum guides students through constructing three distinct parsing engines from mathematical foundations:
+
+\subsection{1. Recursive Descent and LL(1) Combinators (Chapter 06)}
+In Chapter~06, students implement top-down recursive descent parsers:
+\begin{itemize}
+  \item \textbf{The LL(1) Determinism Condition:} A grammar is $\text{LL}(1)$ if for every nonterminal $A$ with productions $A \to \alpha \mid \beta$:
+  \begin{equation}
+    \text{FIRST}(\alpha) \cap \text{FIRST}(\beta) = \emptyset, \quad \text{and if } \alpha \Rightarrow^* \epsilon, \text{ then } \text{FIRST}(\beta) \cap \text{FOLLOW}(A) = \emptyset.
+  \end{equation}
+  \item \textbf{Left-Recursion Elimination:} The curriculum demonstrates how immediate left recursion ($A \to A \alpha \mid \beta$) causes infinite call-stack recursion in recursive descent, and guides students through rewriting rules into right-recursive forms ($A \to \beta A',\; A' \to \alpha A' \mid \epsilon$).
+  \item \textbf{Language Idioms:} In OCaml and F\#, recursive descent is expressed through mutually recursive functions (\texttt{let rec expr ... and product ... and factor ...}) utilizing pattern matching on token streams. In Python, it is expressed through class methods inspecting an explicit mutable token iterator.
+\end{itemize}
+
+\subsection{2. General Context-Free Parsing: The Earley Algorithm (Chapters 08--09)}
+To handle arbitrary context-free grammars---including ambiguous grammars, left-recursive grammars, and grammars with $\epsilon$-productions---Chapters~08 and~09 implement the Earley algorithm~\cite{earley1970efficient}.
+
+\begin{definition}[Earley Item]
+An Earley item is a triple $[A \to \alpha \cdot \beta,\; i]$, where $A \to \alpha\beta$ is a grammar production, the dot ($\cdot$) marks the current recognition position, and $i$ is the input position where the recognition of $A$ commenced.
+\end{definition}
+
+For an input string $w = a_1 a_2 \dots a_n$, the Earley parser constructs a state chart $(S_0, S_1, \dots, S_n)$ where each $S_k$ is a set of items closed under three fundamental operations:
+\begin{description}
+  \item[Predictor:] If $[A \to \alpha \cdot B \beta,\; i] \in S_k$, then for every production $B \to \gamma$, add $[B \to \cdot \gamma,\; k]$ to $S_k$.
+  \item[Scanner:] If $[A \to \alpha \cdot a \beta,\; i] \in S_k$ and $a = a_{k+1}$, add $[A \to \alpha a \cdot \beta,\; i]$ to $S_{k+1}$.
+  \item[Completer:] If $[B \to \gamma \cdot,\; j] \in S_k$, then for every item $[A \to \alpha \cdot B \beta,\; i] \in S_j$, add $[A \to \alpha B \cdot \beta,\; i]$ to $S_k$.
+\end{description}
+
+The Earley parser executes in $O(n^3)$ worst-case time for arbitrary grammars, $O(n^2)$ for unambiguous grammars, and $O(n)$ for deterministic $\text{LR}(k)$ grammars.
+
+\subsection{3. Bottom-Up SLR(1) and LR(1) Table Generators (Chapters 09--10)}
+In Chapters~09 and~10, students build complete $\text{SLR}(1)$ parsing table generators from scratch:
+\begin{enumerate}
+  \item \textbf{Canonical Collection of $\text{LR}(0)$ Items:} Computing $\text{closure}(I)$ and $\text{goto}(I, X)$ via fixed-point iteration over sets of items.
+  \item \textbf{$\text{FIRST}$ and $\text{FOLLOW}$ Set Synthesis:} Implementing set-theoretic closure algorithms to compute $\text{FOLLOW}(A) = \{a \in \Sigma \cup \{\$\} \mid S \Rightarrow^* \alpha A a \beta\}$.
+  \item \textbf{Action and Goto Table Synthesis:}
+  For each state $I_i$, if $[A \to \alpha \cdot a \beta] \in I_i$, assign $\text{Action}[i, a] = \text{shift } j$ (where $I_j = \text{goto}(I_i, a)$); if $[A \to \alpha \cdot] \in I_i$, assign $\text{Action}[i, a] = \text{reduce } A \to \alpha$ for each $a \in \text{FOLLOW}(A)$.
+  \item \textbf{The ANSI C Stress Test:} The table generators are tested against the full ANSI~C grammar (containing $65$ nonterminals and $220+$ productions), demonstrating how ambiguous constructs such as the dangling-\texttt{else} generate table collisions that require explicit resolution.
+\end{enumerate}
+
+% ------------------------------------------------------------------------------
+\section{Empirical Evaluation of Parser Toolchains}
+\label{sec:toolchain_empirical}
+% ------------------------------------------------------------------------------
+
+To quantify the runtime performance, table generation latency, and scalability of the three parser toolchains, we implemented an isolated benchmarking harness (\texttt{benchmarks/\allowbreak parser\_\allowbreak benchmarks.py}). All benchmarks were executed on an Apple Silicon (\texttt{arm64}) workstation under controlled thermal conditions.
+
+\subsection{Parsing Throughput and Scalability}
+We evaluated pure parsing throughput by supplying synthetic arithmetic expressions of increasing token count $N \in [100, 10{,}000]$ (e.g., $1 + 1 + 1 + \dots ;$) to the calculator parsers implemented in Python (Lark LALR), OCaml (ocamllex + Menhir native code), and F\# (FsLex + FsYacc CoreCLR RyuJIT). The results are summarized in \cref{tab:parser_throughput} and plotted in \cref{fig:parser_throughput_scaling}.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Parser throughput and table generation benchmark results across token scales ($N \in [100, 10{,}000]$). Throughput is reported in thousands of tokens per second ($10^3\text{ tok/s}$).}
+  \label{tab:parser_throughput}
+  \small
+  \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lrrrrrr@{}}
+    \toprule
+    & \multicolumn{2}{c}{\textbf{Python (Lark LALR)}} & \multicolumn{2}{c}{\textbf{OCaml (Menhir Native)}} & \multicolumn{2}{c}{\textbf{F\# (FsLexYacc RyuJIT)}} \\
+    \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+    \textbf{Tokens ($N$)} & \textbf{Time (ms)} & \textbf{kTok/s} & \textbf{Time (ms)} & \textbf{kTok/s} & \textbf{Time (ms)} & \textbf{kTok/s} \\
+    \midrule
+    $100$ & $0.244$ & $409.5$ & \textbf{0.003} & \textbf{31,300.8} & $0.055$ & $1,815.5$ \\
+    $500$ & $1.222$ & $409.0$ & \textbf{0.016} & \textbf{31,207.6} & $0.970$ & $515.6$ \\
+    $1{,}000$ & $2.574$ & $388.5$ & \textbf{0.033} & \textbf{30,305.7} & $0.299$ & $3,340.9$ \\
+    $2{,}500$ & $6.507$ & $384.2$ & \textbf{0.091} & \textbf{27,349.4} & $0.872$ & $2,868.3$ \\
+    $5{,}000$ & $12.612$ & $396.5$ & \textbf{0.149} & \textbf{33,554.4} & $1.339$ & $3,735.4$ \\
+    $10{,}000$ & $26.457$ & $378.0$ & \textbf{0.364} & \textbf{27,456.8} & $2.807$ & $3,562.2$ \\
+    \midrule
+    \textbf{Table Gen ($T_{\text{gen}}$)} & \multicolumn{2}{c}{$3.67\text{ ms}$} & \multicolumn{2}{c}{$14.63\text{ ms}$ (Menhir + Lex)} & \multicolumn{2}{c}{$1{,}491.81\text{ ms}$ (MSBuild)} \\
+    \bottomrule
+  \end{tabular*}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+      width=0.92\textwidth,
+      height=7.2cm,
+      xmode=log,
+      ymode=log,
+      log basis x=10,
+      log basis y=10,
+      xlabel={Input Stream Size (Tokens, log scale)},
+      ylabel={Parsing Throughput (Tokens/s, log scale)},
+      xmin=80, xmax=12000,
+      ymin=200000, ymax=60000000,
+      grid=both,
+      grid style={dashed,gray!35},
+      legend style={at={(0.03,0.95)}, anchor=north west, font=\footnotesize},
+      thick
+    ]
+      \addplot+[mark=*, color=OCamlOrange!90!black, line width=1.3pt] coordinates {
+        (100, 31300776)
+        (500, 31207619)
+        (1000, 30305665)
+        (2500, 27349400)
+        (5000, 33554432)
+        (10000, 27456821)
+      };
+      \addlegendentry{OCaml 5.4 (ocamllex + Menhir Native)}
+
+      \addplot+[mark=triangle*, color=FSharpPurple, line width=1.3pt] coordinates {
+        (100, 1815541)
+        (500, 515592)
+        (1000, 3340906)
+        (2500, 2868288)
+        (5000, 3735357)
+        (10000, 3562167)
+      };
+      \addlegendentry{F\# 9.0 (FsLex + FsYacc CoreCLR)}
+
+      \addplot+[mark=square*, color=PythonBlue, line width=1.3pt] coordinates {
+        (100, 409472)
+        (500, 409046)
+        (1000, 388510)
+        (2500, 384194)
+        (5000, 396454)
+        (10000, 377977)
+      };
+      \addlegendentry{Python 3.13 (Lark LALR)}
+    \end{axis}
+  \end{tikzpicture}
+  \caption{Log-log scaling of raw parsing throughput (tokens/second) across input stream size for Python, OCaml, and F\#.}
+  \label{fig:parser_throughput_scaling}
+\end{figure}
+
+The empirical measurements demonstrate three distinct performance tiers:
+\begin{enumerate}
+  \item \textbf{OCaml (Menhir + ocamllex): Absolute Throughput Leader.}
+  OCaml native code achieves an extraordinary parsing throughput of $\approx 27.5$ to $33.5 \times 10^6\text{ tokens/s}$. Scanning and parsing $10{,}000$ tokens requires just $0.364\text{ ms}$---a \textbf{$72.7\times$ speedup} over Python Lark and a \textbf{$7.7\times$ speedup} over F\# RyuJIT. This performance is explained by Menhir's compact table layout: Menhir encodes states into direct integer jump tables and executes semantic actions as inline ML function calls with zero boxing overhead.
+  \item \textbf{F\# (FsLexYacc): High-Speed Managed JIT.}
+  F\# CoreCLR RyuJIT processes $10{,}000$ tokens in $2.807\text{ ms}$ ($3.56 \times 10^6\text{ tokens/s}$), outpacing Python Lark by \textbf{$9.4\times$}. Although FsLexYacc allocates boxed discriminated union nodes for AST elements, .NET~9's fast bump-pointer Gen~0 allocator and RyuJIT register caching maintain multi-million-token throughput.
+  \item \textbf{Python (Lark LALR): Interpretive Overhead Ceiling.}
+  Python Lark processes $10{,}000$ tokens in $26.457\text{ ms}$ ($378 \times 10^3\text{ tokens/s}$). While fully adequate for typical educational code snippets ($\le 500$ tokens, executing in $\approx 1.2\text{ ms}$), Python cannot exceed $\approx 400\text{ kTok/s}$ due to CPython bytecode dispatch, dynamic dictionary lookup for parser state transitions, and intermediate \texttt{lark.Token} object instantiation.
+\end{enumerate}
+
+\subsection{Earley Parser Chart Scaling}
+To evaluate the scaling behavior of hand-crafted general context-free parsing, we evaluated the curriculum's Earley parser implementation on ambiguous expressions $E \to E + E \mid E * E \mid 1$ of length $L \in [3, 19]$ tokens (\cref{tab:earley_scaling}).
+
+\begin{table}[htbp]
+  \centering
+  \caption{Scaling of the custom Earley parser on ambiguous arithmetic grammars.}
+  \label{tab:earley_scaling}
+  \small
+  \begin{tabular}{@{}llrr@{}}
+    \toprule
+    \thead{Input Tokens ($L$)} & \textbf{Expression Example} & \thead{Chart Items $\sum |S_i|$} & \thead{Execution Time (ms)} \\
+    \midrule
+    $3$  & $1 + 1$               & $18$  & $0.010$ \\
+    $5$  & $1 + 1 + 1$           & $33$  & $0.014$ \\
+    $7$  & $1 + 1 + 1 + 1$       & $52$  & $0.022$ \\
+    $9$  & $1 + 1 + \dots$       & $75$  & $0.033$ \\
+    $11$ & $1 + 1 + \dots$       & $102$ & $0.044$ \\
+    $15$ & $1 + 1 + \dots$       & $168$ & $0.080$ \\
+    $19$ & $1 + 1 + \dots$       & $250$ & $0.122$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+As predicted by Earley's complexity analysis, the total number of chart items exhibits quadratic growth $O(L^2)$ ($250$ items at $L = 19$), while parse time scales smoothly. In Python, constructing the state sets using built-in \texttt{set} instances ensures $O(1)$ item deduplication, preventing exponential path explosion on ambiguous grammar inputs.
+
+% ------------------------------------------------------------------------------
+\section{Synthesis: The Parsing Capability Trade-Off Space}
+\label{sec:toolchain_synthesis}
+% ------------------------------------------------------------------------------
+
+Our empirical and qualitative investigation reveals that no single parser toolchain uniformly satisfies all educational criteria. Instead, each platform represents an intentional trade-off within the triangular design space of \textbf{Interactive Agility}, \textbf{Type Soundness}, and \textbf{Execution Velocity}:
+
+\begin{finding}[The Pedagogical Parser Dilemma]
+\begin{itemize}
+  \item \textbf{Python (Lark): Maximum Agility, Zero Static Safety.}
+  Lark is unmatched in student accessibility: grammars can be prototyped, modified, and debugged entirely within notebook cells without build tools ($T_{\text{gen}} = 3.67\text{ ms}$). However, the total absence of compile-time action typing means semantic errors remain undetected until runtime, creating significant debugging friction in multi-stage compilers.
+  \item \textbf{OCaml (Menhir): Maximum Analytical Power and Diagnostic Clarity.}
+  Menhir offers the optimal theoretical environment: its formal conflict explanation graphs and derivation trees provide an unparalleled tool for teaching LR conflict resolution, and its native parsing speed ($30\times 10^6\text{ tok/s}$) leads the industry. The curriculum's automated \texttt{parser\_generator.ml} orchestrator successfully bridges Menhir into interactive notebooks, though at the cost of managing ephemeral filesystem artifacts.
+  \item \textbf{F\# (FsLexYacc): Maximum Production Rigor, High Friction.}
+  F\# enforces end-to-end type safety from lexer token to AST node through nominal discriminated unions and MSBuild integration. While providing rock-solid software engineering guarantees and high execution speed ($3.5\times 10^6\text{ tok/s}$), the complete decoupling of grammar files into external MSBuild projects hinders spontaneous interactive exploration in Jupyter notebooks.
+\end{itemize}
+\end{finding}

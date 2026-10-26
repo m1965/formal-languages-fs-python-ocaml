@@ -1,0 +1,139 @@
+{
+  "metadata": {
+    "date": "2026-10-26 12:19:10",
+    "token_counts": [
+      100,
+      500,
+      1000,
+      2500,
+      5000,
+      10000
+    ],
+    "grammar": "Calculator Grammar (EBNF/BNF, 11 productions)"
+  },
+  "python_lark": {
+    "init_table_generation_ms": 3.67,
+    "parse_throughput": {
+      "100": {
+        "mean_ms": 0.244,
+        "tokens_per_sec": 409471.9
+      },
+      "500": {
+        "mean_ms": 1.222,
+        "tokens_per_sec": 409045.5
+      },
+      "1000": {
+        "mean_ms": 2.574,
+        "tokens_per_sec": 388510.5
+      },
+      "2500": {
+        "mean_ms": 6.507,
+        "tokens_per_sec": 384193.8
+      },
+      "5000": {
+        "mean_ms": 12.612,
+        "tokens_per_sec": 396453.9
+      },
+      "10000": {
+        "mean_ms": 26.457,
+        "tokens_per_sec": 377977.0
+      }
+    }
+  },
+  "ocaml_menhir": {
+    "menhir_table_generation_ms": 8.34,
+    "ocamllex_table_generation_ms": 6.29,
+    "parse_throughput": {
+      "100": {
+        "mean_ms": 0.003,
+        "tokens_per_sec": 31300776.1
+      },
+      "500": {
+        "mean_ms": 0.016,
+        "tokens_per_sec": 31207619.0
+      },
+      "1000": {
+        "mean_ms": 0.033,
+        "tokens_per_sec": 30305664.7
+      },
+      "2500": {
+        "mean_ms": 0.091,
+        "tokens_per_sec": 27349400.1
+      },
+      "5000": {
+        "mean_ms": 0.149,
+        "tokens_per_sec": 33554432.0
+      },
+      "10000": {
+        "mean_ms": 0.364,
+        "tokens_per_sec": 27456821.2
+      }
+    }
+  },
+  "fsharp_fslexyacc": {
+    "build_time_ms": 1491.81,
+    "parse_throughput": {
+      "100": {
+        "mean_ms": 0.055,
+        "tokens_per_sec": 1815541.0
+      },
+      "500": {
+        "mean_ms": 0.97,
+        "tokens_per_sec": 515591.5
+      },
+      "1000": {
+        "mean_ms": 0.299,
+        "tokens_per_sec": 3340906.1
+      },
+      "2500": {
+        "mean_ms": 0.872,
+        "tokens_per_sec": 2868288.2
+      },
+      "5000": {
+        "mean_ms": 1.339,
+        "tokens_per_sec": 3735357.4
+      },
+      "10000": {
+        "mean_ms": 2.807,
+        "tokens_per_sec": 3562166.9
+      }
+    }
+  },
+  "earley_scaling": {
+    "3": {
+      "tokens": 3,
+      "mean_ms": 0.01,
+      "chart_items": 18
+    },
+    "5": {
+      "tokens": 5,
+      "mean_ms": 0.014,
+      "chart_items": 33
+    },
+    "7": {
+      "tokens": 7,
+      "mean_ms": 0.022,
+      "chart_items": 52
+    },
+    "9": {
+      "tokens": 9,
+      "mean_ms": 0.033,
+      "chart_items": 75
+    },
+    "11": {
+      "tokens": 11,
+      "mean_ms": 0.044,
+      "chart_items": 102
+    },
+    "15": {
+      "tokens": 15,
+      "mean_ms": 0.08,
+      "chart_items": 168
+    },
+    "19": {
+      "tokens": 19,
+      "mean_ms": 0.122,
+      "chart_items": 250
+    }
+  }
+}
