@@ -50,7 +50,7 @@ The three languages embody radically different engineering paradigms for integra
 \begin{figure}[htbp]
   \centering
   \begin{tikzpicture}[
-    node distance=1.1cm and 0.8cm,
+    node distance=1.1cm and 1.15cm,
     box/.style={rectangle, draw=black!70, rounded corners=3pt, fill=CodeBg, inner sep=5pt, font=\scriptsize, align=center},
     pybox/.style={box, fill=PythonBlue!10, draw=PythonBlue!80},
     ocbox/.style={box, fill=OCamlOrange!10, draw=OCamlOrange!80},
@@ -68,7 +68,7 @@ The three languages embody radically different engineering paradigms for integra
     \node[ocbox, below=1.2cm of p1] (o1) {\textbf{OCaml Notebook Cell}\\\texttt{.mll} and \texttt{.mly} strings};
     \node[ocbox, right=of o1] (o2) {\textbf{Orchestrator}\\Subprocess: \texttt{ocamllex} +\\\texttt{menhir --lalr} $\to$ \texttt{\_build/}};
     \node[ocbox, right=of o2] (o3) {\textbf{Toplevel Loader}\\\texttt{Toploop.load\_file}\\\texttt{Parse\_tree.tree} / ADT};
-    \draw[arrow] (o1) -- node[above, font=\tiny] {\texttt{generate\_parser}} (o2);
+    \draw[arrow] (o1) -- node[above, font=\tiny] {\texttt{generate}} (o2);
     \draw[arrow] (o2) -- node[above, font=\tiny] {\texttt{ocamlc -c}} (o3);
 
     % F# pipeline
