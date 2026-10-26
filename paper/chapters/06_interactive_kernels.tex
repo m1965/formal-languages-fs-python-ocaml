@@ -1,34 +1,36 @@
 % ==============================================================================
-% Chapter 6: Interactive Notebook Infrastructure & Kernel Architecture
+% Kapitel 6: Interaktive Notebook-Infrastruktur und Kernel-Architektur
 % ==============================================================================
-\chapter{Interactive Notebook Infrastructure and Kernel Architecture}
+\chapter{Interaktive Notebook-Infrastruktur und Kernel-Architektur}
 \label{chap:interactive_kernels}
+\selectlanguage{ngerman}
 
-Interactive computational notebooks---pioneered by Mathematica and popularized across academia by Project Jupyter~\cite{kluyver2016jupyter,perez2007ipython}---have revolutionized computing education. In formal languages and automata theory, notebooks replace static pseudocode with executable mathematical models. Students can define non-deterministic finite automata ($\text{NFA}$), compute power-set determinizations ($\text{DFA}$), minimize states via partition refinement, and immediately inspect rendered transition graphs and syntax trees within the browser.
+Interaktive Rechenhefte, sogenannte Computational Notebooks, wie sie durch das Jupyter-Projekt weltweit in Forschung und akademischer Lehre etabliert wurden~\cite{kluyver2016jupyter,perez2007ipython}, haben den Unterricht in der theoretischen und angewandten Informatik grundlegend verändert. Im Kontext der formalen Sprachen, der Automatentheorie und des Compilerbaus ersetzen sie statische Tafelbilder und isolierte Pseudocode-Beispiele durch unmittelbar ausführbare mathematische Modelle. Studierende können nichtdeterministische endliche Automaten definieren, Potenzmengenkonstruktionen zur Determinierung anstoßen, Zustandsminimierungen über Äquivalenzklassenzerlegungen durchführen und die resultierenden Übergangsgraphen sowie Syntaxbäume direkt im Webbrowser als Vektorgrafiken betrachten.
 
-However, hosting rigorous symbolic computation inside an interactive notebook imposes non-trivial architectural challenges. A programming language's runtime is no longer invoked as an ephemeral, single-shot batch process. Instead, an interactive \textbf{kernel} process persists indefinitely across multiple HTTP and ZeroMQ requests~\cite{hintjens2013zeromq}, executing disjoint user-submitted cells in arbitrary order while maintaining live heap memory, open file descriptors, and dynamic symbol tables.
+Aus softwarearchitektonischer Sicht stellt der Betrieb komplexer symbolischer Algorithmen in einer interaktiven Notebook-Umgebung jedoch erhebliche Anforderungen an die zugrunde liegende Sprachlaufzeit. Der Programmcode wird nicht mehr als in sich geschlossenes Batch-Skript von Anfang bis Ende in einem flüchtigen Einzelprozess ausgeführt. Stattdessen operiert im Hintergrund ein langlebiger Kernel-Prozess, der über Netzwerk- und IPC-Sockets mit der Benutzeroberfläche kommuniziert~\cite{hintjens2013zeromq}. Dieser Kernel nimmt beliebig angeordnete Codezellen entgegen, führt sie in unvorhersehbarer Reihenfolge aus und muss dabei den internen Speicherzustand, geladene Typdefinitionen und Dateideskriptoren über Stunden hinweg konsistent halten.
 
-This chapter investigates the interactive notebook infrastructure across our tri-language corpus:
+In diesem Kapitel untersuchen wir die interaktive Infrastruktur der drei untersuchten Sprachplattformen:
 \begin{enumerate}
-  \item \textbf{Python 3.13} hosted via the reference \texttt{ipykernel} engine;
-  \item \textbf{OCaml 5.4} hosted via the native \texttt{ocaml-jupyter} kernel~\cite{akabe2024ocaml}; and
-  \item \textbf{F\# 9.0 (.NET 9)} hosted via Microsoft's polyglot \texttt{dotnet-interactive} engine~\cite{dotnetinteractive2024}.
+  \item \textbf{Python 3.13} über den Standard-Referenzkernel \texttt{ipykernel};
+  \item \textbf{OCaml 5.4} über den nativen Compiler-Kernel \texttt{ocaml-jupyter}~\cite{akabe2024ocaml}; und
+  \item \textbf{F\# 9.0 (.NET 9)} über Microsofts mehrsprachige Plattform \texttt{dotnet-interactive}~\cite{dotnetinteractive2024}.
 \end{enumerate}
-We analyze how the underlying message-passing protocols, toplevel compilation models, variable shadowing rules, generative type semantics, and inline Graphviz rendering pipelines impact state isolation, execution determinism, and pedagogical ergonomics.
+Wir analysieren die nachrichtenbasierten Kommunikationsprotokolle, die Toplevel"=Kompilierungsschritte, die Semantik von Variablenabschattungen, die Gefahren generativer Typdefinitionen sowie die konkreten Grafik-Pipelines zur Vektordarstellung formaler Modelle.
 
 % ------------------------------------------------------------------------------
-\section{Jupyter Wire Protocols and Kernel Architecture}
+\section{Das ZeroMQ-Nachrichtenprotokoll und die Kernel-Architektur}
 \label{sec:kernels_protocol}
 % ------------------------------------------------------------------------------
 
-The Jupyter architecture unifies heterogeneous execution backends through a language-agnostic wire protocol layered over \textbf{ZeroMQ} asynchronous message sockets and \textbf{JSON} payloads~\cite{hintjens2013zeromq,kluyver2016jupyter}. A Jupyter server and an active language kernel communicate over five dedicated bidirectional and pub/sub channels (\Cref{fig:jupyter_zeromq_architecture}):
-\begin{description}
-  \item[\textbf{Shell Channel (ROUTER/DEALER):}] Handles interactive code execution requests (\texttt{execute\_request}), code completion requests (\texttt{complete\_request}), and object inspection requests (\texttt{inspect\_request}), returning structured execution metadata and execution counters.
-  \item[\textbf{IOPub Channel (PUB/SUB):}] A high-throughput broadcast channel streaming standard output (\texttt{stdout}), standard error (\texttt{stderr}), rich multi-MIME visual representations (\texttt{display\_data}, \texttt{execute\_result}), and execution state indicators (\texttt{status: busy/idle}).
-  \item[\textbf{Control Channel (ROUTER/DEALER):}] A prioritized out-of-band channel reserved for administrative interrupts (\texttt{interrupt\_request}), execution termination, and kernel shutdown signals, bypassing clogged queues on the Shell socket.
-  \item[\textbf{Stdin Channel (ROUTER/DEALER):}] Enables the kernel to request interactive text input from the client frontend via pseudo-synchronous message pairing (\texttt{input\_request}/\texttt{input\_reply}).
-  \item[\textbf{Heartbeat Channel (REQ/REP):}] Emits periodic liveness probes to detect kernel deadlocks, segmentation faults, or unhandled process crashes.
-\end{description}
+Die Jupyter-Architektur entkoppelt die Benutzerschnittstelle im Webbrowser vollständig von der eigentlichen Programmausführung. Diese Trennung basiert auf einem sprachunabhängigen Netzwerkprotokoll, das über die nachrichtenbasierte Socket-Bibliothek ZeroMQ und standardisierte JSON-Datenstrukturen realisiert ist~\cite{hintjens2013zeromq,kluyver2016jupyter}. Zwischen dem Jupyter-Server und dem Sprach-Kernel existieren fünf eigenständige Kommunikationskanäle, die jeweils spezifische Aufgaben im interaktiven Arbeitsablauf erfüllen (\Cref{fig:jupyter_zeromq_architecture}):
+
+Der \textbf{Shell-Kanal} ist als synchrones Anfrage-Antwort-Muster aufgebaut. Über diesen Kanal sendet die Benutzeroberfläche den Inhalt einer Codezelle an den Kernel, fordert automatische Codevervollständigungen an oder ruft typbezogene Dokumentationshilfen ab. Der Kernel antwortet mit detaillierten Ausführungsstatusmeldungen und inkrementiert den zellulären Ausführungszähler.
+
+Der \textbf{IOPub-Kanal} arbeitet nach dem Publish-Subscribe-Prinzip und dient als unidirektionaler Hochgeschwindigkeitskanal. Über diesen Kanal überträgt der Kernel fortlaufend Textausgaben der Standard- und Fehlerausgabe, visualisierbare Multimediadaten in Formaten wie SVG oder HTML sowie Benachrichtigungen über den aktuellen Arbeitszustand, beispielsweise ob der Kernel beschäftigt oder bereit für neue Eingaben ist.
+
+Der \textbf{Control-Kanal} besitzt die gleiche technische Struktur wie der Shell-Kanal, ist jedoch für administrative Steuerbefehle reserviert. Da reguläre Codeausführungen den Shell-Kanal für längere Zeit blockieren können, werden Notstopps, Programmabbrüche und Beendigungsanforderungen über diesen priorisierten Kanal geleitet, sodass der Kernel auch bei Endlosschleifen reaktionsfähig bleibt.
+
+Der \textbf{Stdin-Kanal} ermöglicht es dem Kernel, interaktive Tastatureingaben vom Benutzer anzufordern, indem er eine Rückfrage an das Frontend stellt und auf die Bestätigung wartet. Der \textbf{Heartbeat-Kanal} fungiert schließlich als kontinuierliche Lebenszeichen-Überwachung über einfache Echo-Anfragen, um einen Absturz des Kernel-Prozesses sofort an das Benutzerinterface zu melden.
 
 \begin{figure}[htbp]
   \centering
@@ -40,16 +42,16 @@ The Jupyter architecture unifies heterogeneous execution backends through a lang
     biwire/.style={thick, {Stealth[length=2mm]}-{Stealth[length=2mm]}, NavyBlue!80}
   ]
     % Client and Server
-    \node[box, fill=PythonBlue!10, draw=PythonBlue] (client) at (0, 0) {\textbf{Jupyter Frontend}\\[0.15em]Browser DOM / Lab};
-    \node[box, fill=NavyBlue!10, draw=NavyBlue] (server) at (4.0, 0) {\textbf{Jupyter Server}\\[0.15em]Tornado / WebSockets};
+    \node[box, fill=PythonBlue!10, draw=PythonBlue] (client) at (0, 0) {\textbf{Jupyter-Frontend}\\[0.15em]Webbrowser / DOM};
+    \node[box, fill=NavyBlue!10, draw=NavyBlue] (server) at (4.0, 0) {\textbf{Jupyter-Server}\\[0.15em]Tornado / WebSockets};
 
     \draw[biwire] (client) -- node[above, font=\tiny\ttfamily] {WebSocket} (server);
 
     % ZeroMQ Channels
-    \node[box, fill=white] (shell) at (8.5, 1.8) {\texttt{Shell} (ROUTER/DEALER)\\\tiny execute\_request $\leftrightarrow$ execute\_reply};
-    \node[box, fill=white] (iopub) at (8.5, 0.6) {\texttt{IOPub} (PUB/SUB)\\\tiny stream, display\_data, status};
-    \node[box, fill=white] (control) at (8.5, -0.6) {\texttt{Control} (ROUTER/DEALER)\\\tiny interrupt\_request, shutdown};
-    \node[box, fill=white] (stdin) at (8.5, -1.8) {\texttt{Stdin / Heartbeat}\\\tiny input\_request, liveness};
+    \node[box, fill=white] (shell) at (8.5, 1.8) {\texttt{Shell} (ROUTER/DEALER)\\\tiny Ausführungsanfragen \& Metadaten};
+    \node[box, fill=white] (iopub) at (8.5, 0.6) {\texttt{IOPub} (PUB/SUB)\\\tiny Textausgaben, SVG, HTML, Status};
+    \node[box, fill=white] (control) at (8.5, -0.6) {\texttt{Control} (ROUTER/DEALER)\\\tiny Signal-Interrupts, Notabschaltung};
+    \node[box, fill=white] (stdin) at (8.5, -1.8) {\texttt{Stdin / Heartbeat}\\\tiny Benutzereingaben \& Lebenszeichen};
 
     \draw[biwire] (server.east) to[out=25, in=180] (shell.west);
     \draw[wire] (iopub.west) to[out=180, in=5] (server.east);
@@ -58,7 +60,7 @@ The Jupyter architecture unifies heterogeneous execution backends through a lang
 
     % Kernels Box
     \node[kbox] (kernel) at (13.2, 0) {};
-    \node[anchor=north, font=\bfseries\footnotesize\sffamily, NavyBlue] at (kernel.north) {Kernel Process};
+    \node[anchor=north, font=\bfseries\footnotesize\sffamily, NavyBlue] at (kernel.north) {Kernel-Prozess};
     
     \node[box, fill=PythonBlue!15, draw=PythonBlue, minimum width=2.8cm, minimum height=0.65cm] (k_py) at (13.2, 0.8) {\texttt{ipykernel} (Python)};
     \node[box, fill=OCamlOrange!15, draw=OCamlOrange, minimum width=2.8cm, minimum height=0.65cm] (k_ml) at (13.2, -0.05) {\texttt{ocaml-jupyter} (OCaml)};
@@ -69,144 +71,80 @@ The Jupyter architecture unifies heterogeneous execution backends through a lang
     \draw[biwire] (control.east) -- (k_fs.west);
   \end{tikzpicture}%
   }
-  \caption{Architectural decomposition of the Jupyter ZeroMQ messaging protocol across the three evaluation kernels.}
+  \caption{Architektur des Jupyter-ZeroMQ-Nachrichtenprotokolls im Zusammenspiel mit den drei Evaluierungs-Kerneln.}
   \label{fig:jupyter_zeromq_architecture}
 \end{figure}
 
-While all three language kernels conform to this external wire specification, their internal execution engines operate under profoundly divergent paradigms:
+Obwohl alle drei Sprachsysteme die gleiche äußere Protokollspezifikation bedienen, unterscheidet sich ihre interne Ausführungsmaschinerie grundlegend:
 
-\subsection{1. Python 3.13: In-Process Interpreted Execution (\texttt{ipykernel})}
-The standard Python kernel (\texttt{ipykernel}) executes within a persistent CPython interpreter process managed by an asynchronous \texttt{asyncio}/\texttt{tornado} event loop. User-submitted cells are parsed into CPython bytecode via the built-in \texttt{compile()} function and executed directly in the global module namespace \texttt{\_\_main\_\_.\_\_dict\_\_}. 
+In Python läuft der Referenzkernel \texttt{ipykernel} direkt innerhalb eines CPython"=Interpreterprozesses. Dieser stützt sich auf eine asynchrone Ereignisschleife und führt übermittelte Codezeilen unmittelbar im globalen Modulwörterbuch des Hauptprogramms aus. Durch diese interpretierte Struktur können Variablen, Funktionen und Klassen ohne jegliche Vorabkompilierung dynamisch überschrieben werden. Neue Bibliotheken lassen sich zur Laufzeit über einfache Importanweisungen oder Paketmanager-Befehle einbinden. Der gravierende Nachteil dieser Leichtigkeit besteht jedoch im vollständigen Fehlen von Speichertrennungen: Alle während einer Zellenausführung allokierten Objekte verbleiben dauerhaft im Heap, und fehlerhafte Programmläufe hinterlassen einen partiell veränderten globalen Systemzustand.
 
-Because execution occurs within an interpreted dictionary space, reflection and runtime modification are frictionless: functions, classes, and global constants can be rebound dynamically, and external libraries are imported into the active namespace via standard \texttt{import} statements or \texttt{\%pip} magics. However, as demonstrated in \Cref{chap:performance}, this in-process dynamic design provides no memory or isolation boundaries: objects allocated during cell execution remain anchored in memory unless explicitly garbage collected or overwritten, and uncaught exceptions leave interpreter state partially mutated.
+Der OCaml-Kernel \texttt{ocaml-jupyter} verfolgt einen völlig anderen Ansatz, indem er die internen Compiler-Bibliotheken der Sprache direkt als Toplevel-Schleife einbindet. Jedes Mal, wenn eine Zelle über den Shell-Kanal eintrifft, durchläuft der Programmtext eine vollständige Vorab-Kompilierung. Zunächst wird der Text in einen abstrakten Syntaxbaum für Toplevel-Ausdrücke zerlegt. Unmittelbar danach erfolgt eine vollständige statische Typanalyse nach dem Hindley--Milner-Verfahren gegen die bisher aufgebaute Umgebung. Erst wenn dieser Typcheck ohne jeden Fehler bestanden ist, erzeugt das System Zwischencode, führt diesen im Toplevel aus und formatiert das Ergebnis über registrierte Ausgabefunktionen. Enthält eine Zelle einen Typfehler, wird die Ausführung sofort vor Beginn jeglicher Seiteneffekte gestoppt, wodurch der Speicherzustand vor Beschädigungen geschützt bleibt.
 
-\subsection{2. OCaml 5.4: Compiler-as-a-Library Toploop (\texttt{ocaml-jupyter})}
-The OCaml kernel, developed by Akinori Abe~\cite{akabe2024ocaml}, integrates directly with OCaml's internal compiler libraries (\texttt{compiler-libs.toplevel}) and the \texttt{Lwt} cooperative concurrency framework. The kernel process runs an event-driven loop that binds ZeroMQ file descriptors to Lwt asynchronous event listeners.
-
-When a code cell is submitted via the Shell socket, \texttt{ocaml-jupyter} routes the text directly through the OCaml compiler frontend:
-\begin{enumerate}
-  \item The text is lexed and parsed into an abstract syntax tree representation of toplevel phrases (\texttt{Parsetree.toplevel\_phrase});
-  \item The phrase undergoes complete static type checking and Hindley--Milner type inference against the toplevel environment (\texttt{Env.t});
-  \item The type-checked phrase is translated into Lambda intermediate code and compiled into native bytecode or machine instructions via \texttt{Toploop.execute\_phrase};
-  \item The resulting value is printed using registered value formatters (\texttt{Toploop.install\_printer}) and piped to IOPub.
-\end{enumerate}
-
-Unlike Python, where syntax and runtime execution are coupled, \texttt{ocaml-jupyter} enforces full ahead-of-execution static type checking for every cell. If a cell contains a type mismatch or an unbound variable, execution is aborted at phase~2 before any side effects or heap mutations occur.
-
-\subsection{3. F\# 9.0 (.NET 9): Roslyn-Hosted Submission Assembly Pipeline (\texttt{dotnet-interactive})}
-Microsoft's \texttt{dotnet-interactive} engine is an enterprise-grade, multi-language polyglot notebook kernel designed to orchestrate C\#, F\#, PowerShell, and SQL within a single session~\cite{dotnetinteractive2024}. The F\# kernel is implemented on top of the \textbf{F\# Compiler Service} (\texttt{FSharp.\allowbreak Compiler.\allowbreak Service}, or FCS) hosted within the .NET 9 CoreCLR runtime.
-
-Rather than interpreting code in a script toploop, \texttt{dotnet-interactive} treats each cell evaluation as an incremental compilation unit termed a \textbf{Submission}:
-\begin{enumerate}
-  \item The text of Cell~$k$ is analyzed, type-checked, and compiled by the in-memory F\# Compiler Service as a synthetic submission class (e.g., \texttt{Submission\#k});
-  \item The compiler emits an in-memory Common Intermediate Language (CIL) assembly fragment referencing all prior submission assemblies (\texttt{Submission\#0} through \texttt{Submission\#(k-1)});
-  \item The .NET CoreCLR loader loads the generated assembly into the running process;
-  \item RyuJIT compiles the newly loaded CIL into native machine instructions on demand;
-  \item The static entrypoint of the submission is invoked, evaluating expressions and returning results to the kernel host.
-\end{enumerate}
-
-This architecture guarantees true native JIT performance for numerical and scanner loops, but explains the significant memory overhead and initialization latency observed in \Cref{chap:performance}: the kernel must embed an entire optimizing production compiler, type checker, and assembly emitter in memory.
+In F\# stützt sich die Laufzeitumgebung \texttt{dotnet-interactive} auf den Microsoft F\# Compiler Service innerhalb der modernen .NET 9 CoreCLR. Anstatt den Programmcode interpretativ abzuarbeiten, behandelt das System jede Zelle als eine eigenständige, inkrementelle Kompiliereinheit. Der Text wird analysiert, typgeprüft und als synthetische Klassenstruktur in eine vollwertige Zwischencode-Assembly im Arbeitsspeicher übersetzt. Diese Assembly referenziert alle vorangegangenen Zellausführungen, wird dynamisch in den laufenden .NET-Prozess geladen und dort vom RyuJIT-Just-in-Time-Compiler in echten, hochoptimierten Maschinencode transformiert. Dieses Vorgehen garantiert höchste Rechenleistung bei rechenintensiven Automatenschleifen, erklärt jedoch auch den substanziellen Speicherbedarf und die längere Initialisierungszeit, da ein kompletter Optimierungscompiler im Kernel-Speicher resident gehalten werden muss.
 
 \begin{table}[htbp]
   \centering
   \footnotesize
-  \caption{Architectural comparison of Jupyter notebook kernel runtimes.}
+  \caption{Architektonischer Vergleich der drei interaktiven Jupyter-Laufzeitumgebungen.}
   \label{tab:kernel_architectures}
   \begin{tabularx}{\textwidth}{lXXX}
     \toprule
     \textbf{Dimension} & \textbf{Python 3.13 (\texttt{ipykernel})} & \textbf{OCaml 5.4 (\texttt{ocaml-jupyter})} & \textbf{F\# 9.0 (.NET 9)} \\
     \midrule
-    \textbf{Execution Model} &
-      Bytecode interpretation in persistent \texttt{\_\_dict\_\_} &
-      Interactive toploop via \texttt{compiler-libs} &
-      Dynamic CIL assembly compilation via FCS \\
+    \textbf{Ausführungsmodell} &
+      Interpretation im persistenten Hauptwörterbuch &
+      Interaktive Toplevel-Schleife via Compiler-Libs &
+      Dynamische Assembly-Kompilierung via FCS \\
     \addlinespace[3pt]
-    \textbf{Compilation Latency} &
-      Instantaneous ($\approx 0.1\text{ ms}$) &
-      Rapid type-check \& JIT ($\approx 3.5\text{ ms}$) &
-      Heavy compilation \& RyuJIT ($\approx 25\text{--}80\text{ ms}$) \\
+    \textbf{Kompilierlatenz} &
+      Nahezu verzögerungsfrei (unter 1 Millisekunde) &
+      Schneller Typcheck und JIT (ca. 4 Millisekunden) &
+      Vollständige JIT-Kompilierung (25 bis 80 ms) \\
     \addlinespace[3pt]
-    \textbf{Static Soundness} &
-      None (runtime duck typing) &
-      Complete static Hindley--Milner check &
-      Complete static nominal .NET check \\
+    \textbf{Statische Typsicherheit} &
+      Keine (reine dynamische Duck-Typisierung) &
+      Vollständige Hindley--Milner-Typprüfung &
+      Vollständige nominale .NET-Typprüfung \\
     \addlinespace[3pt]
-    \textbf{Package Ingestion} &
-      \texttt{\%pip install} / \texttt{import} &
-      \texttt{\#require "pkg"} / \texttt{\#use} &
-      \texttt{\#r "nuget:Package"} \\
+    \textbf{Paketverwaltung} &
+      Paketinstallation via Pip und Importbefehle &
+      Modulladen via Require und Use-Direktiven &
+      NuGet-Referenzierung via direkte Anweisung \\
     \addlinespace[3pt]
-    \textbf{Sub-process Footprint} &
-      Single process (lightweight) &
-      Single process + Lwt event loop &
-      Heavy multi-threaded CLR host \\
+    \textbf{Prozessarchitektur} &
+      Schlanker Einzelprozess mit Ereignisschleife &
+      Einzelprozess mit kooperativer Lwt-Schleife &
+      Mehrfädiger vollwertiger .NET-Hostprozess \\
     \addlinespace[3pt]
-    \textbf{Baseline Idle Memory} &
-      $55.4\text{ MB}$ &
-      $27.2\text{ MB}$ &
-      $530.5\text{ MB}$ \\
+    \textbf{Basisspeicher (RSS)} &
+      Rund 55 Megabyte im Leerlauf &
+      Rund 27 Megabyte im Leerlauf &
+      Rund 530 Megabyte im Leerlauf \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
 % ------------------------------------------------------------------------------
-\section{State Isolation, Variable Shadowing, and Type Generativity Hazards}
+\section{Zustandsisolation, Variablenabschattung und Typgenerativität}
 \label{sec:kernels_state_hazards}
 % ------------------------------------------------------------------------------
 
-The defining characteristic of an interactive notebook is that code cells are rarely executed strictly from top to bottom. During exploratory learning and debugging, students repeatedly re-execute earlier cells, introduce revised type definitions, and modify helper functions. This non-linear execution lifecycle exposes critical divergence in how the three languages handle state mutation and type redefinition.
+Ein charakteristisches Merkmal interaktiver Notizbücher besteht darin, dass Zellen im Lernprozess selten streng linear von oben nach unten abgearbeitet werden. Studierende experimentieren, springen zwischen Beispielen hin und her, modifizieren Funktionen in früheren Zellen und führen diese wiederholt aus. Dieses nichtlineare Vorgehen legt fundamentale Unterschiede in der Zustandsverwaltung der drei Sprachen offen.
 
-\subsection{1. Dynamic Rebinding vs. Leaked Closures in Python}
-In Python, re-evaluating a cell simply rebinds identifiers in the module's global symbol dictionary. For example, consider defining an AST class and an evaluator function across two cells:
+In Python führt die erneute Ausführung einer Zelle schlicht dazu, dass Bezeichner im globalen Namensraum überschrieben werden. Wird beispielsweise eine Klasse für Syntaxbaumknoten definiert, instanziiert und später um ein zusätzliches Attribut erweitert und erneut ausgeführt, verweist der Klassenname auf das neue Klassenobjekt. Bereits erzeugte Baumstrukturen verbleiben jedoch mit ihrer alten Klassenzugehörigkeit im Speicher. Während generischer Code, der lediglich Attributnamen abfragt, scheinbar weiterfunktioniert, schlagen Typprüfungen mittels \texttt{isinstance} unbemerkt fehl, weil das alte Objekt nicht als Instanz der gleichnamigen neuen Klasse erkannt wird. Dies führt zu schwer durchschaubaren Fehlern, die Programmieranfänger vor erhebliche Rätsel stellen.
 
-\begin{lstlisting}[language=Python,caption={Python dynamic class re-instantiation anomaly.}]
-# Cell 1:
-class Node:
-    def __init__(self, val, left=None, right=None):
-        self.val, self.left, self.right = val, left, right
+In OCaml tritt durch die Kombination aus statischem Typsystem und interaktiver Toplevel-Umgebung ein noch gravierenderes Phänomen auf: das Problem der \textbf{Typgenerativität}. Jede im Toplevel deklarierte Typdefinition erzeugt intern einen neuen, eindeutigen Typstempel. Wird beispielsweise in einer ersten Zelle ein Datentyp für arithmetische Ausdrücke definiert und eine Instanz erzeugt, und in einer zweiten Zelle eine Auswertungsfunktion deklariert, führt eine nachträgliche Modifikation der ersten Zelle zu einer fatalen Inkompatibilität. 
 
-root = Node("+", Node(3), Node(4))
+Sobald die erste Zelle erneut ausgeführt wird, erzeugt OCaml eine völlig neue Typidentität. Versucht die zuvor kompilierte Auswertungsfunktion nun, einen neu erzeugten Ausdruck zu verarbeiten, bricht der Typchecker mit einer Fehlermeldung ab, die besagt, dass der Ausdruck vom Typ des alten Stempels erwartet wurde, aber der Typ des neuen Stempels übergeben wurde, obwohl beide im Quelltext identisch heißen. Da das Hindley--Milner-System kompromisslose Korrektheit erzwingt, können diese beiden nominell verschiedenen Typen niemals vereinheitlicht werden.
 
-# User modifies Cell 1 and re-runs:
-class Node:
-    def __init__(self, val, left=None, right=None, tag=None):
-        self.val, self.left, self.right, self.tag = val, left, right, tag
-\end{lstlisting}
-
-Upon re-evaluating Cell~1, the identifier \texttt{Node} points to the new class object. However, any existing AST instance constructed during earlier executions (or stored in data structures across other cells) remains bound to the \textit{original} class object in memory. While Python's dynamic duck typing permits operations that inspect structural attributes (such as \texttt{.val}), nominal identity tests (\texttt{isinstance(root, Node)}) silently evaluate to \texttt{False}, creating subtle, non-deterministic bugs that confuse students.
-
-\subsection{2. The Generative Type Hazard in OCaml's Toploop}
-In statically typed functional languages with algebraic data types, type re-evaluation poses a more severe theoretical dilemma: \textbf{type generativity}.
-
-In OCaml, every evaluated type declaration creates a \textit{new, distinct nominal type stamp} in the toplevel environment. Suppose an AST type is declared in Cell~1 and an evaluator is declared in Cell~2:
-
-\begin{lstlisting}[language=Caml,caption={The OCaml toplevel generative nominal type hazard.}]
-(* Cell 1: Initial definition *)
-type expr = Num of int | Add of expr * expr
-let e1 = Add (Num 3, Num 4)
-
-(* Cell 2: Evaluator function *)
-let rec eval = function
-  | Num n -> n
-  | Add (a, b) -> eval a + eval b
-
-(* User re-executes Cell 1 (e.g., adding a Mul constructor): *)
-type expr = Num of int | Add of expr * expr | Mul of expr * expr
-\end{lstlisting}
-
-If the student now calls \texttt{eval e1} without re-executing Cell~2, the OCaml type checker immediately halts with a bewildering error:
-\begin{lstlisting}[language=Caml]
-Error: This expression has type expr/1 but an expression was expected of type expr/2
-\end{lstlisting}
-The toplevel environment contains two structurally identical but nominally distinct types: the old type \texttt{expr/1} associated with the compiled \texttt{eval} function, and the new type \texttt{expr/2} bound to newly constructed expressions. Because Hindley--Milner type inference enforces absolute soundness, values of \texttt{expr/1} cannot unify with \texttt{expr/2}.
-
-\begin{observation}[\textbf{The Toplevel Generative Library Anti-Pattern}]
-If shared domain types (such as \texttt{nfa}, \texttt{dfa}, or \texttt{ast}) are defined directly inside notebook cells, re-executing earlier cells in an OCaml notebook will repeatedly invalidate all subsequent functions and values in the heap.
+\begin{observation}[\textbf{Das Antipattern generativer Toplevel-Typen}]
+Werden zentrale Domänentypen für Automaten oder Syntaxbäume direkt in gewöhnlichen Notebook-Zellen definiert, entwertet jede wiederholte Ausführung dieser Zellen sämtliche nachfolgend deklarierten Funktionen und bestehenden Datenstrukturen im Speicher.
 \end{observation}
 
-To resolve this issue, the OCaml curriculum repository establishes an architectural abstraction in \texttt{ocaml/lib/nb.ml}. Shared types are extracted into modular library files and loaded via a guarded idempotent loader:
+Um dieses Problem im Vorlesungsbetrieb elegant zu beherrschen, nutzt die OCaml-Fassung des Curriculums ein zentrales Architekturmuster in der Hilfsdatei \texttt{ocaml/\allowbreak lib/\allowbreak nb.ml}. Sämtliche grundlegenden Typdefinitionen werden aus den Notizbüchern in separate Bibliotheksdateien ausgelagert und über einen abgesicherten, idempotenten Lademechanismus eingebunden:
 
-\begin{lstlisting}[language=Caml,caption={Idempotent library loading pattern in \texttt{ocaml/lib/nb.ml}.}]
+\begin{lstlisting}[language=Caml,caption={Idempotentes Laden von Typbibliotheken in OCaml.}]
 let loaded_libs : (string, unit) Hashtbl.t = Hashtbl.create 8
 
 let load_lib (file : string) : unit =
@@ -218,21 +156,18 @@ let load_lib (file : string) : unit =
   end
 \end{lstlisting}
 
-By registering every loaded module in \texttt{loaded\_libs} and evaluating it via \texttt{Toploop.\allowbreak use\_silently}, the kernel ensures that core type definitions are evaluated \textbf{strictly once per kernel lifecycle}. Re-running a cell containing \texttt{load\_lib "regex.ml"} is a benign no-op, preserving type identity across all existing heap structures.
+Durch die Protokollierung in einer globalen Hashtabelle und die Ausführung über die interne Compilerfunktion \texttt{Toploop.use\_silently} wird sichergestellt, dass jede Typbibliothek während der gesamten Lebensdauer des Kernels exakt ein einziges Mal kompiliert wird. Ein versehentliches erneutes Ausführen einer Ladeanweisung bleibt damit ein vollkommen unschädlicher Leerschritt, und bestehende Baumstrukturen behalten ihre gültige Typidentität.
 
-\subsection{3. F\# Incremental Submission Shadowing}
-In \texttt{dotnet-interactive}, F\# resolves the re-execution challenge through Roslyn-style incremental submissions. When a cell is re-executed, the F\# Compiler Service emits a new assembly (\texttt{Submission\#k}) that lexically \textbf{shadows} previous definitions with the same name. 
-
-Unlike OCaml's toplevel, where re-executing a cell can leave existing values typed against stale nominal stamps in the same scope, F\# treats each cell submission as an explicit outer scope wrapping earlier submissions. Furthermore, shared algorithmic functions and automata types are isolated into external \texttt{.fsx} script files loaded via \texttt{\#load "AutomataTypes.fsx"}. Re-loading a script creates a clean namespace boundary, mitigating subtle shadowing collisions while guaranteeing strict type safety.
+In F\# löst die Laufzeitumgebung \texttt{dotnet-interactive} diese Herausforderung über eine inkrementelle lexikalische Abschattung. Jede Zellausführung erzeugt eine neue Assembly"=Ebene, die frühere Definitionen gleichen Namens im aktuellen Geltungsbereich überdeckt, ohne die Typkonsistenz innerhalb der neuen Ebene zu verletzen. Zudem sind wiederverwendbare Algorithmen und Automatentypen in externe F\#-Skriptdateien ausgelagert, die über Ladebefehle modular eingebunden werden. Dies gewährleistet eine saubere Trennung zwischen interaktivem Experimentiercode und stabilen Kernbibliotheken.
 
 % ------------------------------------------------------------------------------
-\section{Rich Visualization Pipelines: Automata and Parse Trees}
+\section{Pipelines zur visuellen Darstellung: Automaten und Syntaxbäume}
 \label{sec:kernels_visualization}
 % ------------------------------------------------------------------------------
 
-In formal languages education, symbolic structures cannot be effectively evaluated through textual representations alone. A 20-state finite automaton or a deeply nested LR parse tree is visually incomprehensible when formatted as raw records or tuples. Consequently, inline visual rendering via Graphviz DOT diagrams and Scalable Vector Graphics (SVG) forms an indispensable component of the interactive curriculum.
+In der universitären Lehre der formalen Sprachen sind visuelle Repräsentationen unverzichtbar. Ein komplexer Übergangsgraph eines Automaten mit Dutzenden Zuständen oder ein tiefer Ableitungsbaum eines LR-Parsers ist in reiner Textform oder als verschachtelte Tupelstruktur für das menschliche Auge kaum erfassbar. Die unmittelbare Generierung von Vektorgrafiken mittels Graphviz und deren direkte Einbettung im Notebook gehören daher zu den didaktischen Kernfunktionen des Curriculums.
 
-The three language implementations exhibit stark architectural differences in how they bridge internal symbolic representations with external Graphviz binaries and Jupyter IOPub display channels (\Cref{fig:visualization_pipelines}).
+Die drei Sprachwelten nutzen grundlegend verschiedene Ansätze, um interne Datenstrukturen in Graphviz-DOT-Grafiken zu überführen und über den Jupyter-IOPub-Kanal an den Browser zu übermitteln (\Cref{fig:visualization_pipelines}):
 
 \begin{figure}[htbp]
   \centering
@@ -245,10 +180,10 @@ The three language implementations exhibit stark architectural differences in ho
   ]
     % Python Pipeline
     \node[proc, fill=PythonBlue!10, draw=PythonBlue] (py_ast) at (0, 0) {\textbf{Python}\\\texttt{Node} / Dict};
-    \node[data] (py_dot) at (3.0, 0) {DOT String};
-    \node[proc] (py_sub) at (6.0, 0) {\texttt{graphviz.Source}\\Subprocess Pipe};
-    \node[data] (py_svg) at (9.0, 0) {\texttt{<svg>...}};
-    \node[proc, fill=PythonBlue!10, draw=PythonBlue] (py_io) at (12.0, 0) {IPython Display\\\tiny \texttt{\_repr\_svg\_()}};
+    \node[data] (py_dot) at (3.0, 0) {DOT-String};
+    \node[proc] (py_sub) at (6.0, 0) {\texttt{graphviz.Source}\\Subprozess-Pipe};
+    \node[data] (py_svg) at (9.0, 0) {SVG-Vektordaten};
+    \node[proc, fill=PythonBlue!10, draw=PythonBlue] (py_io) at (12.0, 0) {IPython-Display\\\tiny Rich-Media-Protokoll};
 
     \draw[flow] (py_ast) -- (py_dot);
     \draw[flow] (py_dot) -- (py_sub);
@@ -257,10 +192,10 @@ The three language implementations exhibit stark architectural differences in ho
 
     % OCaml Pipeline
     \node[proc, fill=OCamlOrange!10, draw=OCamlOrange] (ml_ast) at (0, -1.6) {\textbf{OCaml}\\\texttt{Graphviz.t} DSL};
-    \node[data] (ml_file1) at (3.0, -1.6) {Temp \texttt{.dot}};
+    \node[data] (ml_file1) at (3.0, -1.6) {Temp-DOT-Datei};
     \node[proc] (ml_sub) at (6.0, -1.6) {\texttt{Sys.command}\\CLI \texttt{dot -Tsvg}};
-    \node[data] (ml_file2) at (9.0, -1.6) {Temp \texttt{.svg}};
-    \node[proc, fill=OCamlOrange!10, draw=OCamlOrange] (ml_io) at (12.0, -1.6) {\texttt{send\_iopub}\\\tiny \texttt{Unix.sleepf 0.05}};
+    \node[data] (ml_file2) at (9.0, -1.6) {Temp-SVG-Datei};
+    \node[proc, fill=OCamlOrange!10, draw=OCamlOrange] (ml_io) at (12.0, -1.6) {\texttt{send\_iopub}\\\tiny $50\text{ ms}$ Pufferpause};
 
     \draw[flow] (ml_ast) -- (ml_file1);
     \draw[flow] (ml_file1) -- (ml_sub);
@@ -269,10 +204,10 @@ The three language implementations exhibit stark architectural differences in ho
 
     % F# Pipeline
     \node[proc, fill=FSharpPurple!10, draw=FSharpPurple] (fs_ast) at (0, -3.2) {\textbf{F\#}\\\texttt{Tree} ADT};
-    \node[data] (fs_num) at (3.0, -3.2) {Preorder Map\\\tiny \texttt{assignNumbers}};
-    \node[proc] (fs_sub) at (6.0, -3.2) {\texttt{System.Diagnostics}\\Async Stdio Streams};
-    \node[data] (fs_svg) at (9.0, -3.2) {Raw SVG String};
-    \node[proc, fill=FSharpPurple!10, draw=FSharpPurple] (fs_io) at (12.0, -3.2) {\texttt{Kernel.display}\\\tiny MIME \texttt{"text/html"}};
+    \node[data] (fs_num) at (3.0, -3.2) {Pre-Order-Pfade\\\tiny \texttt{assignNumbers}};
+    \node[proc] (fs_sub) at (6.0, -3.2) {\texttt{ProcessStartInfo}\\Async Stdio-Streams};
+    \node[data] (fs_svg) at (9.0, -3.2) {Reiner SVG-String};
+    \node[proc, fill=FSharpPurple!10, draw=FSharpPurple] (fs_io) at (12.0, -3.2) {\texttt{Kernel.display}\\\tiny HTML-Container};
 
     \draw[flow] (fs_ast) -- (fs_num);
     \draw[flow] (fs_num) -- (fs_sub);
@@ -280,19 +215,15 @@ The three language implementations exhibit stark architectural differences in ho
     \draw[flow] (fs_svg) -- (fs_io);
   \end{tikzpicture}%
   }
-  \caption{Dataflow comparison of Graphviz rendering pipelines across Python, OCaml, and F\#.}
+  \caption{Datenfluss der Graphviz-Visualisierungspipelines in Python, OCaml und F\#.}
   \label{fig:visualization_pipelines}
 \end{figure}
 
-\subsection{1. Python: Dynamic Object Protocols}
-Python relies on the third-party \texttt{graphviz} library and Jupyter's rich display protocol. When an object provides a \texttt{\_repr\_\allowbreak svg\_()} method (or when wrapped in \texttt{IPython.\allowbreak display.SVG}), the kernel serializes the object to an SVG string and automatically transmits an \texttt{IOPUB\_DISPLAY\_DATA} packet tagged with MIME type \texttt{image/\allowbreak svg+xml}. 
+In Python greift die Implementierung auf das externe Paket \texttt{graphviz} zurück. Ein Objekt erzeugt die DOT-Grafikbeschreibung und ruft über das Betriebssystem den Graphviz-Befehl auf. Über eine spezielle Anzeigemethode erkennt IPython, dass eine Vektorgrafik vorliegt, und überträgt das fertige Bild als SVG-Datenpaket über den IOPub-Kanal direkt an das Webinterface. Dieser Ablauf ist unkompliziert, erfordert jedoch eine manuelle Verwaltung eindeutiger Knotennamen, um Namenskollisionen bei gleichnamigen Zuständen oder Grammatikelementen zu verhindern.
 
-While syntactically transparent, Python's pipeline is susceptible to duplicate state name collisions unless unique node IDs are manually tracked through hash maps or counter objects.
+In OCaml existiert keine vergleichbare Standardbibliothek für interaktive Notizbücher. Die Autoren des Curriculums entwickelten daher eine eigenständige, funktionale Graphviz-Abstraktion in den Modulen \texttt{graphviz.ml} und \texttt{notebook.ml}. Das Modul erlaubt den schrittweisen Aufbau gerichteter Graphen und übergibt die fertige Beschreibung an eine Ausführungsfunktion:
 
-\subsection{2. OCaml: Standalone Graph DSL and Subprocess Orchestration}
-OCaml possesses no direct equivalent of Python's sprawling visualization ecosystem. Instead, the curriculum authors constructed a lightweight, self-contained Graphviz abstraction in \texttt{ocaml/lib/graphviz.ml} and \texttt{ocaml/lib/notebook.ml}:
-
-\begin{lstlisting}[language=Caml,caption={OCaml Graphviz execution and IOPub synchronization in \texttt{ocaml/lib/notebook.ml}.}]
+\begin{lstlisting}[language=Caml,caption={Subprozess-Ausführung und IOPub-Pufferung in OCaml.}]
 let display mime s =
   ignore (Jupyter_notebook.display mime s);
   Unix.sleepf 0.05
@@ -311,21 +242,16 @@ let dot_to_svg ?(engine = "dot") (dot : string) : string =
 let display_svg s = display "image/svg+xml" s
 \end{lstlisting}
 
-Two critical technical insights emerge from this implementation:
-\begin{enumerate}
-  \item \textbf{Filesystem-Mediated Subprocess Execution:} To avoid complex cross-platform shell pipe management in pure OCaml, \texttt{dot\_to\_svg} writes the generated DOT specification to a secure temporary file (\texttt{Filename.temp\_file}), invokes the system \texttt{dot} executable via \texttt{Sys.command}, reads the resulting SVG file back into memory, and unlinks both temporary files.
-  \item \textbf{The ZeroMQ Race Condition Workaround (\texttt{Unix.sleepf 0.05}):} In the Jupyter messaging protocol, standard text output (\texttt{stdout}) and rich multimedia displays (\texttt{iopub}) travel through asynchronous message queues. In headless execution tools (such as \texttt{nbclient} or automated graders), a cell may report completion (\texttt{status: idle} on the Shell socket) before the IOPub display buffer has been fully dispatched by the kernel thread. Without an explicit $50\text{ ms}$ pause (\texttt{Unix.sleepf 0.05}), automated conversion pipelines (\texttt{jupyter nbconvert}) frequently drop generated SVG diagrams.
-\end{enumerate}
+Bei dieser Implementierung fallen zwei bemerkenswerte Details auf:
+Erstens erfolgt der Aufruf des externen Graphviz-Werkzeugs dateibasiert über temporäre Dateien im Dateisystem. Der DOT-Quelltext wird auf die Festplatte geschrieben, der Prozess \texttt{dot} über den Systembefehl aufgerufen, das erzeugte Vektorbild eingelesen und beide Zwischendateien anschließend wieder gelöscht.
+Zweitens enthält die Anzeigefunktion eine bewusste Pause von 50 Millisekunden nach dem Absenden der Grafik an den IOPub-Kanal. Da Ausgaben und Ausführungsbestätigungen über getrennte ZeroMQ-Sockets laufen, könnte ein automatisches Testwerkzeug das Zellenende bereits registrieren, bevor das Bild vollständig im Frontend angekommen ist. Die kurze Wartezeit stellt sicher, dass die Grafikpuffer zuverlässig geleert werden. Zudem bietet die OCaml-Umgebung über eine direkte JSON-Paketkonstruktion die Möglichkeit, auch statistische Diagramme im Vega-Lite-Format ohne externe Grafiktreiber direkt darzustellen.
 
-Furthermore, the OCaml notebook environment includes native support for Vega-Lite statistical graphics by directly manufacturing low-level \texttt{IOPUB\_DISPLAY\_DATA} JSON payloads via \texttt{Jupyter\_notebook\_\_Unsafe.send\_iopub}, allowing declarative visualization without installing heavy external graphics libraries.
+Die F\#-Implementierung in der Datei \texttt{Visualization.fsx} zeichnet sich durch eine architektonisch besonders saubere Trennung und Prozessbehandlung aus:
 
-\subsection{3. F\#: Preorder Addressing and Zero-Tempfile Asynchronous Streaming}
-F\#'s visualization pipeline (\texttt{f\#/Support/Visualization.fsx}) demonstrates an architecturally superior approach to process orchestration and tree disambiguation:
-
-\begin{lstlisting}[language=FSharp,caption={Preorder structural addressing and stream-piped rendering in F\#.}]
+\begin{lstlisting}[language=FSharp,caption={Eindeutige Pfadadressierung und Stream-Piping in F\#.}]
 type Tree = Leaf of string | Node of string * Tree list
 
-/// Preorder addresses distinguish repeated labels without relying on object identity.
+/// Pre-Order-Pfade unterscheiden identische Bezeichner ohne Objektreferenzen.
 let assignNumbers tree =
     let rec visit address next tree numbers =
         let numbers = Map.add address next numbers
@@ -353,74 +279,64 @@ let renderDot (dot: string) =
     output.GetAwaiter().GetResult()
 \end{lstlisting}
 
-This design exhibits two significant advantages:
-\begin{enumerate}
-  \item \textbf{Preorder Tree Path Addressing:} In compiler parse trees, duplicate terminal and non-terminal symbols appear frequently (e.g., multiple \texttt{expr} or \texttt{"+"} nodes). In Python, disambiguating such nodes requires pointer identity or mutable counters. F\#'s functional \texttt{assignNumbers} assigns unique identifiers based on structural tree coordinates ($\text{preorder address}\in \mathbb{N}^*$), guaranteeing deterministic node labels regardless of label duplication or tree balance.
-  \item \textbf{Zero-Filesystem Subprocess Streaming:} Unlike OCaml's reliance on temporary disk files, F\# utilizes .NET's asynchronous process streams (\texttt{RedirectStandardInput} and \texttt{RedirectStandardOutput}). The DOT graph is written directly to the child process's standard input stream, and the generated SVG is consumed asynchronously from standard output. This eliminates all filesystem I/O, temporary file collisions, and race conditions.
-\end{enumerate}
+Dieser Entwurf bietet zwei entscheidende Vorteile:
+Erstens löst die Funktion \texttt{assignNumbers} das Problem wiederkehrender Bezeichner im Syntaxbaum auf rein mathematisch-strukturelle Weise. In Parse-Bäumen treten identische Nichtterminale und Operatoren wie Pluszeichen naturgemäß mehrfach auf. Statt auf veränderliche globale Zähler oder Objektreferenzen im Speicher zurückzugreifen, nummeriert F\# jeden Knoten anhand seiner eindeutigen Pfadkoordinate in der Pre-Order-Traversierung des Baumes.
+Zweitens verzichtet F\# vollständig auf temporäre Dateien auf der Festplatte. Über die asynchronen Standard-Eingabe- und Ausgabe-Streams der .NET-Prozessverwaltung wird der Quelltext direkt in den laufenden Graphviz-Prozess gestreamt und das fertige Vektorbild unmittelbar aus dem Ausgabestrom im Hauptspeicher empfangen. Dies vermeidet Festplattenzugriffe, Zugriffsrechteprobleme und Dateikollisionen vollständig.
 
 \begin{table}[htbp]
   \centering
   \footnotesize
-  \caption{Technical comparison of Graphviz visualization rendering mechanics.}
+  \caption{Vergleich der technischen Umsetzungen der Vektorgrafik-Pipelines.}
   \label{tab:visualization_comparison}
   \begin{tabularx}{\textwidth}{lXXX}
     \toprule
-    \textbf{Metric / Feature} & \textbf{Python 3.13} & \textbf{OCaml 5.4} & \textbf{F\# 9.0 (.NET 9)} \\
+    \textbf{Kriterium} & \textbf{Python 3.13} & \textbf{OCaml 5.4} & \textbf{F\# 9.0 (.NET 9)} \\
     \midrule
-    \textbf{Graph Construction} &
-      Dynamic OOP (\texttt{graphviz.\allowbreak Digraph}) &
-      Functional DSL record (\texttt{Graphviz.t}) &
-      Inductive ADT (\texttt{Tree}) + \texttt{StringBuilder} \\
+    \textbf{Graphkonstruktion} &
+      Objektorientiert via Hilfsbibliothek &
+      Funktionale DSL-Datensätze &
+      Algebraischer Baumtyp und Stringbuilder \\
     \addlinespace[3pt]
-    \textbf{Node Disambiguation} &
-      Manual identifier strings &
-      Manual identifier strings &
-      Automatic structural preorder addressing \\
+    \textbf{Knoten-Eindeutigkeit} &
+      Manuelle Verwaltung von ID-Strings &
+      Manuelle Verwaltung von ID-Strings &
+      Automatische strukturelle Pre-Order-Adressierung \\
     \addlinespace[3pt]
-    \textbf{Subprocess IPC} &
-      Piped subprocess via \texttt{subprocess.Popen} &
-      Temporary disk files via \texttt{Sys.command} &
-      Direct asynchronous stream piping (in-memory) \\
+    \textbf{Subprozess-Anbindung} &
+      Gepuffertes Pipe-Verfahren &
+      Temporäre Dateien im Dateisystem &
+      Direktes asynchrones Stream-Piping im Speicher \\
     \addlinespace[3pt]
-    \textbf{MIME Delivery} &
-      \texttt{image/svg+xml} &
-      \texttt{image/svg+xml} (with $50\text{ ms}$ flush) &
-      \texttt{text/html} (\texttt{Kernel.display}) \\
+    \textbf{MIME-Übertragung} &
+      Standard-SVG-Format &
+      SVG mit Pufferpause von 50 ms &
+      HTML-Container über Kernelfunktion \\
     \addlinespace[3pt]
-    \textbf{Third-Party Package} &
-      \texttt{graphviz} (PyPI) &
-      None (\texttt{notebook.ml}) &
-      None (in-repo \texttt{.fsx}) \\
+    \textbf{Externe Abhängigkeit} &
+      PyPI-Paket \texttt{graphviz} erforderlich &
+      Vollständig autark im Skript &
+      Vollständig autark im Skript \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
 % ------------------------------------------------------------------------------
-\section{Kernel Ergonomics, Diagnostics, and Automated Verification}
+\section{Kernel-Ergonomie, Fehlerdiagnostik und Testautomatisierung}
 \label{sec:kernels_ergonomics}
 % ------------------------------------------------------------------------------
 
-Educational usability hinges on the precision of diagnostic feedback when students construct ill-formed grammars or faulty automata.
+Für den erfolgreichen Einsatz in Lehrveranstaltungen ist die Qualität und Verständlichkeit von Fehlermeldungen von herausragender Bedeutung, wenn Studierende fehlerhafte Grammatiken oder unvollständige Automaten programmieren.
 
-\subsection{1. Diagnostic Precision and Error Reporting}
-When a student introduces a syntactic or semantic error in a notebook cell, the three kernels deliver sharply contrasting diagnostic experiences:
-\begin{itemize}
-  \item \textbf{Python (\texttt{ipykernel}):} Errors are reported as dynamic runtime exceptions accompanied by lengthy traceback stacks. While syntax errors display line and column pointers, semantic bugs (such as passing a string instead of a set to an NFA transition function) fail deeply inside library internals with generic \texttt{KeyError} or \texttt{AttributeError} messages, obscuring the conceptual root cause.
-  \item \textbf{OCaml (\texttt{ocaml-jupyter}):} Compiler errors are emitted before execution begins. The kernel highlights the exact character range of the offending expression with visual underlines and provides rigorous Hindley--Milner unification diagnostics. For instance, attempting to supply an integer state to a transition expecting a state set produces an immediate static error:
-  \begin{lstlisting}[language=Caml]
-Error: This expression has type int but an expression was expected of type FSet.t
-  \end{lstlisting}
-  The primary diagnostic drawback remains the aforementioned generative nominal type mismatch (\texttt{type expr/1 vs expr/2}) when cells are re-executed out of order.
-  \item \textbf{F\# (\texttt{dotnet-interactive}):} The F\# Compiler Service surfaces structured compiler diagnostics complete with formal error codes (e.g., \texttt{FS0001: Type mismatch}, \texttt{FS0025: Incomplete pattern matches on this expression}). Crucially, pattern exhaustiveness checking provides students with explicit counterexamples when an AST interpreter omits an operator case, transforming compiler diagnostics into an interactive pedagogical tutor.
-\end{itemize}
+Beim Auftreten syntaktischer oder logischer Fehler zeigen sich deutliche Unterschiede zwischen den Laufzeitumgebungen:
+In Python werden Fehler erst während der tatsächlichen Ausführung als Laufzeitausnahmen mit oft unübersichtlich langen Aufrufstapeln gemeldet. Übergibt ein Studierender beispielsweise versehentlich eine Zeichenkette statt einer Zustandsmenge an eine Übergangsfunktion, bricht das Programm tief im Inneren einer Bibliotheksfunktion mit einer unspezifischen Ausnahmemeldung ab. Der eigentliche konzeptionelle Denkfehler bleibt für den Lernenden unsichtbar.
 
-\subsection{2. Automated Curriculum Verification and Continuous Integration}
-A critical requirement for large-scale university deployments is the ability to validate entire notebook suites automatically in continuous integration (CI) pipelines:
-\begin{itemize}
-  \item In Python, automated testing is performed using \texttt{pytest} paired with \texttt{nbclient}, executing notebooks top-to-bottom and checking for unhandled exceptions.
-  \item In OCaml, the curriculum includes a standalone verification tool (\texttt{tools/\allowbreak check.py}) that instantiates headless \texttt{ocaml-jupyter} kernels, executes all 50 notebooks sequentially, and validates that every code cell passes static type-checking and execution without failure.
-  \item In F\#, the verification infrastructure is multi-tiered: \texttt{python FSharp/tools/notebooks.py} provides a \texttt{check} command for cell metadata and clean formatting, an \texttt{fsi} mode that compiles and runs deterministic notebooks through the headless F\# Interactive compiler, and a full \texttt{jupyter} mode that executes every cell inside the actual .NET interactive kernel, capturing and verifying rich HTML/SVG diagrams into an isolated artifact directory.
-\end{itemize}
+In OCaml greift der Compiler bereits vor der Ausführung ein. Typfehler werden im Programmtext exakt lokalisiert und mit visuellen Unterstreichungen versehen. Versucht man, einer Funktion, die eine Menge erwartet, eine einfache Ganzzahl zu übergeben, erklärt der Typchecker unmissverständlich, welcher Typ erwartet und welcher tatsächlich vorgefunden wurde. Die einzige didaktische Hürde bleibt die zuvor beschriebene Meldung bei inkonsistenten Typstempeln nach Zellausführungen außerhalb der Reihe.
 
-In summary, while Python offers the lowest barrier to initial entry, its dynamic state mutability introduces insidious state-leakage hazards during interactive cell re-execution. OCaml delivers uncompromising static verification and minimal memory overhead, though requiring careful architectural encapsulation to neutralize generative type hazards. F\# provides an exceptionally robust, modern interactive platform, combining structural tree disambiguation, zero-tempfile process streaming, and exhaustive pattern-match diagnostics at the expense of higher runtime memory residency.
+In F\# liefert der Compiler-Dienst strukturierte Diagnosen inklusive offizieller Fehlernummern. Von unschätzbarem didaktischem Wert ist dabei die statische Vollständigkeitsprüfung bei Musterabgleichen: Vergisst ein Studierender bei der Implementierung eines AST-Interpreters einen Sprachoperator, bricht die Kompilierung nicht nur ab, sondern der Compiler gibt ein konkretes Gegenbeispiel aus, welcher Fall nicht abgedeckt wurde. Auf diese Weise fungiert das Typsystem als ein kontinuierlicher, automatisierter Tutor.
+
+Für den universitären Großbetrieb ist zudem die vollautomatische Überprüfung aller Lehrmaterialien in Continuous-Integration-Pipelines essenziell:
+In Python wird dies über Testframeworks und automatisierte Notebook-Clients gelöst, die alle Notizbücher sequenziell durchrechnen und auf ungefangene Ausnahmen prüfen.
+In OCaml stellt das Curriculum ein eigenständiges Prüfwerkzeug bereit, das kopf- und browserlose Kernel-Instanzen startet und verifiziert, dass alle 50 Vorlesungs-Notebooks die strenge statische Typprüfung fehlerfrei durchlaufen.
+In F\# ist die Qualitätssicherung mehrstufig aufgebaut: Ein zentrales Prüfskript erlaubt die formale Prüfung von Zell-Metadaten, eine schnelle Gesamtkompilierung über den kantenlosen F\#-Interactive-Compiler sowie einen vollständigen End-to-End-Test im echten Jupyter-Kernel inklusive der Validierung aller gerenderten Vektorgrafiken.
+
+Zusammenfassend lässt sich festhalten: Während Python den leichtesten Einstieg bietet, birgt seine dynamische Zustandsverwaltung erhebliche Risiken für unbemerkt verschleppte Fehlerzustände. OCaml überzeugt durch kompromisslose statische Korrektheit und einen minimalen Speicherbedarf, verlangt jedoch durch seine Typgenerativität eine disziplinierte Modulkapselung. F\# bietet eine mustergültige, moderne Plattform mit strukturierter Vektorbild-Erzeugung, speicherbasiertem Prozess-Streaming und exzellenten didaktischen Compilerwarnungen, erkauft dies jedoch mit einem höheren Speicherbedarf der Entwicklungsumgebung.

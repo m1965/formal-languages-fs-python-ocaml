@@ -1,172 +1,160 @@
 % ==============================================================================
-% Chapter 7: Technical Synthesis, Decision Matrix & Recommendation
+% Kapitel 7: Technische Synthese, Entscheidungsmatrix und Sprachempfehlung
 % ==============================================================================
-\chapter{Technical Synthesis, Decision Matrix, and Language Recommendation}
+\chapter{Technische Synthese, Entscheidungsmatrix und Sprachempfehlung}
 \label{chap:recommendation}
+\selectlanguage{ngerman}
 
-Selecting a programming language and interactive runtime environment for formal languages, automata theory, and compiler construction requires balancing competing mathematical, pedagogical, and computational demands. A curriculum or research platform must simultaneously provide:
+Die Wahl der primären Programmiersprache und der interaktiven Entwicklungsumgebung für eine universitäre Lehrveranstaltung in theoretischer Informatik, Automatentheorie und Compilerbau erfordert das sorgfältige Ausbalancieren konkurrierender mathematischer, didaktischer und systemtechnischer Anforderungen. Ein modernes Ausbildungskonzept muss drei zentrale Zielsetzungen harmonisch vereinen:
 \begin{enumerate}
-  \item \textbf{Mathematical Fidelity:} The ability to represent theoretical abstractions---regular expressions, non-deterministic transition relations, equivalence classes, and inductively defined syntax trees---with direct structural correspondence and static soundness;
-  \item \textbf{Interactive Pedagogical Ergonomics:} Rapid iteration in notebook environments, instant visual rendering of finite automata and parse trees, and informative diagnostic feedback when grammars or automata contain errors; and
-  \item \textbf{Computational Efficiency:} Scalable execution capable of handling realistic compiler workloads, such as parsing multi-thousand-line ANSI~C grammars or generating JVM bytecode, without excessive latency or memory exhaustion.
+  \item \textbf{Mathematische Exaktheit:} Die grundlegenden theoretischen Konzepte wie reguläre Ausdrücke, Zustandsübergangsrelationen, Äquivalenzklassen und induktiv definierte Syntaxbäume müssen sich ohne künstliche Hilfskonstruktionen direkt und mit verlässlicher statischer Typsicherheit abbilden lassen.
+  \item \textbf{Interaktive Didaktik:} Das Arbeitsmedium muss ein exploratives Lernen im Notizbuch ermöglichen. Dies umfasst eine verzögerungsfreie Ausführung kleinerer Codeabschnitte, eine sofortige visuelle Darstellung von Zustandsgraphen und Ableitungsbäumen sowie präzise, leicht verständliche Fehlermeldungen bei syntaktischen oder logischen Unstimmigkeiten.
+  \item \textbf{Skalierbare Performanz:} Die zugrunde liegende Sprachplattform muss über hinreichende Leistungsreserven verfügen, um auch realistische Compiler-Szenarien, wie die vollständige Syntaxanalyse großer Grammatiken oder die Generierung lauffähigen Bytecodes, ohne störende Wartezeiten oder Speicherüberläufe zu bewältigen.
 \end{enumerate}
 
-Throughout this monograph, we have subjected Python~3.13, OCaml~5.4, and F\#~9.0 (.NET~9) to rigorous empirical and comparative scrutiny across 56 matched Jupyter notebooks. In this concluding chapter, we synthesize our findings into a multi-dimensional comparison matrix, conduct a formal Multi-Criteria Decision Analysis (MCDA) across three distinct educational and industrial deployment scenarios, and articulate definitive, context-specific language recommendations.
+In dieser Monographie wurden Python~3.13, OCaml~5.4 und F\#~9.0 (.NET~9) anhand von 56 inhaltlich äquivalenten Jupyter-Notebooks einer detaillierten vergleichenden Analyse unterzogen. In diesem abschließenden Kapitel führen wir die theoretischen Erkenntnisse der vorangegangenen Kapitel mit den empirischen Messwerten zusammen, formulieren eine mehrkriterielle Entscheidungsanalyse für typische Einsatzszenarien und leiten fundierte Empfehlungen für die Praxis ab.
 
 % ------------------------------------------------------------------------------
-\section{Multi-Dimensional Language Comparison Matrix}
+\section{Mehrdimensionale Gesamtsynthese}
 \label{sec:recommendation_matrix}
 % ------------------------------------------------------------------------------
 
-\Cref{tab:master_decision_matrix} presents the consolidated technical evaluation synthesizing the theoretical analyses of Chapters~\ref{chap:type_systems}--\ref{chap:toolchains}, the empirical runtime metrics of \Cref{chap:performance}, and the kernel infrastructure evaluations of \Cref{chap:interactive_kernels}.
+In \Cref{tab:master_decision_matrix} sind die zentralen Ergebnisse unserer Untersuchung quer über alle fünf Dimensionen zusammenfassend dargestellt. Die Gegenüberstellung veranschaulicht das Spannungsfeld zwischen den drei Paradigmen: der dynamischen Skriptsprache Python, der klassisch-akademischen funktionalen Sprache OCaml und der modernen, plattformintegrierten funktionalen Sprache F\#.
 
 \begin{table}[htbp]
   \centering
   \scriptsize
-  \caption{Master multi-dimensional comparison matrix across Python 3.13, OCaml 5.4, and F\# 9.0 (.NET 9).}
+  \caption{Konsolidierte Vergleichsmatrix über alle fünf Untersuchungsdimensionen.}
   \label{tab:master_decision_matrix}
   \begin{tabularx}{\textwidth}{lXXX}
     \toprule
-    \textbf{Evaluation Dimension} & \textbf{Python 3.13 (CPython)} & \textbf{OCaml 5.4 (Native/Bytecode)} & \textbf{F\# 9.0 (.NET 9 CoreCLR)} \\
+    \textbf{Kriterium} & \textbf{Python 3.13 (CPython)} & \textbf{OCaml 5.4 (Nativ/Bytecode)} & \textbf{F\# 9.0 (.NET 9 CoreCLR)} \\
     \midrule
-    \multicolumn{4}{l}{\textit{\textbf{1. Type System Architecture \& Static Soundness (\Cref{chap:type_systems})}}} \\
+    \multicolumn{4}{l}{\textit{\textbf{1. Typsystem und statische Garantien (\Cref{chap:type_systems})}}} \\
     \addlinespace[2pt]
-    Type Inference & Dynamic duck typing; PEP 484 optional hints & Global Damas--Hindley--Milner inference & Bidirectional ML-style nominal inference \\
-    Algebraic Data Types & Emulated via \texttt{dataclasses} / \texttt{Union} & First-class sum variants (\texttt{type expr = ...}) & First-class nominal Discriminated Unions \\
-    Totality Checking & None (unhandled cases fail at runtime) & Static compiler warning on missing variant & Static compiler warning (\texttt{FS0025}) with counterexample \\
-    Null Safety & Unchecked \texttt{None} reference leaks & Strong \texttt{'a option} type enforced & Strong \texttt{'T option} enforced; no unchecked nulls \\
+    Typinferenz & Dynamische Typisierung mit optionalen Hinweisen & Globale Damas--Hindley--Milner-Inferenz & Bidirektionale Inferenz im ML-Stil \\
+    Algebraische Typen & Nachbildung via Datenklassen und Union-Typen & Erstklassige Summentypen mit Varianten & Erstklassige nominale Discriminated Unions \\
+    Vollständigkeit & Keine statische Prüfung, Fehler erst zur Laufzeit & Compilerwarnung bei fehlenden Mustern & Warnung mit konkretem Gegenbeispiel \\
+    Null-Sicherheit & Fehlerträchtige optionale Werte zur Laufzeit & Erzwingung über den Option-Typ & Erzwingung über den Option-Typ \\
     \midrule
-    \multicolumn{4}{l}{\textit{\textbf{2. Syntactic Expressiveness \& Idiomatic Elegance (\Cref{chap:expressiveness})}}} \\
+    \multicolumn{4}{l}{\textit{\textbf{2. Syntaktische Ausdruckskraft und Eleganz (\Cref{chap:expressiveness})}}} \\
     \addlinespace[2pt]
-    Pattern Matching & PEP 634 \texttt{match}/\texttt{case} (statement-level) & Expression-level first-class variant matching & First-class matching + extensible Active Patterns \\
-    Dataflow Pipelining & Nested calls or manual temporary variables & Native forward pipeline operator (\texttt{|>}) & Native forward pipeline operator (\texttt{|>}) \\
-    Currying / Composition & Verbose \texttt{functools.partial} wrappers & First-class automatic currying \& \texttt{>>} & First-class automatic currying \& \texttt{>>} \\
-    Curriculum SLOC & Moderate ($5{,}333$ lines, $108.8$ / nb) & Verbose ($6{,}453$ lines, $129.1$ / nb) & \textbf{Most concise} ($3{,}486$ lines, $62.2$ / nb) \\
+    Musterabgleich & Anweisungsbasierter Abgleich seit Python 3.10 & Ausdrucksbasierter funktionaler Abgleich & Ausdrucksbasiert mit Active Patterns \\
+    Datenfluss & Tief geschachtelte Funktionsaufrufe & Nativer Pipeline-Operator & Nativer Pipeline-Operator \\
+    Currying & Umständlich über partielle Funktionsbindung & Automatisch und erstklassig verfügbar & Automatisch und erstklassig verfügbar \\
+    Codeumfang & Mittleres Volumen (5333 Zeilen, 108 pro Heft) & Höheres Volumen (6453 Zeilen, 129 pro Heft) & \textbf{Kompaktester Code} (3486 Zeilen, 62 pro Heft) \\
     \midrule
-    \multicolumn{4}{l}{\textit{\textbf{3. Lexer \& Parser Toolchains (\Cref{chap:toolchains})}}} \\
+    \multicolumn{4}{l}{\textit{\textbf{3. Lexer- und Parser-Werkzeuge (\Cref{chap:toolchains})}}} \\
     \addlinespace[2pt]
-    Primary Parser Engine & Lark (dynamic Earley/LALR) \& PLY & Menhir (canonical LR(1) / LALR(1)) & \texttt{FsLexYacc} (LALR(1) compiled assemblies) \\
-    Action Typing & Untyped dynamic tuples & Statically typed via variant inference & Statically typed via nominal discriminated unions \\
-    Conflict Diagnostics & Generic shift/reduce warning; hard to debug & \textbf{Exemplary}: minimal non-terminal counterexamples & Textual state dumping (\texttt{.output} files) \\
-    Grammar Hot-Reloading & In-memory instant recompilation & CLI compilation via \texttt{parser\_generator.ml} & Precompiled MSBuild toolchain (\texttt{dotnet build}) \\
+    Parser-Generatoren & Laufzeitbasierte Werkzeuge (Lark und PLY) & Menhir für kanonische LR- und LALR-Tabellen & \texttt{FsLexYacc} als kompilierte Assembly \\
+    Semantische Aktionen & Typunsichere dynamische Tupel & Vollständig statisch typisierte Varianten & Vollständig statisch typisierte Unions \\
+    Konfliktdiagnose & Einfache Warnungen, schwer zu analysieren & \textbf{Hervorragend}: minimale Gegenbeispiele & Textuelle Zustandsausgabe in Protokolldateien \\
+    Grammatik-Aktualisierung & Sofortiges Neuladen direkt im Speicher & Skriptbasierte Neukompilierung via Menhir & Kompilierung über das .NET-Buildsystem \\
     \midrule
-    \multicolumn{4}{l}{\textit{\textbf{4. Empirical Runtime Performance (\Cref{chap:performance})}}} \\
+    \multicolumn{4}{l}{\textit{\textbf{4. Empirische Rechenleistung (\Cref{chap:performance})}}} \\
     \addlinespace[2pt]
-    AST Rewriting Latency & \textcolor{BrickRed}{Slow} ($1.42\text{ ms}$, CPython overhead) & \textcolor{ForestGreen}{\textbf{Fastest}} ($0.015\text{ ms}$, bump allocator) & \textcolor{ForestGreen}{\textbf{Fast}} ($0.11\text{ ms}$, RyuJIT jump tables) \\
-    Large Set-of-Sets Speed & \textcolor{ForestGreen}{\textbf{Fastest}} ($4.5\text{ ms}$, cached hash \texttt{frozenset}) & Moderate ($31.6\text{ ms}$, balanced binary trees) & Slower ($175.6\text{ ms}$, structural set comparison) \\
-    Scanner Throughput & $3.6\text{ M tok/s}$ (\texttt{re} C engine) & $37.5\text{ M tok/s}$ (native \texttt{ocamllex}) & \textcolor{ForestGreen}{\textbf{Fastest}} ($156.2\text{ M tok/s}$, RyuJIT unrolling) \\
-    Active Heap RSS & \textcolor{ForestGreen}{\textbf{Low}} ($58\text{ MB}$ median) & \textcolor{ForestGreen}{\textbf{Low}} ($103\text{ MB}$ active) & \textcolor{BrickRed}{High} ($530$--$612\text{ MB}$, hosted FCS engine) \\
+    AST-Transformation & Langsam durch CPython-Objekt-Overhead & \textbf{Mit Abstand am schnellsten} (Minor Heap) & Sehr schnell durch optimierte Sprungtabellen \\
+    Mengen von Mengen & \textbf{Am schnellsten} dank C-Hashwerten & Mittlere Geschwindigkeit (AVL-Bäume) & Erfordert strukturierte Vergleichsoperatoren \\
+    Scanner-Durchsatz & Rund 3,6 Millionen Token pro Sekunde & Rund 37,5 Millionen Token pro Sekunde & \textbf{Am schnellsten} (156 Mio. Token/s via RyuJIT) \\
+    Hauptspeicherbedarf & Sehr sparsam (rund 58 MB im Median) & Sehr sparsam (103 MB bei aktiver Arbeit) & Höherer Bedarf (530 bis 612 MB für JIT-Host) \\
     \midrule
-    \multicolumn{4}{l}{\textit{\textbf{5. Interactive Notebook Infrastructure (\Cref{chap:interactive_kernels})}}} \\
+    \multicolumn{4}{l}{\textit{\textbf{5. Interaktive Notizbuch-Infrastruktur (\Cref{chap:interactive_kernels})}}} \\
     \addlinespace[2pt]
-    Kernel Cold-Start & \textcolor{ForestGreen}{\textbf{Fastest}} ($396\text{ ms}$, instant interpreter) & Rapid ($511\text{ ms}$, toploop startup) & Slower ($1{,}884\text{ ms}$, CoreCLR + FCS initialization) \\
-    Type Re-evaluation Safety & Silently rebinds \texttt{\_\_dict\_\_}; stale object leaks & \textcolor{BrickRed}{Generative hazard} (\texttt{type/1 vs type/2}) & Lexical submission shadowing + isolated \texttt{.fsx} \\
-    Graphviz Rendering & External \texttt{graphviz} via temp pipe & Self-contained DSL + temp files + $50\text{ ms}$ flush & \textbf{Cleanest}: Streamed async stdio pipe (no temp files) \\
-    Automated CI Testing & \texttt{pytest} + \texttt{nbclient} & Headless \texttt{tools/check.py} type-checking & Multi-stage \texttt{notebooks.py} (\texttt{fsi} + \texttt{jupyter}) \\
+    Kaltstart des Kernels & \textbf{Am schnellsten} (unter 400 Millisekunden) & Sehr zügig (rund 510 Millisekunden) & Längere Pause (rund 1,9 s für Compiler-Start) \\
+    Typ-Neudefinitionen & Stilles Überschreiben mit Altobjekt-Risiko & Risiko der Typstempel-Inkompatibilität & Saubere lexikalische Ebenenabschattung \\
+    Vektorgrafiken & Über externe Zusatzbibliothek & Autarke Lösung, benötigt Pufferpause & Sehr sauber via native Prozess-Streams \\
+    Testautomatisierung & Über Pytest und externe Notebook-Treiber & Schneller statischer Gesamt-Typcheck & Mehrstufiges Prüfkonzept bis zur Grafikprüfung \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-The matrix reveals a fundamental trade-off space: no single language achieves total dominance across every dimension. Each platform presents distinct architectural specializations that align with different instructional priorities.
+Die Gesamtübersicht verdeutlicht, dass keine der drei Sprachen alle Aspekte gleichermaßen dominiert. Vielmehr offenbaren sich klare architektonische Schwerpunkte, die je nach Ausrichtung der Lehrveranstaltung und Vorkenntnissen der Lernenden unterschiedlich ins Gewicht fallen.
 
 % ------------------------------------------------------------------------------
-\section{Multi-Criteria Decision Analysis (MCDA)}
+\section{Entscheidungsanalyse für typische Einsatzszenarien}
 \label{sec:recommendation_mcda}
 % ------------------------------------------------------------------------------
 
-To provide an objective foundation for language selection, we formalize our evaluation using Multi-Criteria Decision Analysis (MCDA). We define three canonical instructional and institutional archetypes:
-\begin{enumerate}
-  \item \textbf{Scenario A: Introductory Undergraduate Course (Pedagogy \& Accessibility).}
-  Focuses on minimizing installation friction, providing rapid interactive feedback, and flattening the cognitive learning curve for students with prior Python experience.
-  \item \textbf{Scenario B: Advanced Theoretical / Formal Methods Curriculum (Mathematical Rigor).}
-  Prioritizes absolute mathematical type soundness, algebraic correspondence with formal specifications, static totality proofs, and zero dynamic type bugs.
-  \item \textbf{Scenario C: Compiler Construction \& Production Language Engineering (Industrial Rigor).}
-  Demands high compilation and execution throughput, scalable grammar diagnostics, robust native code generation, enterprise toolchain integration, and maintainability across large codebases.
-\end{enumerate}
+Um die Vor- und Nachteile objektiv abzuwägen, betrachten wir drei typische institutionelle Einsatzszenarien, wie sie an Universitäten und Hochschulen anzutreffen sind:
 
-Each criterion $C_i$ is assigned a normalized weight $w_i \in [0, 1]$ such that $\sum w_i = 1.0$. The performance of each language $L$ on criterion $C_i$ is scored on an integer scale from $1$ (\textit{poor}) to $5$ (\textit{exemplary}). The composite score is computed via the weighted linear sum:
-\begin{equation}
-  S(L) = \sum_{i=1}^{n} w_i \cdot s_i(L)
-  \label{eq:mcda_sum}
-\end{equation}
+Im \textbf{Szenario A (Grundstudium und Didaktik)} steht die Zugänglichkeit im Vordergrund. Typischerweise handelt es sich um eine Pflichtvorlesung im Bachelorstudium, bei der viele Studierende bereits Vorerfahrungen in Python besitzen. Hier zählen vor allem geringe Installationshürden auf privaten Laptops, ein sofort ansprechender Kernel ohne spürbare Wartezeiten und eine anschauliche Visualisierung von Automaten, während tiefergehende Compilerbauthemen nur gestreift werden.
 
-\Cref{tab:mcda_scoring} summarizes the empirical scoring and resultant rankings across all three scenarios.
+Das \textbf{Szenario B (Theorie und mathematische Korrektheit)} repräsentiert ein vertiefendes Modul der theoretischen Informatik oder der Programmiersprachensemantik. Hier stehen die exakte Entsprechung zwischen mathematischer Formalisierung und Quelltext, absolute statische Typsicherheit, der Beweis der Vollständigkeit aller Regelfälle sowie die Vermeidung jeglicher Laufzeitfehler im Mittelpunkt.
+
+Das \textbf{Szenario C (Praktischer Compilerbau und Sprachwerkzeuge)} entspricht einer praxisorientierten Vorlesung zum Bau vollwertiger Compiler. Im Fokus stehen professionelle Parsergeneratoren, das Auflösen realer Grammatikkonflikte, hoher Durchsatz bei umfangreichen Eingabedateien, standardisierte Build-Werkzeuge und die problemlose Wartbarkeit umfangreicherer Codestrukturen.
+
+In \Cref{tab:mcda_scoring} werden die verschiedenen Bewertungskriterien für jedes dieser drei Szenarien gewichtet. Die Einzelleistungen der drei Sprachen werden auf einer Skala von 1 (unzureichend) bis 5 (hervorragend) bewertet. Durch die Multiplikation der Kriteriengewichte mit den jeweiligen Punktwerten ergibt sich eine fundierte Gesamtbewertung für jedes Szenario.
 
 \begin{table}[htbp]
   \centering
   \small
-  \caption{Multi-Criteria Decision Analysis (MCDA) across educational and industrial deployment scenarios.}
+  \caption{Mehrkriterielle Entscheidungsbewertung über drei institutionelle Einsatzszenarien.}
   \label{tab:mcda_scoring}
   \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}Xcccccc}
     \toprule
-    & \multicolumn{3}{c}{\textbf{Scenario Weights ($w_i$)}} & \multicolumn{3}{c}{\textbf{Raw Criterion Score ($s_i \in [1, 5]$)}} \\
+    & \multicolumn{3}{c}{\textbf{Szenario-Gewichte}} & \multicolumn{3}{c}{\textbf{Bewertungspunkte (1 bis 5)}} \\
     \cmidrule(lr){2-4} \cmidrule(lr){5-7}
-    \textbf{Evaluation Criterion ($C_i$)} & \textbf{Scen.\ A} & \textbf{Scen.\ B} & \textbf{Scen.\ C} & \textbf{Python} & \textbf{OCaml} & \textbf{F\#} \\
+    \textbf{Bewertungskriterium} & \textbf{Szen.\ A} & \textbf{Szen.\ B} & \textbf{Szen.\ C} & \textbf{Python} & \textbf{OCaml} & \textbf{F\#} \\
     \midrule
-    $C_1$: Static Type Soundness \& ADTs & 0.10 & 0.30 & 0.20 & 2 & 5 & 5 \\
-    $C_2$: Pattern Matching \& Totality Checking & 0.10 & 0.25 & 0.15 & 2 & 5 & 5 \\
-    $C_3$: Syntactic Conciseness \& Pipelining & 0.15 & 0.15 & 0.10 & 3 & 4 & 5 \\
-    $C_4$: Parser Toolchains \& Conflict Diagnostics & 0.10 & 0.15 & 0.20 & 3 & 5 & 4 \\
-    $C_5$: AST Manipulation \& Raw Execution Speed & 0.05 & 0.05 & 0.15 & 2 & 5 & 4 \\
-    $C_6$: Kernel Cold-Start \& Interactive Latency & 0.25 & 0.05 & 0.05 & 5 & 4 & 3 \\
-    $C_7$: Memory Footprint Efficiency (RSS) & 0.10 & 0.05 & 0.05 & 4 & 5 & 2 \\
-    $C_8$: Visualization Pipeline Elegance & 0.15 & 0.00 & 0.05 & 4 & 3 & 5 \\
-    $C_9$: Industrial Tooling \& Cross-Platform CI & 0.00 & 0.00 & 0.05 & 5 & 3 & 5 \\
+    Statische Typsicherheit und algebraische Typen & 0.10 & 0.30 & 0.20 & 2 & 5 & 5 \\
+    Musterabgleich und Vollständigkeitsprüfung & 0.10 & 0.25 & 0.15 & 2 & 5 & 5 \\
+    Syntaktische Kompaktheit und Pipelining & 0.15 & 0.15 & 0.10 & 3 & 4 & 5 \\
+    Parsergeneratoren und Konfliktdiagnose & 0.10 & 0.15 & 0.20 & 3 & 5 & 4 \\
+    Geschwindigkeit bei Baumtransformationen & 0.05 & 0.05 & 0.15 & 2 & 5 & 4 \\
+    Verzögerungsfreier Kaltstart im Notizbuch & 0.25 & 0.05 & 0.05 & 5 & 4 & 3 \\
+    Geringer Hauptspeicherbedarf der Umgebung & 0.10 & 0.05 & 0.05 & 4 & 5 & 2 \\
+    Elegante Einbindung von Vektorgrafiken & 0.15 & 0.00 & 0.05 & 4 & 3 & 5 \\
+    Cross-Platform-Ökosystem und Werkzeuge & 0.00 & 0.00 & 0.05 & 5 & 3 & 5 \\
     \midrule
-    \textbf{Weighted Composite Score $S(L)$} & & & & & & \\
-    \textbf{Scenario A: Undergraduate Pedagogy} & & & & \textbf{3.55} & 4.10 & \textbf{4.20} \\
-    \textbf{Scenario B: Formal Theory / Rigor} & & & & 2.30 & \textbf{4.85} & 4.70 \\
-    \textbf{Scenario C: Industrial Compiler Eng.} & & & & 2.65 & 4.60 & \textbf{4.65} \\
+    \textbf{Gewichtete Gesamtpunktzahl} & & & & & & \\
+    \textbf{Szenario A: Grundstudium / Didaktik} & & & & \textbf{3.55} & 4.10 & \textbf{4.20} \\
+    \textbf{Szenario B: Theorie und mathematische Exaktheit} & & & & 2.30 & \textbf{4.85} & 4.70 \\
+    \textbf{Szenario C: Praktischer Compilerbau} & & & & 2.65 & 4.60 & \textbf{4.65} \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-The MCDA outcome demonstrates that while Python is traditionally perceived as the default choice for undergraduate education due to student familiarity, its aggregate pedagogical score ($3.55$) is substantially penalized by the absence of algebraic types and totality checking. In contrast, \textbf{F\#} emerges as the victor in Scenarios~A ($4.20$) and C ($4.65$), while \textbf{OCaml} remains the undisputed pinnacle for pure theoretical formalism in Scenario~B ($4.85$).
+Das Ergebnis der Nutzwertanalyse widerlegt die weitverbreitete Annahme, Python sei für den Einstieg im Grundstudium automatisch die beste Wahl. Zwar punktet Python durch die sofortige Startbereitschaft des Kernels und die allgemeine Bekanntheit bei Studierenden, fällt jedoch bei der Vermittlung rekursiver Datenstrukturen und fehlerfreier Fallunterscheidungen spürbar zurück. Im didaktischen Szenario A belegt F\# mit 4,20 Punkten den ersten Platz, knapp gefolgt von OCaml mit 4,10 Punkten, während Python mit 3,55 Punkten deutlich abfällt.
+
+Im theorieorientierten Szenario B erweist sich OCaml mit 4,85 Punkten als der unangefochtene Maßstab für mathematische Präzision. F\# folgt mit 4,70 Punkten auf einem sehr hohen Niveau.
+
+Im praxisbezogenen Szenario C des Compilerbaus behauptet sich F\# mit 4,65 Punkten knapp vor OCaml (4,60 Punkte), während Python aufgrund seiner Schwächen bei statischer Typisierung und rechenintensiven Syntaxbaumtransformationen mit 2,65 Punkten nicht konkurrenzfähig ist.
 
 % ------------------------------------------------------------------------------
-\section{Granular Language Recommendations}
+\section{Differenzierte Empfehlungen für die Praxis}
 \label{sec:recommendation_cases}
 % ------------------------------------------------------------------------------
 
-Based on our empirical and theoretical synthesis, we articulate the specific architectural justifications for selecting or avoiding each language.
+Aus den vorliegenden theoretischen und empirischen Ergebnissen lassen sich klare, anwendungsbezogene Empfehlungen für Lehrende und Curriculums-Kommissionen ableiten:
 
-\subsection{1. Python 3.13: The Pragmatic Prototyping Baseline}
-\begin{description}
-  \item[\textbf{When to Adopt:}]
-    Python is the optimal choice when formal languages is taught as a brief, introductory module within a broader, already established Python-centric data science, machine learning, or software engineering degree. It is unmatched in cold-start responsiveness ($396\text{ ms}$), requires negligible toolchain onboarding, and boasts the world's largest developer community. Furthermore, its C-backed hash-table implementations (\texttt{frozenset}) deliver unexpectedly superior performance during combinatorial fixed-point calculations ($4.5\text{ ms}$ on large sets-of-sets).
-  \item[\textbf{Critical Limitations:}]
-    Python is severely handicapped for serious compiler construction. The lack of true algebraic data types forces developers into awkward class hierarchies; the absence of compiler totality checking permits missing AST cases to slip into production as latent runtime exceptions; and its interpreted dynamic execution makes recursive AST rewriting up to $95\times$ slower than OCaml. Python's gradual typing (PEP~484) remains an optional, unenforced honor system.
-\end{description}
+\subsection{1. Python 3.13: Die pragmatische Minimallösung}
+Python empfiehlt sich vor allem dann, wenn formale Sprachen und Automatentheorie lediglich als kurzes, einleitendes Teilmodul innerhalb eines bereits fest auf Python ausgerichteten Studiengangs (beispielsweise in Data Science oder künstlicher Intelligenz) unterrichtet werden. Der Kernel startet praktisch verzögerungsfrei, und die Studierenden müssen sich nicht an eine neue Programmiersyntax gewöhnen. Zudem überrascht Python bei rein mengenbasierten Algorithmen, wie der Potenzmengenkonstruktion, durch seine hocheffizienten, in C implementierten Hash-Mengen.
 
-\subsection{2. OCaml 5.4: The Theoretical and Academic Gold Standard}
-\begin{description}
-  \item[\textbf{When to Adopt:}]
-    OCaml is the premier language for advanced undergraduate and graduate curricula focusing on the mathematical theory of computation, functional semantics, and formal verification. Its Hindley--Milner type inference achieves absolute static soundness with zero boilerplate type declarations. Menhir is objectively the most sophisticated parser generator available in any language, providing human-readable, minimal non-terminal counterexamples for LR conflicts. OCaml executes AST transformations with astonishing speed ($0.015\text{ ms}$), boasts the lowest memory footprint ($27\text{ MB}$ idle, $103\text{ MB}$ active), and models inductive proofs with flawless mathematical fidelity.
-  \item[\textbf{Critical Limitations:}]
-    In an interactive notebook environment, OCaml's generative nominal type system introduces the frustrating ``\texttt{type expr/1 vs expr/2}'' toplevel hazard when students re-evaluate cells out of order, requiring strict library encapsulation patterns (\texttt{load\_lib}). Additionally, the OCaml package ecosystem outside of UNIX/macOS remains niche, presenting steep installation hurdles for students running native Windows environments.
-\end{description}
+Für einen vertiefenden Compilerbaukurs ist Python hingegen nicht zu empfehlen. Das Fehlen nativer Summentypen erzwingt unübersichtliche Klassenhierarchien, und das Fehlen einer automatischen Vollständigkeitsprüfung führt dazu, dass vergessene Regelfälle erst spät zur Laufzeit als Ausnahmefehler aufgedeckt werden. Hinzu kommt, dass rekursive Transformationen auf verschachtelten Syntaxbäumen in CPython um nahezu zwei Größenordnungen langsamer ablaufen als in OCaml oder F\#.
 
-\subsection{3. F\# 9.0 (.NET 9): The Optimal Balanced Modern Platform}
-\begin{description}
-  \item[\textbf{When to Adopt:}]
-    F\# delivers the most balanced, robust, and pedagogically complete environment for modern compiler education. It unifies the theoretical strengths of OCaml (algebraic data types, structural pattern matching, totality verification, and forward pipelining) with the industrial-grade performance and cross-platform infrastructure of .NET~9 CoreCLR. 
-    
-    F\# achieved the lowest code volume across the entire curriculum ($3{,}486$ total SLOC, or $46\%$ less code than OCaml and $35\%$ less than Python), demonstrating unmatched syntactic expressiveness. Its \textbf{Active Patterns} provide a mechanism for abstracting concrete AST nodes and regex tokens without sacrificing exhaustive compiler checking. Furthermore, its notebook visualization pipeline is technically superior: it disambiguates duplicate tree labels via preorder addressing and streams SVG diagrams directly through memory pipes without touching the filesystem.
-  \item[\textbf{Trade-Offs to Manage:}]
-    Adopters must accommodate the heavier runtime initialization footprint of .NET Interactive: a cold-start latency of $1.88\text{ seconds}$ and an idle memory residency of $\approx 530\text{ MB}$ resulting from hosting the in-process F\# Compiler Service. For nested set-of-sets constructions, instructors must also guide students in adopting explicit hash-consing or integer state encodings to avoid structural AVL comparison bottlenecks.
-\end{description}
+\subsection{2. OCaml 5.4: Das Ideal für theoretische Eleganz}
+OCaml ist die ideale Wahl für Hochschulen, die großen Wert auf mathematische Präzision, formale Semantik und funktionale Programmierkonzepte legen. Die Hindley--Milner-Typinferenz nimmt den Studierenden die manuelle Typdeklaration vollständig ab und garantiert dennoch absolute Typsicherheit. Der Parsergenerator Menhir ist unübertroffen in der Diagnose von Grammatikkonflikten, da er präzise, minimale Gegenbeispiele generiert, anstatt Studierende mit kryptischen Zustandsnummern allein zu lassen. Darüber hinaus arbeitet die Speicherverwaltung bei rekursiven Baummanipulationen unerreicht schnell und mit minimalem Speicherverbrauch.
+
+Als Einschränkung muss bedacht werden, dass das Arbeiten im interaktiven Notizbuch unter OCaml disziplinierte Lademechanismen erfordert, um Inkompatibilitäten durch neu erzeugte Typstempel bei mehrfach ausgeführten Zellen zu verhindern. Zudem gestaltet sich die Bereitstellung der Arbeitsumgebung auf Rechnern mit reinem Windows-Betriebssystem nach wie vor aufwendiger als bei den beiden Mitbewerbern.
+
+\subsection{3. F\# 9.0 (.NET 9): Die moderne, ausgewogene Gesamtlösung}
+F\# bietet für moderne Lehrveranstaltungen den überzeugendsten Kompromiss zwischen theoretischer Fundierung und industrieller Praxistauglichkeit. Es vereint die theoretischen Stärken von OCaml, namentlich echte algebraische Datentypen, strukturierte Musterabgleiche und automatisierte Vollständigkeitsprüfungen, mit der Leistungsfähigkeit und der hervorragenden Plattformunabhängigkeit des .NET-9-Ökosystems.
+
+Im direkten Vergleich erzielte F\# das mit Abstand geringste Codevolumen über die gesamte Vorlesung hinweg: Mit insgesamt 3486 Zeilen benötigt die F\#-Fassung rund 46 Prozent weniger Code als OCaml und rund 35 Prozent weniger als Python. Das mächtige Sprachmittel der Active Patterns ermöglicht es, komplexe Abstraktionen über Grammatiktoken und Syntaxknoten zu formulieren, ohne die Vorzüge statischer Prüfungen aufzugeben. Auch die Visualisierung von Automaten und Syntaxbäumen ist in F\# am elegantesten gelöst, da doppelte Knotensymbole über strukturelle Pfadkoordinaten eindeutig unterschieden werden und Grafiken ohne Zwischendateien direkt im Speicher gestreamt werden.
+
+Als Kompromiss müssen Lehrende die längere Initialisierungsphase des Kernels in Kauf nehmen: Der Start benötigt knapp zwei Sekunden und belegt rund 530 Megabyte Arbeitsspeicher, da das System einen vollständigen Compilerprozess im Hintergrund bereitstellt. Bei tief verschachtelten Mengenkonstruktionen empfiehlt es sich zudem, Studierenden den Einsatz von Hash-Consing oder Zustandskodierungen zu vermitteln, um Verlangsamungen bei AVL-Baumvergleichen zu vermeiden.
 
 % ------------------------------------------------------------------------------
-\section{Concluding Remarks and Strategic Roadmap}
+\section{Fazit und Ausblick für die akademische Lehre}
 \label{sec:recommendation_conclusion}
 % ------------------------------------------------------------------------------
 
-The empirical findings of this 60-page monograph challenge the prevailing academic dogma that Python is universally the most accessible language for introductory computer science theory, or that OCaml is the only viable host for compiler construction:
+Die Ergebnisse dieser Monographie widerlegen das Vorurteil, dass dynamisch typisierte Skriptsprachen wie Python per se die lernfreundlichere Wahl für die theoretische Informatik seien, oder dass funktionale Sprachen zwangsläufig komplizierter zu erlernen seien:
 
-\begin{enumerate}
-  \item \textbf{Type Safety is a Pedagogical Tutor:} Far from being an obstacle to students, static algebraic data types and exhaustive pattern matching act as continuous, automated pedagogical tutors. They eliminate the vast majority of silent dynamic faults that consume student debugging time in Python.
-  \item \textbf{Toolchain Transparency Matters:} While dynamic in-memory parser libraries (such as Lark) offer rapid setup, ahead-of-time parser generators (Menhir and FsLexYacc) instill a fundamentally deeper understanding of deterministic automata, shift/reduce conflicts, and the Chomsky hierarchy.
-  \item \textbf{The Pragmatic Convergence:} F\# represents a compelling convergence of functional theoretical purity and enterprise runtime engineering. For institutions seeking to modernize their curriculum while maintaining cross-platform compatibility across Windows, macOS, and Linux, F\# hosted on .NET~9 Interactive provides an extraordinary pedagogical vehicle.
-\end{enumerate}
+Erstens erweist sich ein ausdrucksstarkes statisches Typsystem in der Praxis als ein wertvoller didaktischer Begleiter. Durch den Zwang zu vollständigen Fallunterscheidungen und die sofortige Lokalisierung unpassender Datentypen fängt der Compiler Flüchtigkeitsfehler bereits beim Schreiben ab, die in Python zu frustrierenden Fehlersuchen zur Laufzeit führen.
 
-By publishing our complete benchmarking suites, notebook corpora, and LaTeX monograph sources as open science artifacts, we hope to empower educators and software architects to make empirically grounded, mathematically sound decisions when designing the next generation of formal languages and compiler construction curricula.
+Zweitens schärft der Einsatz vorab kompilierender Parsergeneratoren das Verständnis für formale Grammatiken weit besser als dynamische Allzweck-Parser. Das bewusste Analysieren von Schiebe-Reduziere-Konflikten vermittelt den Studierenden ein tiefes Verständnis für die theoretischen Grenzen deterministischer Sprachklassen.
+
+Drittens markiert F\# auf modernen .NET-Laufzeitumgebungen eine äußerst vielversprechende Synthese. Für Ausbildungsinstitutionen, die eine zeitgemäße, typ- und speichersichere sowie auf allen gängigen Betriebssystemen gleichermaßen verlässliche Plattform suchen, stellt F\# in interaktiven Notizbüchern ein erstklassiges Lehrmedium dar.
+
+Indem wir die vollständigen Messreihen, Notizbuchsammlungen und Quelltexte dieser Studie als Open-Science-Materialien zur Verfügung stellen, möchten wir Lehrenden und Fachbereichen eine belastbare, faktenbasierte Entscheidungsgrundlage für die Weiterentwicklung moderner Curricula in den formalen Grundlagen der Informatik an die Hand geben.
