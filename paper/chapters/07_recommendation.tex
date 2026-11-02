@@ -14,7 +14,7 @@ Die Vorlesung verbindet Theorie und Anwendung und stellt damit drei Anforderunge
   \item \textbf{Skalierbare Performanz:} Die zugrunde liegende Sprachplattform muss über hinreichende Leistungsreserven verfügen, um auch realistische Compiler-Szenarien, wie die vollständige Syntaxanalyse großer Grammatiken oder die Generierung lauffähigen Bytecodes, ohne störende Wartezeiten oder Speicherüberläufe zu bewältigen.
 \end{enumerate}
 
-In dieser Monographie wurden Python~3.13, OCaml~5.4 und F\#~9.0 (.NET~9) anhand dreier paralleler, inhaltlich verwandter Notebook-Fassungen mit 49, 50 und 56 Heften einer detaillierten vergleichenden Analyse unterzogen.
+In dieser Arbeit wurden Python~3.13, OCaml~5.4 und F\#~9.0 (.NET~9) anhand dreier paralleler, inhaltlich verwandter Notebook-Fassungen mit 49, 50 und 56 Heften einer detaillierten vergleichenden Analyse unterzogen.
 In diesem abschließenden Kapitel führen wir die theoretischen Erkenntnisse der vorangegangenen Kapitel mit den empirischen Messwerten zusammen, formulieren eine mehrkriterielle Entscheidungsanalyse für typische Einsatzszenarien und leiten fundierte Empfehlungen für die Praxis ab.
 
 % ------------------------------------------------------------------------------
@@ -145,7 +145,7 @@ Die Abstände zwischen OCaml und F\# sind gering; bereits kleine Änderungen ein
 
 Aus den vorliegenden theoretischen und empirischen Ergebnissen lassen sich klare, anwendungsbezogene Empfehlungen für Lehrende und Curriculums-Kommissionen ableiten:
 
-\subsection{1. Python 3.13: Die pragmatische Minimallösung}
+\subsection{Python 3.13: Die pragmatische Minimallösung}
 Python empfiehlt sich vor allem dann, wenn formale Sprachen und Automatentheorie lediglich als kurzes, einleitendes Teilmodul innerhalb eines bereits fest auf Python ausgerichteten Studiengangs (beispielsweise in Data Science oder künstlicher Intelligenz) unterrichtet werden.
 Der Kernel startet von allen dreien am schnellsten, und die Studierenden müssen sich nicht an eine neue Programmiersyntax gewöhnen.
 Zudem überrascht Python bei rein mengenbasierten Algorithmen, wie der Potenzmengenkonstruktion, durch seine hocheffizienten, in C implementierten Hash-Mengen und ist in 14 der 16 gemessenen Notizbücher am schnellsten, darunter beim rechenintensiven SLR-Tabellengenerator.
@@ -154,7 +154,7 @@ Für einen vertiefenden Compilerbaukurs ist Python hingegen nicht zu empfehlen.
 Das Fehlen nativer Summentypen erzwingt unübersichtliche Klassenhierarchien, und ohne externe Typprüfer fehlt eine automatische Vollständigkeitsprüfung, sodass vergessene Regelfälle erst spät zur Laufzeit als Ausnahmefehler aufgedeckt werden.
 Hinzu kommt, dass rekursive Transformationen auf verschachtelten Syntaxbäumen in CPython im Mikrobenchmark rund 95-mal langsamer ablaufen als in nativem OCaml und rund 13- bis 15-mal langsamer als in F\# und OCaml-Bytecode.
 
-\subsection{2. OCaml 5.4: Das Ideal für theoretische Eleganz}
+\subsection{OCaml 5.4: Das Ideal für theoretische Eleganz}
 OCaml ist die ideale Wahl für Hochschulen, die großen Wert auf mathematische Präzision, formale Semantik und funktionale Programmierkonzepte legen, und erzielt in der Nutzwertanalyse in allen drei Szenarien die höchste Punktzahl.
 Die Hindley--Milner-Typinferenz macht Typannotationen weitgehend überflüssig und garantiert dennoch Typsicherheit, solange keine unsicheren Primitive verwendet werden.
 Der Parsergenerator Menhir ist in der Diagnose von Grammatikkonflikten besonders stark, da er mit \texttt{--explain} konkrete Ableitungsbeispiele erzeugt, anstatt Studierende mit kryptischen Zustandsnummern allein zu lassen.
@@ -163,7 +163,7 @@ Darüber hinaus ist natives OCaml bei rekursiven Baummanipulationen im Mikrobenc
 Als Einschränkung muss bedacht werden, dass das Arbeiten im interaktiven Notizbuch unter OCaml disziplinierte Lademechanismen erfordert, um Inkompatibilitäten durch neu erzeugte Typstempel bei mehrfach ausgeführten Zellen zu verhindern.
 Zudem gestaltet sich die Bereitstellung der Arbeitsumgebung auf Rechnern mit reinem Windows-Betriebssystem nach wie vor aufwendiger als bei den beiden Mitbewerbern.
 
-\subsection{3. F\# 9.0 (.NET 9): Die moderne Alternative mit .NET-Anbindung}
+\subsection{F\# 9.0 (.NET 9): Die moderne Alternative mit .NET-Anbindung}
 F\# bietet für moderne Lehrveranstaltungen einen starken Kompromiss zwischen theoretischer Fundierung und industrieller Praxistauglichkeit und liegt in der Nutzwertanalyse in allen drei Szenarien knapp hinter OCaml.
 Es vereint die theoretischen Stärken von OCaml, namentlich echte algebraische Datentypen, strukturierte Musterabgleiche und automatisierte Vollständigkeitsprüfungen, mit der Leistungsfähigkeit und der hervorragenden Plattformunabhängigkeit des .NET-9-Ökosystems.
 
@@ -181,7 +181,7 @@ Bei tief verschachtelten Mengenkonstruktionen empfiehlt es sich zudem, Studieren
 \label{sec:recommendation_conclusion}
 % ------------------------------------------------------------------------------
 
-Die Ergebnisse dieser Monographie stellen die Annahme in Frage, dass dynamisch typisierte Skriptsprachen wie Python per se die lernfreundlichere Wahl für die theoretische Informatik seien:
+Die Ergebnisse dieser Arbeit stellen die Annahme in Frage, dass dynamisch typisierte Skriptsprachen wie Python per se die lernfreundlichere Wahl für die theoretische Informatik seien:
 
 Erstens erweist sich ein ausdrucksstarkes statisches Typsystem in der Praxis als ein wertvoller didaktischer Begleiter.
 Durch den Zwang zu vollständigen Fallunterscheidungen und die sofortige Lokalisierung unpassender Datentypen fängt der Compiler Flüchtigkeitsfehler bereits beim Schreiben ab, die in Python zu frustrierenden Fehlersuchen zur Laufzeit führen.

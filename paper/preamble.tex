@@ -1,52 +1,61 @@
 % ==============================================================================
-% Scientific Monograph Preamble: Formal Languages in Python, OCaml, and F#
+% Präambel der Studienarbeit: Python, OCaml und F# in Stroetmanns Vorlesung
 % ==============================================================================
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[english,ngerman]{babel}
 
-% Typography: Palatino / NewPX with microtype for high-grade academic typesetting
-\usepackage{mathpazo}
-\usepackage[scaled=0.92]{helvet}
-\usepackage{courier}
-\usepackage[htt]{hyphenat}
-\usepackage[protrusion=true,expansion=true]{microtype}
+% Mathematik (amsthm muss vor newtxmath geladen werden)
+\usepackage{amsmath,amsthm}
+\usepackage{mathtools}
 
-% Page Geometry (designed for a spacious, readable 60-page monograph)
+% Schrift: Times-artige Grundschrift, serifenlose Überschriften (KOMA-Standard)
+\usepackage{newtxtext}
+\usepackage{newtxmath}
+\usepackage[scaled=0.88]{beramono}
+\usepackage[htt]{hyphenat}
+\usepackage{microtype}
+
+% Satzspiegel
 \usepackage[
   a4paper,
-  top=2.8cm,
-  bottom=3.0cm,
-  inner=3.0cm,
-  outer=2.6cm,
-  headheight=16pt
+  top=2.5cm,
+  bottom=2.5cm,
+  left=3.0cm,
+  right=2.5cm,
+  headheight=15pt
 ]{geometry}
 
 \usepackage{setspace}
-\setstretch{1.12}
+\onehalfspacing
 
-% Mathematics & Symbols
-\usepackage{amsmath,amssymb,amsfonts,amsthm}
-\usepackage{mathtools}
+% Überschriften und Abstände
+\addtokomafont{disposition}{\color{black}}
+\addtokomafont{chapter}{\Huge}
+\RedeclareSectionCommand[beforeskip=0pt,afterskip=1.5\baselineskip]{chapter}
+\setkomafont{caption}{\small}
+\setkomafont{captionlabel}{\small\bfseries}
 
-% Table cell line-breaks and column width formatting
+% Tabellen
 \usepackage{makecell}
 \renewcommand\theadfont{\bfseries\small}
 \renewcommand\theadalign{lc}
-
-% List formatting to prevent margin overflows in description labels
-\usepackage{enumitem}
-\setlist[description]{style=nextline,leftmargin=1.2em,itemsep=6pt}
-
-% Tables & Figures
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage{longtable}
 \usepackage{multirow}
 \usepackage{multicol}
+
+% Listen
+\usepackage{enumitem}
+\setlist{itemsep=2pt,topsep=4pt}
+\setlist[description]{style=nextline,leftmargin=1.2em,itemsep=6pt}
+
+% Abbildungen
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{caption}
+\captionsetup{format=hang,labelsep=colon,justification=justified,singlelinecheck=true}
 \usepackage{subcaption}
 \usepackage{siunitx}
 \sisetup{
@@ -55,25 +64,22 @@
   group-minimum-digits=4
 }
 
-% Color Palette (Academic / Publication Grade)
+% Farben: nur in Diagrammen, um die drei Sprachen zu unterscheiden
 \usepackage[dvipsnames,table]{xcolor}
-\definecolor{NavyBlue}{RGB}{20, 50, 100}
+\definecolor{NavyBlue}{RGB}{40, 40, 40}
 \definecolor{PythonBlue}{RGB}{48, 105, 152}
 \definecolor{OCamlOrange}{RGB}{217, 95, 2}
 \definecolor{FSharpPurple}{RGB}{117, 112, 179}
-\definecolor{CodeBg}{RGB}{248, 249, 251}
-\definecolor{CodeFrame}{RGB}{215, 220, 228}
-\definecolor{CommentGray}{RGB}{110, 120, 130}
-\definecolor{KeywordBlue}{RGB}{0, 64, 150}
-\definecolor{StringRed}{RGB}{163, 21, 21}
+\definecolor{CodeBg}{RGB}{255, 255, 255}
+\definecolor{CommentGray}{RGB}{90, 90, 90}
 
-% Plots & Diagrams
+% Diagramme
 \usepackage{tikz}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc,backgrounds,fit}
 
-% Code Listings Configuration
+% Quelltexte
 \usepackage{listings}
 
 \lstdefinelanguage{FSharp}{
@@ -90,47 +96,47 @@
   morestring=[b]"
 }
 
+% Schwarz-weiß: Schlüsselwörter fett, Kommentare kursiv, Linien oben und unten
 \lstdefinestyle{academiccode}{
-  backgroundcolor=\color{CodeBg},
-  basicstyle=\ttfamily\footnotesize\linespread{1.05}\selectfont,
+  basicstyle=\ttfamily\footnotesize\linespread{1.0}\selectfont,
   breakatwhitespace=false,
   breaklines=true,
   captionpos=b,
   commentstyle=\itshape\color{CommentGray},
-  frame=single,
-  rulecolor=\color{CodeFrame},
+  keywordstyle=\bfseries,
+  stringstyle=\color{black},
+  frame=lines,
+  framesep=3pt,
+  rulecolor=\color{black},
   keepspaces=true,
-  keywordstyle=\bfseries\color{KeywordBlue},
   numbers=left,
-  numbersep=8pt,
+  numbersep=6pt,
   numberstyle=\tiny\color{CommentGray},
   showspaces=false,
   showstringspaces=false,
   showtabs=false,
-  stringstyle=\color{StringRed},
   tabsize=2,
   xleftmargin=14pt,
-  xrightmargin=4pt,
-  framexleftmargin=10pt
+  xrightmargin=0pt
 }
 
 \lstset{style=academiccode}
 
-% Allows extra inter-word space where long inline code would otherwise overflow.
+% Erlaubt zusätzlichen Wortabstand, wo langer Inline-Code sonst überstehen würde.
 \setlength{\emergencystretch}{2em}
 
-% Unicode symbols of the notebooks that also occur in running text.
+% Unicode-Zeichen der Notizbücher, die auch im Fließtext vorkommen
 \DeclareUnicodeCharacter{22C5}{\ensuremath{\cdot}}
 \DeclareUnicodeCharacter{2205}{\ensuremath{\emptyset}}
 \DeclareUnicodeCharacter{1D700}{\ensuremath{\varepsilon}}
 \DeclareUnicodeCharacter{1D6FF}{\ensuremath{\delta}}
 \DeclareUnicodeCharacter{03A3}{\ensuremath{\Sigma}}
 
-% Code taken verbatim from the notebooks: smaller font so that three editions fit
-% into one figure, and the Unicode symbols the notebooks use.
+% Wörtlich aus den Notizbüchern übernommener Code: kleinere Schrift, damit drei
+% Fassungen in eine Abbildung passen, und die Unicode-Zeichen der Notizbücher.
 \lstdefinestyle{notebook}{
   style=academiccode,
-  basicstyle=\ttfamily\fontsize{7.2}{8.2}\selectfont,
+  basicstyle=\ttfamily\fontsize{7.2}{8.4}\linespread{1.0}\selectfont,
   captionpos=t,
   aboveskip=2pt,
   belowskip=4pt,
@@ -140,29 +146,27 @@
            {Σ}{{$\Sigma$}}1 {𝛿}{{$\delta$}}1
 }
 
-% Theorem & Analysis Environments
+% Befund- und Beobachtungsumgebungen
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}[chapter]
 \newtheorem{observation}{Beobachtung}[chapter]
-\newtheorem{finding}{Empirischer Befund}[chapter]
+\newtheorem{finding}{Befund}[chapter]
 \newtheorem{criterion}{Evaluierungskriterium}[chapter]
 
-% Headers and Footers
+% Kopf- und Fußzeilen
 \usepackage{scrlayer-scrpage}
 \pagestyle{scrheadings}
 \clearpairofpagestyles
 \ihead{\headmark}
 \ohead{\pagemark}
-\automark[section]{chapter}
+\automark[chapter]{chapter}
+\KOMAoptions{headsepline=0.4pt}
+\setkomafont{pageheadfoot}{\normalfont\small}
 
-% Hyperlinks & References
+% Hyperlinks und Querverweise
 \usepackage[
-  colorlinks=true,
-  linkcolor=NavyBlue,
-  citecolor=NavyBlue,
-  urlcolor=PythonBlue,
+  hidelinks,
   bookmarksnumbered=true,
-  pdfauthor={Forschungsgruppe Formale Sprachen},
-  pdftitle={Sprachparadigmen, Typsysteme und Ausfuehrungsdynamik: Python, OCaml und F-Sharp in der formalen Sprachverarbeitung}
+  pdftitle={Sprachparadigmen, Typsysteme und Ausfuehrungsdynamik: Python, OCaml und F-Sharp anhand der Vorlesung Formale Sprachen von Karl Stroetmann}
 ]{hyperref}
 \usepackage[ngerman,nameinlink,noabbrev]{cleveref}

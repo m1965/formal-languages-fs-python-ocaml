@@ -143,19 +143,19 @@ Das einzige Python-Notizbuch mit PLY, der Integer-C-Compiler \texttt{Chapter-13/
 
 Neben der Nutzung vorgefertigter Generatoren implementieren die Studierenden im Verlauf der Vorlesung drei eigenständige Parsing-Engines:
 
-\subsection{1. Rekursiver Abstieg}
+\subsection{Rekursiver Abstieg}
 Kapitel~6 des Skripts entwickelt einen Top-down-Parser mit rekursivem Abstieg für arithmetische Ausdrücke~\cite{stroetmann2026formal}.
 Weil dieses Verfahren für linksrekursive Grammatiken nicht funktioniert, ersetzt Stroetmann die Linksrekursion durch die Iteration einer EBNF-Grammatik.
 Bereits seine Python-Fassung formuliert den Parser als gegenseitig rekursive Funktionen, die jeweils ein Paar aus Ergebnis und verbleibender Tokenliste zurückgeben und die Fälle über Listenmuster unterscheiden (\texttt{case '+', *RL}).
 Die F\#-Fassung übernimmt diese Struktur direkt als Gruppe \texttt{let rec \dots{} and \dots}, während die OCaml-Fassung wie bei der Thompson-Konstruktion (\cref{sec:case_thompson}) Vorwärtsreferenzen anlegt, damit die Funktionen in derselben Reihenfolge wie im Python-Notizbuch erklärt werden können.
 
-\subsection{2. Allgemeines kontextfreies Parsing nach Earley}
+\subsection{Allgemeines kontextfreies Parsing nach Earley}
 Um beliebige kontextfreie Grammatiken---auch mehrdeutige, linksrekursive oder solche mit Epsilon-Regeln---verarbeiten zu können, behandelt Kapitel~9 des Skripts den Earley-Algorithmus~\cite{earley1970efficient}; die Python-Notizbücher dazu liegen im Verzeichnis \texttt{Chapter-09}.
 Ein Earley-Objekt $\langle a \to \beta \bullet \gamma, k \rangle$ besteht aus einer Grammatikregel mit Markierungspunkt für die aktuelle Leseposition und einem Index für die Startposition der Regel im Eingabetext.
 Für jede Position $j$ der Eingabe verwaltet der Algorithmus eine Menge $Q_j$ von Earley-Objekten, die das Skript mit drei Operationen aufbaut: \emph{Reading} (Einlesen des nächsten Tokens), \emph{Prediction} (Vorhersage der Regeln für eine erwartete Variable) und \emph{Completion} (Fortsetzen übergeordneter Regeln, sobald eine Regel vollständig erkannt ist).
 Laut Skript hat der Algorithmus im allgemeinen Fall eine Komplexität von $O(n^3)$ und für eindeutige Grammatiken von $O(n^2)$.
 
-\subsection{3. Generatoren für SLR(1)- und LR(1)-Tabellen}
+\subsection{Generatoren für SLR(1)- und LR(1)-Tabellen}
 In Kapitel~10 des Skripts konstruieren die Studierenden eigene Tabellengeneratoren für SLR- und kanonische LR-Parser (Notizbücher im Verzeichnis \texttt{Chapter-10}): Sie berechnen die Hülle von Mengen markierter Regeln, bestimmen First- und Follow-Mengen über Fixpunktberechnungen und füllen die Aktions- und Sprungtabellen.
 Als Härtetest dient eine Grammatik für die Sprache C mit 63 Nichtterminalen und 211 Regelalternativen.
 Laut Skript kommt ein SLR-Parser für diese Grammatik mit 349 Zuständen aus, erzeugt aber Konflikte, weil C keine SLR-Sprache ist, während der kanonische LR-Parser 1572 Zustände benötigt.
@@ -172,7 +172,8 @@ Jeder Wert ist der Mittelwert über wiederholte Durchläufe nach einem Aufwärml
 
 \begin{table}[htbp]
   \centering
-  \small
+  \footnotesize
+  \setlength{\tabcolsep}{4pt}
   \caption{Gemessene Durchsatzwerte und Erzeugungszeiten über verschiedene Token-Größen.
   Die Erzeugungszeit von F\# umfasst einen vollständigen MSBuild-Lauf und ist daher nicht direkt mit den beiden anderen Werten vergleichbar.}
   \label{tab:parser_throughput}

@@ -60,7 +60,7 @@ Statt subjektive Eindrücke abzufragen, untersucht die Arbeit am Code dieser Not
 \label{sec:intro_rqs}
 % ------------------------------------------------------------------------------
 
-Die Monographie gliedert sich entlang fünf zentraler softwaretechnischer Forschungsfragen:
+Die Arbeit gliedert sich entlang fünf Forschungsfragen:
 
 \begin{description}[style=nextline,leftmargin=1.2em,itemsep=8pt]
   \item[\textbf{Forschungsfrage 1: Typsystem-Architektur und statische Garantien (\cref{chap:type_systems})}]
@@ -89,12 +89,12 @@ Die Monographie gliedert sich entlang fünf zentraler softwaretechnischer Forsch
 
 Um die Untersuchung nachvollziehbar und reproduzierbar zu halten, folgt sie den folgenden methodischen Grundsätzen; ihre Grenzen sind in \cref{sec:perf_validity} zusammengefasst:
 
-\subsection{1. Saubere architektonische Trennung}
+\subsection{Saubere architektonische Trennung}
 In Übereinstimmung mit klaren Modularitätsprinzipien sind sämtliche Messskripte, Testtreiber und Rohdatensätze in einem vollständig isolierten Verzeichnis untergebracht.
 Der kanonische Vorlesungscode in den Verzeichnissen für Python, OCaml und F\# bleibt dadurch absolut unberührt.
 Das Dokument und die Auswertungsskripte sind eigenständig buildfähig.
 
-\subsection{2. Laufzeitmessungen}
+\subsection{Laufzeitmessungen}
 Die Zeit- und Speichermessungen orientieren sich an der Methodik für empirische Performanzanalysen nach Georges et al.~\cite{georges2007statistically}, erreichen deren Anforderungen an Stichprobengröße und Konfidenzintervalle jedoch nicht:
 \begin{itemize}
   \item \textbf{Mikrobenchmarks:} Eigens für die Messung geschriebene Kernalgorithmen (Lexing, Potenzmengenkonstruktion, DFA-Minimierung und symbolische Ableitung) werden in isolierten Subprozessen über fünf unabhängige Durchläufe gemessen.
@@ -103,12 +103,12 @@ Die Zeit- und Speichermessungen orientieren sich an der Methodik für empirische
   \item \textbf{Makrobenchmarks vollständiger Notizbücher:} Sechzehn Vorlesungs-Notizbücher je Fassung werden in temporären Arbeitsverzeichnissen je einmal automatisiert ausgeführt, um die Zellrechenzeiten und den Speicherbedarf des gesamten Prozessbaums zu erfassen.
 \end{itemize}
 
-\subsection{3. Vereinheitlichte Hardwarebasis}
+\subsection{Vereinheitlichte Hardwarebasis}
 Sämtliche Messungen wurden auf demselben Apple-Silicon-Arbeitsplatzrechner unter macOS durchgeführt; Taktfrequenz und thermischer Zustand wurden dabei nicht protokolliert.
 Die eingesetzten Compiler und Laufzeitumgebungen entsprechen den aktuellen stabilen Hauptversionen CPython~3.13, OCaml~5.4 und Microsoft .NET~9.
 
 % ------------------------------------------------------------------------------
-\section{Aufbau und Gliederung der Monographie}
+\section{Aufbau der Arbeit}
 \label{sec:intro_roadmap}
 % ------------------------------------------------------------------------------
 

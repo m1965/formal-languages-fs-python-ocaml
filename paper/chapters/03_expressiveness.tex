@@ -107,7 +107,7 @@ Alle Listings in diesem Abschnitt sind wörtlich aus den Jupyter-Notebooks der d
 Auslassungen sind durch einen Kommentar mit drei Punkten markiert.
 Wir zeigen nur die Stellen, an denen sich die drei Fassungen am deutlichsten unterscheiden, und arbeiten jeweils heraus, wie die Sprachen denselben Algorithmus unterschiedlich interpretieren und welche Vorteile daraus folgen.
 
-\subsection{1. Thompson-Konstruktion für nichtdeterministische Automaten}
+\subsection{Thompson-Konstruktion für nichtdeterministische Automaten}
 \label{sec:case_thompson}
 Die Thompson-Konstruktion überführt einen regulären Ausdruck induktiv in einen äquivalenten Automaten mit Epsilon-Schritten.
 Für jeden Teilausdruck müssen frische Zustände erzeugt und Teilautomaten parallel oder seriell verknüpft werden.
@@ -172,7 +172,7 @@ OCaml bietet statische Vollständigkeit und Persistenz, benötigt im Notebook ab
 F\# kombiniert Persistenz mit einer nach außen reinen Funktion und kommt durch die umgekehrte Zellenreihenfolge ohne Vorwärtsreferenzen aus.
 \end{finding}
 
-\subsection{2. Reguläre Ausdrücke: Epsilon-Test und algebraische Vereinfachung}
+\subsection{Reguläre Ausdrücke: Epsilon-Test und algebraische Vereinfachung}
 \label{sec:case_simplify}
 Die Brzozowski-Ableitung eines regulären Ausdrucks nach einem Eingabezeichen beschreibt die Restsprache aller Wörter, die nach dem Einlesen dieses Zeichens noch akzeptiert werden~\cite{brzozowski1964derivatives,owens2009regular}.
 Ihre Definition stützt sich auf einen Epsilon-Test, der feststellt, ob ein Ausdruck das leere Wort akzeptiert.
@@ -216,7 +216,7 @@ Die Termersetzung in F\# ist didaktisch sehr direkt: Jede Regel steht im Code ge
 Da die Regeln aber nur syntaktisch auf Bäume angewendet werden, kennt das Verfahren keine Kommutativität; Regeln wie \texttt{R+∅} und \texttt{∅+R} müssen deshalb doppelt aufgeführt werden, und das Ergebnis kann von der Reihenfolge der Regeln abhängen.
 Die flache Normaldarstellung in Python und OCaml ist aufwendiger, behandelt Kommutativität und Idempotenz aber strukturell und liefert über eine Inklusionsprüfung auch Vereinfachungen, die keine einzelne Regel ausdrückt.
 
-\subsection{3. Zustandsminimierung über unterscheidbare Zustandspaare}
+\subsection{Zustandsminimierung über unterscheidbare Zustandspaare}
 \label{sec:case_minimize}
 Die Minimierung deterministischer Automaten fasst äquivalente Zustände zu Myhill--Nerode-Äquivalenzklassen zusammen.
 Hopcroft gab hierfür einen Algorithmus mit einer Laufzeit von $O(n \log n)$ an~\cite{hopcroft1971nlogn}.
