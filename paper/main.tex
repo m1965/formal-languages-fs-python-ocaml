@@ -33,7 +33,7 @@
   \rule{\textwidth}{1.5pt}\\[1.5cm]
 
   {\large
-    \textbf{Empirische Evaluation von 56 interaktiven Jupyter-Notebooks unter}\\
+    \textbf{Empirische Evaluation dreier Jupyter-Notebook-Fassungen (49/50/56 Hefte) unter}\\
     \textbf{CPython 3.13, OCaml 5.4 und .NET 9 CoreCLR}\par}
 
   \vfill
@@ -83,9 +83,10 @@
 Die Theorie der formalen Sprachen, die Automatentheorie und der Compilerbau bilden ein unverzichtbares Fundament der Informatik.
 Ihre zentralen Abstraktionen---reguläre Ausdrücke, nichtdeterministische und deterministische endliche Automaten, kontextfreie Grammatiken, Schiebe-Reduziere-Parsertabellen für LR- und LALR-Verfahren, abstrakte Syntaxbäume und Stack-Maschinen-Compiler---stellen höchste Anforderungen an das Typsystem, die Musterabgleichssemantik, die Datenstrukturen und die Ausführungsleistung einer Programmiersprache.
 
-Diese Monographie präsentiert eine umfassende, empirisch fundierte vergleichende Evaluation dreier vollständiger und semantisch äquivalenter Implementierungen eines dreizehn Kapitel umfassenden Curriculums der formalen Sprachen, bereitgestellt in Form interaktiver Jupyter-Notebooks:
+Diese Monographie präsentiert eine empirisch gestützte vergleichende Evaluation dreier paralleler Implementierungen eines dreizehn Kapitel umfassenden Curriculums der formalen Sprachen, bereitgestellt in Form interaktiver Jupyter-Notebooks.
+Die drei Fassungen decken dieselben Themen ab, sind aber nicht deckungsgleich: Sie umfassen 49 (Python), 50 (OCaml) und 56 (F\#) Notizbücher.
 \begin{enumerate}
-  \item \textbf{Python 3.13 (CPython)}, als Repräsentant dynamischer Duck-Typisierung mit optionalen Typhilfen nach PEP~484, hashbasierten unveränderlichen Mengensammlungen (\texttt{frozenset}) und laufzeitbasierten Parsergeneratoren (\texttt{PLY}, \texttt{Lark});
+  \item \textbf{Python 3.13 (CPython)}, als Repräsentant dynamischer Duck-Typisierung mit optionalen Typhilfen nach PEP~484, hashbasierten unveränderlichen Mengensammlungen (\texttt{frozenset}) und laufzeitbasierten Parsergeneratoren (vorwiegend \texttt{Lark}, vereinzelt \texttt{PLY});
   \item \textbf{OCaml 5.4}, als klassischer Vertreter des Hindley--Milner-Typsystems mit statischer Typinferenz, algebraischen Summentypen, funktoriellen Mengenmodulen (\texttt{Set.Make}) und Ahead-of-Time-Parsergenerierung (\texttt{ocamllex}, \texttt{Menhir}); sowie
   \item \textbf{F\# 9.0 unter .NET 9 CoreCLR}, als moderne, pragmatische funktionale Sprache mit nominalen discriminated unions, erweiterbaren aktiven Mustern (Active Patterns), vorab kompilierten \texttt{FsLexYacc}-Bibliotheken und nativer RyuJIT-Codeerzeugung.
 \end{enumerate}

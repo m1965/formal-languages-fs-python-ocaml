@@ -33,16 +33,17 @@ Hier verschmelzen erklärender Fließtext, ausführbarer Programmcode und eingeb
 \label{sec:intro_motivation}
 % ------------------------------------------------------------------------------
 
-Die vorliegende Untersuchung stützt sich auf ein seltenes, didaktisch wie technisch hochgradig kontrolliertes natürliches Experiment: Ein vollständiges, anspruchsvolles Curriculum aus 13 Kapiteln zu formalen Sprachen und Compilerbau liegt in drei vollständigen, semantisch deckungsgleichen Implementierungen vor, die für den interaktiven Betrieb in Jupyter-Notebooks optimiert wurden:
+Die vorliegende Untersuchung stützt sich auf ein seltenes natürliches Experiment: Ein anspruchsvolles Curriculum aus 13 Kapiteln zu formalen Sprachen und Compilerbau liegt in drei parallelen Implementierungen vor, die für den interaktiven Betrieb in Jupyter-Notebooks geschrieben wurden.
+Die Fassungen behandeln dieselben Themen, sind aber weder im Umfang noch im Zuschnitt der einzelnen Notizbücher deckungsgleich; diese Unterschiede schränken die Vergleichbarkeit ein und werden bei den Messungen ausgewiesen:
 \begin{enumerate}
   \item \textbf{Python 3.13 (\texttt{ipykernel}):} Der weltweite De-facto-Standard in der Datenverarbeitung und Lehre.
   Python verkörpert den Archetyp einer dynamisch typisierten, interpretierten und anweisungsorientierten Skriptsprache mit optionalen Typ-Annotationen nach PEP~484, C-optimierten offenen Hash-Mengen und strukturellem Musterabgleich nach PEP~634.
   \item \textbf{OCaml 5.4 (\texttt{ocaml-jupyter}):} Die klassische Referenzsprache im akademischen Compilerbau.
-  OCaml vertritt das Paradigma einer statisch typisierten, rein funktionalen ML-Sprache mit globaler Damas--Hindley--Milner-Typinferenz, unveränderlichen persistenten AVL-Suchbäumen und optimierender Übersetzung in nativen Maschinencode~\cite{leroy2023ocaml,sivaramakrishnan2020retrofitting}.
+  OCaml vertritt das Paradigma einer statisch typisierten, primär funktionalen ML-Sprache (mit veränderlichen Referenzen und Arrays als imperativen Ergänzungen) mit globaler Damas--Hindley--Milner-Typinferenz, unveränderlichen persistenten AVL-Suchbäumen und optimierender Übersetzung in nativen Maschinencode~\cite{leroy2023ocaml,sivaramakrishnan2020retrofitting}.
   \item \textbf{F\# 9.0 unter .NET 9 (\texttt{dotnet-interactive}):} Eine moderne, multiparadigmatische und primär funktionale Sprache, die ML-Typinferenz und algebraische Datentypen mit der leistungsstarken Infrastruktur der Microsoft .NET 9 CoreCLR, mehrstufiger RyuJIT-Kompilierung und einer modernen Paketverwaltung verbindet~\cite{syme2020early}.
 \end{enumerate}
 
-Der untersuchte Gesamtkorpus umfasst 56 aufeinander abgestimmte Notizbücher, die von den Grundlagen der regulären Ausdrücke über Parsing-Verfahren bis hin zu vollständigen Codegeneratoren reichen.
+Der untersuchte Gesamtkorpus umfasst 49 Python-, 50 OCaml- und 56 F\#-Notizbücher, die von den Grundlagen der regulären Ausdrücke über Parsing-Verfahren bis hin zu vollständigen Codegeneratoren reichen.
 Statt subjektive Eindrücke abzufragen, widmet sich unsere Untersuchung den tiefgreifenden technischen und architektonischen Wechselwirkungen zwischen formaler Sprachtheorie, Typsicherheit, syntaktischer Dichte und realer Laufzeitperformanz.
 
 % ------------------------------------------------------------------------------
@@ -66,7 +67,7 @@ Die Monographie gliedert sich entlang fünf zentraler softwaretechnischer Forsch
 
   \item[\textbf{Forschungsfrage 4: Empirische Rechenleistung und Speicherbelegung (\cref{chap:performance})}]
   Wie verhalten sich CPU-Durchsatz, Kaltstartverzögerungen des Kernels, Speicherbedarf im RAM und die Dynamik der Speicherbereinigung in isolierten Mikrobenchmarks sowie in vollständigen Notebook-Abläufen?
-  Warum sind Hash-Mengen bei Mengenkonstruktionen im Vorteil, während sie bei rekursiven Baumtransformationen dramatisch zurückfallen?
+  Warum ist Python dank seiner Hash-Mengen bei Mengenkonstruktionen konkurrenzfähig, während es bei rekursiven Baumtransformationen deutlich zurückfällt?
 
   \item[\textbf{Forschungsfrage 5: Interaktive Notebook-Infrastruktur und Kernel-Kommunikation (\cref{chap:interactive_kernels})}]
   Wie bewältigen die unterschiedlichen Kernel-Architekturen die Herausforderungen nichtlinearer Zellenausführungen, der internen Zustandsisolation, der ZeroMQ"=Protokollserialisierung und der dynamischen Einbettung von Vektorgrafiken?
@@ -77,24 +78,24 @@ Die Monographie gliedert sich entlang fünf zentraler softwaretechnischer Forsch
 \label{sec:intro_methodology}
 % ------------------------------------------------------------------------------
 
-Um höchste wissenschaftliche Validität und Reproduzierbarkeit zu gewährleisten, folgt unsere Untersuchung methodisch strengen Kriterien:
+Um die Untersuchung nachvollziehbar und reproduzierbar zu halten, folgt sie den folgenden methodischen Grundsätzen; ihre Grenzen sind in \cref{sec:perf_validity} zusammengefasst:
 
 \subsection{1. Saubere architektonische Trennung}
 In Übereinstimmung mit klaren Modularitätsprinzipien sind sämtliche Messskripte, Testtreiber und Rohdatensätze in einem vollständig isolierten Verzeichnis untergebracht.
 Der kanonische Vorlesungscode in den Verzeichnissen für Python, OCaml und F\# bleibt dadurch absolut unberührt.
 Das Dokument und die Auswertungsskripte sind eigenständig buildfähig.
 
-\subsection{2. Statistische Signifikanz bei Laufzeitmessungen}
-Alle Zeit- und Speichermessungen folgen der anerkannten Methodik für empirische Performanzanalysen nach Georges et al.~\cite{georges2007statistically}:
+\subsection{2. Laufzeitmessungen}
+Die Zeit- und Speichermessungen orientieren sich an der Methodik für empirische Performanzanalysen nach Georges et al.~\cite{georges2007statistically}, erreichen deren Anforderungen an Stichprobengröße und Konfidenzintervalle jedoch nicht:
 \begin{itemize}
-  \item \textbf{Mikrobenchmarks:} Rechnerische Kernalgorithmen wie Lexing, Potenzmengenkonstruktionen, DFA-Minimierungen und symbolische Ableitungen werden in isolierten Subprozessen über mehrere unabhängige Durchläufe gemessen.
-  Hochauflösende Monotoniemonitore erfassen die reine CPU- und Wandzeit, während Betriebssystemaufrufe den maximalen Speicherbedarf im RAM exakt bestimmen.
-  \item \textbf{Kaltstartanalysen:} Die Gesamtzeit bis zur interaktiven Einsatzbereitschaft wird präzise in die Prozessstartzeit, die Initialisierung der ZeroMQ-Sockets und die Ausführungszeit der ersten Testzelle zerlegt.
-  \item \textbf{Makrobenchmarks vollständiger Notizbücher:} Komplette Vorlesungskapitel werden in temporären Arbeitsverzeichnissen automatisiert ausgeführt, um zelluläre Rechenzeiten und den Speicherbedarf des gesamten Prozessbaums realistisch zu erfassen.
+  \item \textbf{Mikrobenchmarks:} Eigens für die Messung geschriebene Kernalgorithmen (Lexing, Potenzmengenkonstruktion, DFA-Minimierung und symbolische Ableitung) werden in isolierten Subprozessen über fünf unabhängige Durchläufe gemessen.
+  Die Wandzeit wird in Python mit \texttt{time.perf\_counter}, in .NET mit \texttt{Stopwatch} und in OCaml mit \texttt{Unix.gettimeofday} (Mikrosekundenauflösung) erfasst, der maximale Speicherbedarf über \texttt{getrusage}.
+  \item \textbf{Kaltstartanalysen:} Über drei Kaltstarts je Kernel wird die Gesamtzeit bis zur interaktiven Einsatzbereitschaft in zwei Komponenten zerlegt: die Zeit bis zur Kernel-Bereitschaft (Prozessstart einschließlich Aufbau der ZeroMQ-Sockets) und die Ausführungszeit der ersten Testzelle.
+  \item \textbf{Makrobenchmarks vollständiger Notizbücher:} Sechzehn Vorlesungs-Notizbücher je Fassung werden in temporären Arbeitsverzeichnissen je einmal automatisiert ausgeführt, um die Zellrechenzeiten und den Speicherbedarf des gesamten Prozessbaums zu erfassen.
 \end{itemize}
 
 \subsection{3. Vereinheitlichte Hardwarebasis}
-Sämtliche Messungen wurden auf einem identischen Arbeitsplatzrechner unter kontrollierten thermischen Bedingungen auf macOS durchgeführt.
+Sämtliche Messungen wurden auf demselben Apple-Silicon-Arbeitsplatzrechner unter macOS durchgeführt; Taktfrequenz und thermischer Zustand wurden dabei nicht protokolliert.
 Die eingesetzten Compiler und Laufzeitumgebungen entsprechen den aktuellen stabilen Hauptversionen CPython~3.13, OCaml~5.4 und Microsoft .NET~9.
 
 % ------------------------------------------------------------------------------

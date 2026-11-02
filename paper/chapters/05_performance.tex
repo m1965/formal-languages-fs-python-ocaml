@@ -15,17 +15,17 @@ Werden diese Algorithmen in interaktiven Notizbüchern ausgeführt, wird die tat
   \item \textbf{Speicherallokation und automatische Speicherbereinigung:} Unmittelbare Referenzzählung mit zyklischer Generierungsprüfung in CPython, extrem schnelle Minor-Heap-Bump-Allokation in OCaml~5 und mehrfädige generationelle Speicherbereinigung im .NET~9 Garbage Collector.
 \end{enumerate}
 
-In diesem Kapitel präsentieren wir eine methodisch rigorose empirische Untersuchung aller vier Schichten über Python~3.13, OCaml~5.4 und F\#~9.0 hinweg.
+In diesem Kapitel präsentieren wir eine empirische Untersuchung aller vier Schichten über Python~3.13, OCaml~5.4 und F\#~9.0 hinweg; ihre methodischen Grenzen fasst \cref{sec:perf_validity} zusammen.
 
 % ------------------------------------------------------------------------------
 \section{Experimentelle Methodik und Systemarchitektur}
 \label{sec:perf_methodology}
 % ------------------------------------------------------------------------------
 
-Um höchste statistische Validität sicherzustellen und jede Beeinflussung der ursprünglichen Vorlesungsdateien auszuschließen, wurden alle Messungen über eine vollautomatisierte, isolierte Test-Suite (\texttt{benchmarks/microbenchmarks.py} und \texttt{benchmarks/notebook\_benchmarks.py}) nach den Grundsätzen von Georges et al.~\cite{georges2007statistically} durchgeführt.
+Um jede Beeinflussung der ursprünglichen Vorlesungsdateien auszuschließen, wurden alle Messungen über eine vollautomatisierte, isolierte Test-Suite durchgeführt (Skripte für Mikro-, Notizbuch- und Parser-Benchmarks im Verzeichnis \texttt{benchmarks/}), die sich an den Grundsätzen von Georges et al.~\cite{georges2007statistically} orientiert.
 
 \subsection{Hardware und Laufzeitumgebung}
-Alle Experimente wurden auf einem einheitlichen Apple Silicon Arbeitsplatzrechner unter macOS unter kontrollierten thermischen Bedingungen durchgeführt.
+Alle Experimente wurden auf demselben Apple-Silicon-Arbeitsplatzrechner unter macOS durchgeführt; Taktfrequenz und thermischer Zustand wurden nicht protokolliert.
 Die evaluierten Laufzeitversionen und Kernel-Umgebungen sind in \Cref{tab:runtime_configurations} zusammengefasst.
 
 \begin{table}[htbp]
@@ -41,9 +41,9 @@ Die evaluierten Laufzeitversionen und Kernel-Umgebungen sind in \Cref{tab:runtim
     \addlinespace[3pt]
     \textbf{OCaml (Toplevel)} & OCaml 5.4.1 & Inkrementeller Bytecode-Compiler (\texttt{ocamlrun}) & \texttt{ocaml-jupyter} \\
     \addlinespace[3pt]
-    \textbf{OCaml (Nativ)} & OCaml 5.4.1 & Nativer Maschinencode via \texttt{ocamlopt -O3} & Standalone CLI \\
+    \textbf{OCaml (Nativ)} & OCaml 5.4.1 & Nativer Maschinencode via \texttt{ocamlopt -O3} (wirkt nur mit flambda) & Standalone CLI \\
     \addlinespace[3pt]
-    \textbf{F\# (.NET 9)} & SDK 9.0.122 & FCS und gestufte RyuJIT-Kompilierung & \texttt{dotnet-interactive} \\
+    \textbf{F\# (.NET 9)} & SDK 9.0.122 & FCS und gestufte RyuJIT-Kompilierung; Mikrobenchmarks über \texttt{dotnet fsi --optimize+} & \texttt{dotnet-interactive} \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -52,15 +52,15 @@ Die evaluierten Laufzeitversionen und Kernel-Umgebungen sind in \Cref{tab:runtim
 Die empirische Untersuchung unterteilt sich in drei komplementäre Bereiche:
 \begin{description}
   \item[\textbf{Bereich I: Kaltstartverhalten des Kernels (\Cref{sec:kernel_latency})}] 
-  Über automatisierte Steueraufrufe zerlegen wir die Zeitspanne vom ersten Startbefehl bis zur Einsatzbereitschaft in zwei Komponenten: die Prozessstartzeit inklusive ZeroMQ-Socketaufbau sowie die Ausführungszeit der ersten trivialen Testzelle.
-  Wiederholte Auswertungen derselben Zelle definieren die minimale Warm-Latenz für den Nachrichtenaustausch.
-  
-  \item[\textbf{Bereich II: Isolierte algorithmische Mikrobenchmarks (\Cref{sec:microbenchmarks})}] 
-  Da Notizbücher die reine Rechenzeit mit Netzwerknachrichten, SVG-Aufbereitung und Subprozess-Starts überlagern, isolieren vier in sich geschlossene Algorithmenkerne die reine Rechenleistung der Sprachen.
-  Hochpräzise Monotoniemonitore erfassen die Rechenzeit, während Betriebssystemaufrufe den maximalen Speicherbedarf im RAM über fünf unabhängige Durchläufe hinweg messen.
-  
-  \item[\textbf{Bereich III: Makrobenchmarks vollständiger Notizbücher (\Cref{sec:macrobenchmarks})}] 
-  Mit einem instrumentierten Notizbuch-Treiber werden 14 vollständige Vorlesungskapitel in temporären Arbeitskopien ausgeführt, um die Gesamtwandzeit, die Netto"=Zellausführungszeit und den Speicherbedarf des gesamten Prozessbaums vor dem Beenden des Kernels zu protokollieren.
+  Über automatisierte Steueraufrufe zerlegen wir in drei Kaltstarts je Kernel die Zeitspanne vom ersten Startbefehl bis zur Einsatzbereitschaft in zwei Komponenten: die Zeit bis zur Kernel-Bereitschaft (Prozessstart inklusive ZeroMQ-Socketaufbau) sowie die Ausführungszeit der ersten trivialen Testzelle.
+  Eine erneute Auswertung derselben Zelle ergibt die Warm-Latenz für den Nachrichtenaustausch.
+
+  \item[\textbf{Bereich II: Isolierte algorithmische Mikrobenchmarks (\Cref{sec:microbenchmarks})}]
+  Da Notizbücher die reine Rechenzeit mit Netzwerknachrichten, SVG-Aufbereitung und Subprozess-Starts überlagern, sollen vier eigens geschriebene, in sich geschlossene Algorithmenkerne die Rechenleistung isolieren; sie stammen nicht aus dem Vorlesungscode.
+  Jeder der fünf Durchläufe startet einen eigenen Prozess und misst jede Arbeitslast einmal; die Wandzeit wird mit \texttt{time.perf\_counter}, \texttt{Stopwatch} bzw. \texttt{Unix.gettimeofday} erfasst, der maximale Speicherbedarf über \texttt{getrusage}.
+
+  \item[\textbf{Bereich III: Makrobenchmarks vollständiger Notizbücher (\Cref{sec:macrobenchmarks})}]
+  Mit einem instrumentierten Notizbuch-Treiber werden 16 Vorlesungs-Notizbücher je Fassung einmal in temporären Arbeitskopien ausgeführt, um die Gesamtwandzeit, die Summe der Zellausführungszeiten und den Speicherbedarf des gesamten Prozessbaums vor dem Beenden des Kernels zu protokollieren.
 \end{description}
 
 % ------------------------------------------------------------------------------
@@ -74,7 +74,7 @@ Bevor eine einzige Zeile Benutzercode ausgeführt wird, muss der Server den Kern
 \begin{table}[htbp]
   \centering
   \small
-  \caption{Kaltstartlatenz, Warm-Latenz und Leerlaufspeicher der drei Jupyter-Kernel.}
+  \caption{Kaltstartlatenz, Warm-Latenz und Leerlaufspeicher der drei Jupyter-Kernel (Mittelwert $\pm$ Standardabweichung über drei Kaltstarts).}
   \label{tab:kernel_cold_start}
   \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}Xrrrr}
     \toprule
@@ -108,17 +108,17 @@ Bevor eine einzige Zeile Benutzercode ausgeführt wird, muss der Server den Kern
       every node near coord/.append style={font=\scriptsize},
       enlarge x limits=0.25
     ]
-      \addplot+[fill=PythonBlue!80, draw=PythonBlue] coordinates {
+      \addplot+[fill=NavyBlue!55, draw=NavyBlue] coordinates {
         (Python 3.13, 384.5)
         (OCaml 5.4, 504.0)
         (F\# 9.0, 863.2)
       };
-      \addplot+[fill=OCamlOrange!80, draw=OCamlOrange] coordinates {
+      \addplot+[fill=gray!35, draw=gray!80!black] coordinates {
         (Python 3.13, 11.2)
         (OCaml 5.4, 7.2)
         (F\# 9.0, 1021.2)
       };
-      \legend{Prozessstart und Handshake, Erste Zellenauswertung}
+      \legend{Kernel-Bereitschaft (Prozessstart und Sockets), Erste Zellenauswertung}
     \end{axis}
   \end{tikzpicture}
   \caption{Zerlegung der Kaltstartverzögerung über die drei interaktiven Kernel.}
@@ -127,8 +127,8 @@ Bevor eine einzige Zeile Benutzercode ausgeführt wird, muss der Server den Kern
 
 \subsection{Analyse der Initialisierungsdynamik}
 Die Messergebnisse offenbaren deutliche architektonische Divergenzen:
-Python profitiert davon, dass das Jupyter-Ökosystem nativ in Python implementiert ist; vorkompilierte Bytecode-Dateien werden direkt in den Interpreter geladen, was zu einer ersten Zellenauswertung in nur 11 Millisekunden führt.
-OCaml startet als eigenständiges natives Programm und initialisiert die Compiler-Bibliotheken im Toplevel.
+Python profitiert davon, dass das Jupyter-Ökosystem nativ in Python implementiert ist; vorkompilierte Bytecode-Dateien werden direkt in den Interpreter geladen, was zu einer Kernel-Bereitschaft nach rund 385 Millisekunden und einer ersten Zellenauswertung in nur 11 Millisekunden führt.
+Der OCaml-Kernel startet als eigenständiges Programm und initialisiert die Compiler-Bibliotheken des Toplevels; Zellen werden anschließend zu Bytecode übersetzt und ausgeführt.
 Mit nur 7,2 Millisekunden für die erste Testzelle ist OCaml bei der ersten Zellauswertung sogar schneller als Python und belegt im Leerlauf mit 27 Megabyte nur halb so viel RAM.
 Zudem weist OCaml mit 3,50 Millisekunden die geringste Warm-Latenz auf.
 F\# unter .NET Interactive benötigt knapp zwei Sekunden für den Kaltstart und rund 530 Megabyte Arbeitsspeicher.
@@ -140,13 +140,13 @@ Ist diese einmalige Startphase jedoch abgeschlossen, arbeitet F\# bei nachfolgen
 \label{sec:microbenchmarks}
 % ------------------------------------------------------------------------------
 
-Um die intrinsische Rechenleistung ohne Verzerrungen durch das Notizbuch-Protokoll zu messen, wurden vier kanonische Algorithmen implementiert:
+Um die Rechenleistung ohne Verzerrungen durch das Notizbuch-Protokoll zu messen, wurden vier kanonische Algorithmen in jeder Sprache eigens implementiert:
 \begin{enumerate}
   \item \textbf{M1 (Lexikalisches Scannen):} Zerlegen eines Textes mit exakt 300.000 Token (Bezeichner, Literale, Operatoren).
-  Dies testet Zeicheniteration und Scanner-Verzweigungen.
+  Die Implementierungen sind nicht gleichartig: Python verwendet einen regulären Ausdruck (\texttt{re.finditer}) und erzeugt für jedes Token ein Match-Objekt, während OCaml und F\# eine handgeschriebene Zeichenschleife ausführen, die die Token lediglich zählt.
   \item \textbf{M2 (Potenzmengenkonstruktion):} Determinierung einer klassischen NFA-Familie, die genau 4.096 DFA-Zustände und 8.192 Übergänge erzeugt.
   Dies beansprucht Mengenvereinigungen und Mitgliedschaftstests für Mengen von Mengen.
-  \item \textbf{M3 (Zustandsminimierung nach Hopcroft):} Reduktion eines Automaten mit 1.024 Zuständen auf seine 5 minimalen Äquivalenzblöcke über Signaturpartitionierung.
+  \item \textbf{M3 (Zustandsminimierung):} Reduktion eines Automaten mit 1.024 Zuständen auf seine 5 minimalen Äquivalenzblöcke durch Partitionsverfeinerung über Übergangssignaturen (Verfahren nach Moore, nicht Hopcrofts $O(n \log n)$-Algorithmus).
   \item \textbf{M4 (Symbolische Differenziation und algebraische Termvereinfachung):} Zweite symbolische Ableitung eines tief verschachtelten Polynombaums der Tiefe 13 mit anschließender Vereinfachung auf 3.741 Knoten.
   Dies testet die Allokation algebraischer Typen, rekursiven Musterabgleich und die Speicherbereinigung kurzlebiger Objekte.
 \end{enumerate}
@@ -156,7 +156,7 @@ Um die intrinsische Rechenleistung ohne Verzerrungen durch das Notizbuch-Protoko
 \begin{table}[htbp]
   \centering
   \footnotesize
-  \caption{Ausführungszeiten der Mikrobenchmarks in Millisekunden und Spitzen-Speicherbedarf.}
+  \caption{Ausführungszeiten der Mikrobenchmarks in Millisekunden (Mittelwert $\pm$ Standardabweichung über fünf Prozessläufe) und maximaler Speicherbedarf des Benchmarkprozesses; bei F\# schließt dieser den in \texttt{dotnet fsi} geladenen Compiler ein.}
   \label{tab:microbenchmarks}
   \begin{tabularx}{\textwidth}{lrrrr}
     \toprule
@@ -168,7 +168,7 @@ Um die intrinsische Rechenleistung ohne Verzerrungen durch das Notizbuch-Protoko
     \addlinespace[3pt]
     \textbf{M3: Zustandsminimierung} & 1.12 $\pm$ 0.05 & 1.85 $\pm$ 0.09 & \textbf{0.40 $\pm$ 0.06} & 3.35 $\pm$ 0.03 \\
     \addlinespace[3pt]
-    \textbf{M4: Symbolische Ableitung} & 1.42 $\pm$ 0.02 & 0.09 $\pm$ 0.00 & \textbf{0.015 $\pm$ 0.002} & 0.11 $\pm$ 0.00 \\
+    \textbf{M4: Symbolische Ableitung} & 1.42 $\pm$ 0.02 & 0.093 $\pm$ 0.003 & \textbf{0.015 $\pm$ 0.002} & 0.111 $\pm$ 0.003 \\
     \midrule
     \textbf{Spitzen-Speicher (RSS in MB)} & 21.79 $\pm$ 0.04 & 9.05 $\pm$ 0.02 & \textbf{8.77 $\pm$ 0.00} & 411.41 $\pm$ 0.74 \\
     \bottomrule
@@ -230,18 +230,21 @@ Um die intrinsische Rechenleistung ohne Verzerrungen durch das Notizbuch-Protoko
 \subsection{Detaillierte Analyse der Ausführungsphänomene}
 Die Mikrobenchmarks bringen drei überraschende Leistungsphänomene zutage:
 
-Beim lexikalischen Scannen (M1) deklassieren F\# (1,92 Millisekunden) und natives OCaml (3,51 Millisekunden) Python (62,07 Millisekunden) um mehr als das Dreißigfache.
-Obwohl Python auf die reguläre C-Engine zurückgreift, entsteht der Flaschenhals beim wiederholten Erzeugen von Match-Objekten und dem Überschreiten der Schnittstelle zwischen C und Python.
-F\# hingegen erzeugt dank RyuJIT eine einzige Maschinencode-Schleife ohne jegliche Heap-Allokation.
+Beim lexikalischen Scannen (M1) sind F\# (1,92 Millisekunden) und natives OCaml (3,51 Millisekunden) rund 32- bzw. 18-mal schneller als Python (62,07 Millisekunden).
+Dieser Abstand ist jedoch nur bedingt ein Sprachvergleich, da die Implementierungen verschieden arbeiten: Python erzeugt über die C-Regex-Engine für jedes Token ein Match-Objekt und überschreitet dabei wiederholt die Schnittstelle zwischen C und Python, während OCaml und F\# in einer handgeschriebenen Schleife lediglich zählen.
+Die F\#-Schleife wird von RyuJIT nach einem kurzen Aufwärmlauf in Maschinencode übersetzt; die Python- und OCaml-Läufe erhalten keinen Aufwärmlauf.
 
-Bei der Potenzmengenkonstruktion (M2) tritt das sogenannte Mengen-Paradoxon auf: Python schneidet mit 9,15 Millisekunden hervorragend ab und schlägt sowohl OCaml-Bytecode als auch F\# deutlich.
+Bei der Potenzmengenkonstruktion (M2) tritt das sogenannte Mengen-Paradoxon auf: Python schneidet mit 9,15 Millisekunden hervorragend ab, schlägt OCaml-Bytecode (44,43 ms) und F\# (58,46 ms) deutlich und liegt knapp vor nativem OCaml (10,72 ms).
 Dies liegt an Pythons C-basierten \texttt{frozenset}-Mengen, die ihren Hashwert einmalig berechnen und cachen.
-Der Test, ob eine Teilmenge bereits in der Zustandsmenge existiert, erfolgt in konstanter amortisierter Zeit.
+Der Test, ob eine Teilmenge bereits in der Zustandsmenge existiert, erfolgt in amortisiert konstanter Zeit zuzüglich eines Gleichheitstests.
 In OCaml und F\# sind Mengen hingegen als balancierte Binärbäume implementiert.
-Der Strukturvergleich zweier Teilmengen erfordert das zeichenweise Durchlaufen beider innerer Bäume, was zu einem quadratischen Aufwand führt.
-Nur OCamls nativer Funktor kann dank monomorphisierter Vergleiche mit 10,72 Millisekunden mithalten, während F\# durch dynamische Schnittstellenaufrufe gebremst wird.
+Eine Suche in einer Menge von Mengen benötigt dort logarithmisch viele Vergleiche, von denen jeder zwei innere Mengen elementweise in linearer Zeit vergleicht.
+Natives OCaml liegt mit 10,72 Millisekunden dennoch nahezu gleichauf; dass F\# langsamer ist, dürfte an generischen Vergleichsaufrufen über die .NET-Vergleichsschnittstelle liegen, was hier jedoch nicht durch Profiling belegt wurde.
 
-Bei der symbolischen Syntaxbaummanipulation (M4) kehren sich die Machtverhältnisse komplett um: Natives OCaml bewältigt die Ableitung und Vereinfachung in atemberaubenden 15 Mikrosekunden und ist damit \textbf{rund 95-mal schneller als Python} (1,42 Millisekunden).
+Bei der Zustandsminimierung (M3) ist natives OCaml mit 0,40 Millisekunden am schnellsten, gefolgt von Python (1,12 ms), OCaml-Bytecode (1,85 ms) und F\# (3,35 ms).
+
+Bei der symbolischen Syntaxbaummanipulation (M4) kehren sich die Machtverhältnisse um: Natives OCaml bewältigt die Ableitung und Vereinfachung in rund 15 Mikrosekunden und ist damit \textbf{rund 95-mal schneller als Python} (1,42 Millisekunden); OCaml-Bytecode (0,093 ms) und F\# (0,111 ms) sind rund 15- bzw. 13-mal schneller als Python.
+Der Wert von 15 Mikrosekunden liegt nahe der Mikrosekundenauflösung von \texttt{Unix.gettimeofday} und ist entsprechend ungenau.
 OCaml legt Varianten über einfache Zeigerinkremente im Minor Heap an und kompiliert Muster in direkte Sprungtabellen.
 Python leidet hier unter dem schweren Objektkopf und den dynamischen Typabfragen bei jedem Baumknoten.
 
@@ -251,31 +254,39 @@ Python leidet hier unter dem schweren Objektkopf und den dynamischen Typabfragen
 % ------------------------------------------------------------------------------
 
 In der Praxis laufen Notizbücher nicht isoliert, sondern binden Bibliotheken ein, kompilieren Grammatiken und erzeugen Vektorgrafiken.
-\Cref{tab:macrobenchmarks} und \Cref{fig:macrobenchmarks_cells} zeigen die Gesamtlaufzeiten über 14 Vorlesungskapitel.
+\Cref{tab:macrobenchmarks} und \Cref{fig:macrobenchmarks_cells} zeigen die Laufzeiten aller 16 gemessenen Notizbücher.
+Jedes Notizbuch wurde je Fassung einmal ausgeführt; die Spalte \glqq Zellen\grqq{} ist die Summe der Ausführungszeiten aller Codezellen und enthält damit auch das Laden von Bibliotheken in den ersten Zellen.
 
 \begin{table}[htbp]
   \centering
   \scriptsize
-  \caption{Laufzeiten und Speicherbedarf über repräsentative Vorlesungs-Notizbücher.}
+  \caption{Wandzeit und Summe der Zellzeiten in Millisekunden sowie Speicherbedarf (RSS in MB) aller 16 gemessenen Vorlesungs-Notizbücher.
+  Mit $^{*}$ markierte Zeilen vergleichen für F\# ein anderes Notizbuch als für Python und OCaml.}
   \label{tab:macrobenchmarks}
-  \begin{tabularx}{\textwidth}{lrrrrrrrrr}
+  \begin{tabularx}{\textwidth}{Xrrrrrrrrr}
     \toprule
     & \multicolumn{3}{c}{\textbf{Python 3.13}} & \multicolumn{3}{c}{\textbf{OCaml 5.4}} & \multicolumn{3}{c}{\textbf{F\# 9.0 (.NET 9)}} \\
     \cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10}
     \textbf{Notizbuch} & \textbf{Wand} & \textbf{Zellen} & \textbf{RSS} & \textbf{Wand} & \textbf{Zellen} & \textbf{RSS} & \textbf{Wand} & \textbf{Zellen} & \textbf{RSS} \\
     \midrule
-    Ch 03: Lexikalisches Scannen & 578 & 64 & 55 & 1.109 & 391 & 103 & 2.415 & 1.329 & 575 \\
-    Ch 03: RegExp-Tutorial & 618 & 112 & 57 & 1.508 & 959 & 103 & 2.408 & 1.495 & 597 \\
-    Ch 04--05: NFA zu DFA & 591 & 56 & 55 & 875 & 353 & 103 & 2.342 & 1.448 & 608 \\
-    Ch 04--05: DFA-Minimierung & 572 & 61 & 56 & 1.075 & 368 & 104 & 2.360 & 1.498 & 613 \\
-    Ch 04--05: Äquivalenzprüfung & 1.002 & 489 & 91 & 903 & 395 & 103 & 2.759 & 1.669 & 671 \\
-    Ch 06: Top-Down-Parser & 594 & 57 & 56 & 1.126 & 463 & 103 & 2.353 & 1.321 & 565 \\
-    Ch 07: Differentiator & 583 & 87 & 59 & 1.270 & 589 & 104 & 2.517 & 1.568 & 612 \\
-    Ch 08/09: Earley-Parser & 605 & 108 & 58 & 1.189 & 534 & 103 & 2.474 & 1.634 & 659 \\
-    Ch 10/11: Grammatikkonflikte & 1.243 & 648 & 91 & 1.366 & 832 & 103 & 2.704 & 1.747 & 608 \\
-    Ch 12/13: Integer-C-Compiler & 2.303 & 1.752 & 93 & \textbf{2.103} & \textbf{1.429} & 107 & 2.908 & 1.892 & 652 \\
+    Ch~03: Lexikalisches Scannen$^{*}$ & 578 & 64 & 56 & 1.109 & 391 & 103 & 2.415 & 1.329 & 575 \\
+    Ch~03: RegExp-Tutorial & 618 & 112 & 57 & 1.508 & 959 & 103 & 2.408 & 1.495 & 596 \\
+    Ch~03: Klausurauswertung & 725 & 229 & 99 & 1.109 & 436 & 103 & 2.479 & 1.576 & 629 \\
+    Ch~04--05: NFA zu DFA & 591 & 56 & 56 & 875 & 353 & 102 & 2.342 & 1.448 & 605 \\
+    Ch~04--05: RegExp zu NFA & 565 & 70 & 56 & 929 & 389 & 103 & 2.478 & 1.442 & 614 \\
+    Ch~04--05: DFA zu RegExp & 564 & 36 & 56 & 989 & 334 & 102 & 2.423 & 1.359 & 597 \\
+    Ch~04--05: DFA-Minimierung & 581 & 61 & 56 & 1.026 & 361 & 102 & 2.537 & 1.467 & 614 \\
+    Ch~04--05: Äquivalenzprüfung & 1.002 & 489 & 92 & \textbf{903} & \textbf{395} & 103 & 2.759 & 1.669 & 674 \\
+    Ch~06: Top-Down-Parser & 594 & 57 & 56 & 1.126 & 463 & 103 & 2.353 & 1.320 & 566 \\
+    Ch~06: EBNF-Parser & 552 & 49 & 56 & 1.152 & 454 & 103 & 2.231 & 1.294 & 564 \\
+    Ch~07: Differentiator & 583 & 87 & 59 & 1.270 & 589 & 103 & 2.517 & 1.568 & 607 \\
+    Ch~07/08: Interpreter$^{*}$ & 1.493 & 962 & 92 & 1.771 & 1.059 & 103 & 2.933 & 1.881 & 722 \\
+    Ch~08/09: Earley-Parser$^{*}$ & 604 & 108 & 58 & 1.189 & 534 & 103 & 2.474 & 1.634 & 662 \\
+    Ch~09/10: SLR-Tabellengenerator$^{*}$ & \textbf{1.568} & \textbf{1.059} & 68 & 4.644 & 3.927 & 242 & 15.885 & 14.842 & 1.604 \\
+    Ch~10/11: Grammatikkonflikte$^{*}$ & 1.243 & 648 & 91 & 1.366 & 832 & 103 & 2.704 & 1.747 & 610 \\
+    Ch~12/13: Integer-C-Compiler$^{*}$ & 2.303 & 1.752 & 91 & \textbf{2.103} & \textbf{1.429} & 104 & 2.908 & 1.892 & 635 \\
     \midrule
-    \textbf{Median über alle Hefte} & \textbf{599} & \textbf{98} & \textbf{58} & 1.169 & 457 & 103 & 2.477 & 1.533 & 612 \\
+    \textbf{Median über alle 16 Hefte} & \textbf{599} & \textbf{98} & \textbf{57} & 1.139 & 459 & 103 & 2.479 & 1.531 & 612 \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -285,78 +296,106 @@ In der Praxis laufen Notizbücher nicht isoliert, sondern binden Bibliotheken ei
   \begin{tikzpicture}
     \begin{axis}[
       xbar,
-      bar width=4.5pt,
-      width=0.76\textwidth,
-      height=8.5cm,
-      xlabel={Netto-Zellenausführungszeit in Millisekunden},
+      xmode=log,
+      log origin=infty,
+      bar width=3pt,
+      width=0.72\textwidth,
+      height=13cm,
+      xlabel={Summe der Zellausführungszeiten in Millisekunden (logarithmisch)},
       symbolic y coords={
         Ch 12/13: Integer-C-Compiler,
         Ch 10/11: Grammatikkonflikte,
+        Ch 09/10: SLR-Tabellengenerator,
         Ch 08/09: Earley-Parser,
+        Ch 07/08: Interpreter,
         Ch 07: Differentiator,
+        Ch 06: EBNF-Parser,
         Ch 06: Top-Down-Parser,
         Ch 04--05: Äquivalenzprüfung,
         Ch 04--05: DFA-Minimierung,
+        Ch 04--05: DFA zu RegExp,
+        Ch 04--05: RegExp zu NFA,
         Ch 04--05: NFA zu DFA,
+        Ch 03: Klausurauswertung,
         Ch 03: RegExp-Tutorial,
         Ch 03: Lexikalisches Scannen
       },
       ytick=data,
-      xmin=0,
-      xmax=2100,
+      xmin=20,
+      xmax=30000,
       xmajorgrids=true,
       grid style={dashed,gray!40},
-      legend style={at={(0.97,0.06)}, anchor=south east, font=\scriptsize},
-      enlarge y limits=0.06,
+      legend style={at={(0.97,0.03)}, anchor=south east, font=\scriptsize},
+      enlarge y limits=0.04,
       yticklabel style={font=\scriptsize}
     ]
       \addplot+[fill=PythonBlue!85, draw=PythonBlue] coordinates {
         (64.0,Ch 03: Lexikalisches Scannen)
         (111.8,Ch 03: RegExp-Tutorial)
+        (229.1,Ch 03: Klausurauswertung)
         (56.2,Ch 04--05: NFA zu DFA)
-        (60.8,Ch 04--05: DFA-Minimierung)
+        (70.5,Ch 04--05: RegExp zu NFA)
+        (36.3,Ch 04--05: DFA zu RegExp)
+        (61.4,Ch 04--05: DFA-Minimierung)
         (489.4,Ch 04--05: Äquivalenzprüfung)
         (56.6,Ch 06: Top-Down-Parser)
+        (48.8,Ch 06: EBNF-Parser)
         (87.1,Ch 07: Differentiator)
+        (961.9,Ch 07/08: Interpreter)
         (108.3,Ch 08/09: Earley-Parser)
+        (1058.9,Ch 09/10: SLR-Tabellengenerator)
         (647.6,Ch 10/11: Grammatikkonflikte)
         (1752.2,Ch 12/13: Integer-C-Compiler)
       };
       \addplot+[fill=OCamlOrange!85, draw=OCamlOrange] coordinates {
         (390.6,Ch 03: Lexikalisches Scannen)
         (959.2,Ch 03: RegExp-Tutorial)
+        (436.5,Ch 03: Klausurauswertung)
         (353.0,Ch 04--05: NFA zu DFA)
-        (368.0,Ch 04--05: DFA-Minimierung)
+        (388.6,Ch 04--05: RegExp zu NFA)
+        (333.9,Ch 04--05: DFA zu RegExp)
+        (361.2,Ch 04--05: DFA-Minimierung)
         (394.6,Ch 04--05: Äquivalenzprüfung)
         (463.2,Ch 06: Top-Down-Parser)
+        (454.4,Ch 06: EBNF-Parser)
         (589.4,Ch 07: Differentiator)
+        (1058.7,Ch 07/08: Interpreter)
         (533.5,Ch 08/09: Earley-Parser)
+        (3926.6,Ch 09/10: SLR-Tabellengenerator)
         (832.0,Ch 10/11: Grammatikkonflikte)
         (1429.2,Ch 12/13: Integer-C-Compiler)
       };
       \addplot+[fill=FSharpPurple!85, draw=FSharpPurple] coordinates {
         (1329.3,Ch 03: Lexikalisches Scannen)
         (1495.2,Ch 03: RegExp-Tutorial)
+        (1575.7,Ch 03: Klausurauswertung)
         (1448.3,Ch 04--05: NFA zu DFA)
-        (1497.9,Ch 04--05: DFA-Minimierung)
+        (1441.5,Ch 04--05: RegExp zu NFA)
+        (1359.0,Ch 04--05: DFA zu RegExp)
+        (1466.9,Ch 04--05: DFA-Minimierung)
         (1669.0,Ch 04--05: Äquivalenzprüfung)
         (1320.5,Ch 06: Top-Down-Parser)
+        (1293.8,Ch 06: EBNF-Parser)
         (1567.5,Ch 07: Differentiator)
+        (1881.0,Ch 07/08: Interpreter)
         (1634.3,Ch 08/09: Earley-Parser)
+        (14842.0,Ch 09/10: SLR-Tabellengenerator)
         (1747.0,Ch 10/11: Grammatikkonflikte)
         (1892.1,Ch 12/13: Integer-C-Compiler)
       };
       \legend{Python 3.13, OCaml 5.4, F\# 9.0}
     \end{axis}
   \end{tikzpicture}
-  \caption{Vergleich der kumulierten Netto-Zellenausführungszeiten über die Vorlesungskapitel.}
+  \caption{Summe der Zellausführungszeiten aller 16 gemessenen Notizbücher (logarithmische Achse).}
   \label{fig:macrobenchmarks_cells}
 \end{figure}
 
-Auf kurzen Notizbüchern mit wenigen Berechnungen wirkt Python am schnellsten, da es praktisch ohne Initialisierung startet.
-In OCaml und F\# schlägt in der ersten Zelle das Laden der Vorlesungsmodule zu Buche.
-Sobald ein Notizbuch jedoch echte Rechenlast bewältigt, schmilzt Pythons scheinbarer Vorteil dahin: Beim Integer-C-Compiler überholt OCaml Python sowohl bei der Netto-Zellenzeit als auch bei der gesamten Wandzeit.
-F\# gleicht seinen initialen Startnachteil bei komplexen Heften durch native JIT-Kompilierung weitgehend aus.
+Python ist in 14 der 16 Notizbücher sowohl bei der Wandzeit als auch bei der Summe der Zellzeiten am schnellsten.
+In OCaml und F\# schlägt in den ersten Zellen das Laden der Vorlesungsmodule zu Buche; bei F\# entfällt allein auf die erste Zelle rund eine Sekunde für die Initialisierung des Compiler-Dienstes (\Cref{tab:kernel_cold_start}), sodass seine Zellzeiten nie unter 1,29 Sekunden fallen.
+OCaml überholt Python nur in zwei Notizbüchern: bei der Äquivalenzprüfung und beim Integer-C-Compiler, jeweils sowohl bei der Zellzeit als auch bei der Wandzeit.
+Im rechenintensivsten Notizbuch, dem SLR-Tabellengenerator für die ANSI-C-Grammatik, ist dagegen Python mit 1,6 Sekunden Wandzeit klar vorn, vor OCaml mit 4,6 Sekunden und F\# mit 15,9 Sekunden.
+F\# ist in allen 16 Notizbüchern am langsamsten; sein Startnachteil wird auch in rechenintensiven Heften nicht ausgeglichen.
+Diese Vergleiche sind allerdings dadurch eingeschränkt, dass in sechs der 16 Paare für F\# ein anderes Notizbuch gemessen wurde und die Fassungen auch sonst unterschiedlich viele Codezellen umfassen (beim SLR-Generator 58, 57 und 23).
 
 % ------------------------------------------------------------------------------
 \section{Hauptspeicherbedarf und Speicherbereinigung}
@@ -402,33 +441,35 @@ Der Speicherbedarf ist sowohl für private Laptops als auch für zentral gehoste
       \addplot+[fill=PythonBlue!85, draw=PythonBlue] coordinates {
         (Microbench, 21.8)
         (Idle Kernel, 55.4)
-        (Curriculum NB, 57.5)
-        (Peak SLR, 68.5)
+        (Curriculum NB, 57.4)
+        (Peak SLR, 67.6)
       };
       \addplot+[fill=OCamlOrange!85, draw=OCamlOrange] coordinates {
         (Microbench, 8.8)
         (Idle Kernel, 27.2)
         (Curriculum NB, 102.9)
-        (Peak SLR, 242.0)
+        (Peak SLR, 242.4)
       };
       \addplot+[fill=FSharpPurple!85, draw=FSharpPurple] coordinates {
         (Microbench, 411.4)
         (Idle Kernel, 530.5)
-        (Curriculum NB, 612.4)
-        (Peak SLR, 1597.5)
+        (Curriculum NB, 611.7)
+        (Peak SLR, 1604.2)
       };
       \legend{Python 3.13, OCaml 5.4, F\# 9.0 (.NET 9)}
     \end{axis}
   \end{tikzpicture}
-  \caption{Vergleich des Hauptspeicherbedarfs (Resident Set Size in MB) über verschiedene Ausführungsszenarien.}
+  \caption{Vergleich des Hauptspeicherbedarfs (Resident Set Size in MB) über verschiedene Ausführungsszenarien.
+  Der isolierte Benchmark von OCaml ist die native Fassung; bei F\# enthält er den Compiler von \texttt{dotnet fsi}.}
   \label{fig:memory_rss}
 \end{figure}
 
 Die Speicherprofile spiegeln die Bauart der jeweiligen Garbage Collector wider:
-Python profitiert von der sofortigen Freigabe flüchtiger Objekte über Referenzzähler, wodurch der Speicherbedarf über die meisten Hefte stabil zwischen 55 und 68 Megabyte verharrt.
-OCaml nutzt einen extrem effizienten zweistufigen Garbage Collector.
-Im isolierten Zustand benötigt es unter 9 Megabyte, im Notizbuch pendelt sich der Speicherbedarf stabil bei rund 103 Megabyte ein.
-F\# unter .NET 9 bewegt sich im Bereich von 530 bis 612 Megabyte.
+Python profitiert von der sofortigen Freigabe flüchtiger Objekte über Referenzzähler; der Speicherbedarf liegt in zehn der 16 Hefte zwischen 55 und 60 Megabyte und steigt in rechenintensiveren Heften auf 68 bis 99 Megabyte.
+Mit einem Median von 57 Megabyte belegt Python in den Notizbüchern den geringsten Speicher der drei Kernel.
+OCaml nutzt einen effizienten zweistufigen Garbage Collector.
+Im isolierten Benchmark benötigt es unter 10 Megabyte und im Leerlauf 27 Megabyte; in den Notizbüchern liegt der Speicherbedarf nach dem Laden der Vorlesungsbibliotheken bei rund 103 Megabyte und erreicht beim SLR-Generator 242 Megabyte.
+F\# unter .NET 9 belegt bereits im Leerlauf 530 Megabyte, in den Notizbüchern 564 bis 722 Megabyte und beim SLR-Generator 1,6 Gigabyte.
 Dieser höhere Fußabdruck erklärt sich daraus, dass der F\#-Compiler-Dienst vollständige typisierte Syntaxbäume und IDE-Symboltabellen im Arbeitsspeicher bereithält und der .NET-Kollektor auf modernen Multi-Core-Rechnern größere Speicherbereiche reserviert, um Vollbereinigungen zu verzögern und den Gesamtdurchsatz zu maximieren.
 
 % ------------------------------------------------------------------------------
@@ -448,50 +489,62 @@ Dieser höhere Fußabdruck erklärt sich daraus, dass der F\#-Compiler-Dienst vo
     \textbf{Leistungsdimension} & \textbf{Python 3.13} & \textbf{OCaml 5.4} & \textbf{F\# 9.0} & \textbf{Ursache} \\
     \midrule
     \textbf{Kernel-Kaltstart} &
-      \textbf{Schnell} (396 ms) &
-      \textbf{Schnell} (511 ms) &
+      \textbf{Am besten} (396 ms) &
+      Schnell (511 ms) &
       Langsamer (1.884 ms) &
       FCS"=Symbolinitialisierung und .NET-Metadaten \\
     \addlinespace[3pt]
     \textbf{Warm-Zellen-Latenz} &
-      4.49 ms &
-      \textbf{Am besten} (3.50 ms) &
-      Sehr schnell (3.70 ms) &
-      ZeroMQ"=Signalpfade nach JIT"=Aufwärmphase \\
+      4,49 ms &
+      \textbf{Am besten} (3,50 ms) &
+      Sehr schnell (3,70 ms) &
+      Protokollpfad des jeweiligen Kernels \\
     \addlinespace[3pt]
-    \textbf{Lexikalisches Scannen} &
-      Langsam (62.1 ms) &
-      Sehr schnell (3.5 ms) &
-      \textbf{Am besten} (1.9 ms) &
-      RyuJIT"=Schleifenoptimierung vs.\ Objekt-Boxing \\
+    \textbf{Lexikalisches Scannen (M1)} &
+      Langsam (62,1 ms) &
+      Sehr schnell (3,5 ms, nativ) &
+      \textbf{Am besten} (1,9 ms) &
+      Zählschleife vs.\ Regex mit Match-Objekten (ungleiche Implementierungen) \\
     \addlinespace[3pt]
-    \textbf{Potenzmengen"=konstruktion} &
-      \textbf{Am besten} (9.1 ms) &
-      Sehr schnell (10.7 ms) &
-      Langsamer (58.5 ms) &
+    \textbf{Potenzmengen"=konstruktion (M2)} &
+      \textbf{Am besten} (9,1 ms) &
+      Sehr schnell (10,7 ms, nativ) &
+      Langsamer (58,5 ms) &
       Gecachter C-Hashwert vs.\ Strukturvergleich im Baum \\
     \addlinespace[3pt]
-    \textbf{Syntaxbaum"=Traversierung} &
-      Langsam (1.42 ms) &
-      \textbf{Am besten} (0.015 ms) &
-      Sehr schnell (0.11 ms) &
+    \textbf{Zustands"=minimierung (M3)} &
+      Schnell (1,12 ms) &
+      \textbf{Am besten} (0,40 ms, nativ) &
+      Langsamer (3,35 ms) &
+      Nicht im Einzelnen untersucht \\
+    \addlinespace[3pt]
+    \textbf{Syntaxbaum"=Traversierung (M4)} &
+      Langsam (1,42 ms) &
+      \textbf{Am besten} (0,015 ms, nativ) &
+      Sehr schnell (0,11 ms) &
       Minor-Heap-Allokation und Sprungtabellen \\
     \addlinespace[3pt]
-    \textbf{Kurze Notebooks} &
-      \textbf{Am besten} (0.60 s) &
-      Zügig (1.17 s) &
-      Höher (2.48 s) &
+    \textbf{Notebooks (Median der Wandzeit)} &
+      \textbf{Am besten} (0,60 s) &
+      Zügig (1,14 s) &
+      Höher (2,48 s) &
       Dominanz der einmaligen Paketinitialisierung \\
     \addlinespace[3pt]
-    \textbf{Komplexe Compiler-Hefte} &
-      2.30 s &
-      \textbf{Am besten} (2.10 s) &
-      2.91 s &
-      Native Maschinencode"=Ausführung überholt Python \\
+    \textbf{Integer-C-Compiler (Wandzeit)} &
+      2,30 s &
+      \textbf{Am besten} (2,10 s) &
+      2,91 s &
+      Bytecode-Toplevel; Ursache nicht isoliert \\
     \addlinespace[3pt]
-    \textbf{Speicherbedarf (RSS)} &
-      Sehr sparsam (58 MB) &
-      Sehr sparsam (103 MB) &
+    \textbf{SLR-Tabellengenerator (Wandzeit)} &
+      \textbf{Am besten} (1,57 s) &
+      Langsamer (4,64 s) &
+      Langsam (15,88 s) &
+      Nicht im Einzelnen untersucht; Notizbücher verschieden \\
+    \addlinespace[3pt]
+    \textbf{Speicherbedarf im Notebook (Median)} &
+      \textbf{Am sparsamsten} (57 MB) &
+      Sparsam (103 MB) &
       Höher (612 MB) &
       Referenz"=zählung vs.\ residenter Compiler-Dienst \\
     \bottomrule
@@ -499,6 +552,28 @@ Dieser höhere Fußabdruck erklärt sich daraus, dass der F\#-Compiler-Dienst vo
 \end{table}
 
 Keine Einzelsprache gewinnt in allen Kategorien:
-OCaml bietet das ausgewogenste Profil mit unvergleichlicher Syntaxbaum-Geschwindigkeit (95-mal schneller als Python), minimalem Speicherbedarf und exzellenter Latenz bei komplexen Aufgaben.
-Python besticht durch sofortige Startbereitschaft und unerwartete Stärke bei Hash-Mengen.
-F\# liefert überragende Scanner-Geschwindigkeiten und hohe JIT-Effizienz, verlangt jedoch mehr Speicher für seine fortschrittliche Compiler-Infrastruktur.
+Nativ kompiliertes OCaml ist in zwei der vier Mikrobenchmarks (M3, M4) am schnellsten, mit dem größten Vorsprung bei der Syntaxbaumverarbeitung (95-mal schneller als Python), und belegt im Leerlauf und in isolierten Prozessen den geringsten Speicher.
+Python startet am schnellsten, ist in 14 der 16 vollständigen Notizbücher am schnellsten, belegt in den Notizbüchern den geringsten Speicher und zeigt bei Hash-Mengen eine unerwartete Stärke.
+F\# erzielt im (nicht gleichartig implementierten) Scanner-Benchmark den besten Wert, ist aber in allen vollständigen Notizbüchern am langsamsten und benötigt mit Abstand am meisten Speicher für seine Compiler-Infrastruktur.
+
+% ------------------------------------------------------------------------------
+\section{Validität und Einschränkungen der Messungen}
+\label{sec:perf_validity}
+% ------------------------------------------------------------------------------
+
+Die Messergebnisse sind mit den folgenden Einschränkungen zu lesen:
+\begin{itemize}
+  \item \textbf{Stichprobengröße:} Die Mikrobenchmarks beruhen auf fünf Prozessläufen mit je einer Messung, die Kaltstartwerte auf drei Kaltstarts und die Notizbuch-Messungen auf einem einzigen Lauf je Fassung.
+  Angegeben ist die Standardabweichung; Konfidenzintervalle im Sinne von Georges et al.\ wurden nicht berechnet.
+  \item \textbf{Zeitauflösung:} OCaml misst mit \texttt{Unix.gettimeofday} (Mikrosekundenauflösung, keine monotone Uhr).
+  Werte im Bereich weniger Mikrosekunden, etwa M4 nativ oder Menhir bei 100 Token, sind daher nur grob genau.
+  \item \textbf{Ungleiche Implementierungen:} M1 vergleicht einen Regex-Scanner mit Match-Objekten (Python) mit Zählschleifen (OCaml, F\#).
+  Nur F\# erhält einen Aufwärmlauf.
+  \item \textbf{Speichermessung bei F\#:} Die Mikrobenchmarks laufen über \texttt{dotnet fsi}; der gemessene Spitzenspeicher enthält daher den F\#-Compiler und ist kein Maß für den Speicherbedarf kompilierter F\#-Programme.
+  \item \textbf{Nicht deckungsgleiche Notizbücher:} In sechs der 16 Notizbuch-Paare wurde für F\# ein anderes Notizbuch gemessen, und die Zahl der Codezellen weicht teils stark ab.
+  \item \textbf{Fehlerprüfung:} Der Notizbuch-Treiber führt die Hefte mit \texttt{allow\_errors=True} aus und prüft nicht, ob alle Zellen fehlerfrei liefen; fehlschlagende Zellen würden die Laufzeit verkürzen.
+  \item \textbf{Zusammengesetzte Zellzeiten:} Die Zellzeiten enthalten das Laden von Bibliotheken und bei F\# rund eine Sekunde Initialisierung des Compiler-Dienstes in der ersten Zelle.
+  \item \textbf{Ausführungsmodus:} Mikrobenchmarks und Parser-Durchsatz von OCaml wurden nativ gemessen, die Notizbücher laufen dagegen im Bytecode-Toplevel.
+  Ob \texttt{-O3} wirksam war (nur mit flambda), ist nicht dokumentiert.
+  \item \textbf{Nicht ausgewertete Daten:} Die in \texttt{parser\_benchmarks.json} enthaltenen Messungen zur Skalierung des Earley-Parsers werden in dieser Arbeit nicht ausgewertet.
+\end{itemize}

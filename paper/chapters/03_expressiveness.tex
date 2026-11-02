@@ -92,10 +92,11 @@ let rec simplify (expr: Expression) : Expression =
     | other -> other
 \end{lstlisting}
 
-Durch dieses Konzept wird eine perfekte Entkopplung erreicht: Die interne Darstellung eines Syntaxbaums kann grundlegend refaktoriert werden, während alle externen Compiler-Phasen, die auf aktiven Mustern basieren, unverändert und statisch typsicher weiterfunktionieren.
+Dieses Konzept ermöglicht eine Entkopplung: Werden Compiler-Phasen konsequent über aktive Muster statt über die Konstruktoren formuliert, kann die interne Darstellung eines Syntaxbaums geändert werden, ohne diese Phasen anzupassen.
+Im obigen Beispiel gilt das nur für die Erkennung ganzzahliger Konstanten, da der Konstruktor \texttt{Binary} weiterhin direkt abgeglichen wird.
 
 Python führte mit Version 3.10 über PEP~634 ebenfalls einen strukturellen Musterabgleich über \texttt{match/case} ein.
-Obwohl dies eine deutliche Verbesserung gegenüber historischen Typabfrage-Kaskaden darstellt, unterscheidet sich Pythons Mechanismus grundlegend von funktionalen Sprachen: Die Auswertung erfolgt interpretativ über dynamische Bytecode-Befehle mit spürbarem Laufzeit-Overhead, Variablenbindungen lecken in den umgebenden Funktionsbereich durch, und der Interpreter bietet keinerlei Prüfung auf Vollständigkeit der Muster.
+Obwohl dies eine deutliche Verbesserung gegenüber historischen Typabfrage-Kaskaden darstellt, unterscheidet sich Pythons Mechanismus grundlegend von funktionalen Sprachen: Die Auswertung erfolgt interpretativ über dynamische Typ- und Strukturprüfungen in Bytecode-Befehlen, Variablenbindungen lecken in den umgebenden Funktionsbereich durch, und der Interpreter bietet keinerlei Prüfung auf Vollständigkeit der Muster.
 
 % ------------------------------------------------------------------------------
 \section{Vergleichende Fallstudien aus dem Curriculum}
@@ -122,37 +123,42 @@ Beim Kleene-Stern wird die Ableitung des inneren Ausdrucks mit dem wiederholten 
 
 In OCaml lässt sich dieses Regelwerk buchstäblich eins-zu-eins als strukturierter Musterabgleich niederschreiben.
 Jede mathematische Regel entspricht exakt einem einzigen Funktionszweig.
-Sollte jemals ein neuer Sprachoperator zum regulären Ausdruck hinzugefügt werden, verweigert der OCaml-Compiler die Übersetzung so lange, bis sowohl die Epsilon-Prüfung als auch die Ableitungsfunktion um den entsprechenden Fall ergänzt wurden.
+Sollte jemals ein neuer Sprachoperator zum regulären Ausdruck hinzugefügt werden, meldet der OCaml-Compiler mit Warnung~8 sowohl in der Epsilon-Prüfung als auch in der Ableitungsfunktion den fehlenden Fall; wird diese Warnung mit \texttt{-warn-error +8} als Fehler behandelt, verweigert er die Übersetzung, bis beide Funktionen ergänzt wurden.
 
-\subsection{3. Hopcroft-Zustandsminimierung}
-Die Minimierung deterministischer Automaten nach Hopcroft zerlegt die Zustandsmenge iterativ in Myhill--Nerode-Äquivalenzklassen~\cite{hopcroft1971nlogn}.
-In Python erfolgt die Verfeinerung meist über verschachtelte Mengenabstraktionen und Hilfswörterbücher, was zwar kompakt ist, aber durch die Hash-Randomisierung eine nichtdeterministische Blockreihenfolge erzeugt.
-In F\# und OCaml wird die Partitionsverfeinerung als reine funktionale Fixpunktiteration über unveränderlichen Mengenstrukturen formuliert, was strikten Determinismus und perfekte Nachvollziehbarkeit im Lehrbetrieb garantiert.
+\subsection{3. Zustandsminimierung durch Partitionsverfeinerung}
+Die Minimierung deterministischer Automaten zerlegt die Zustandsmenge iterativ in Myhill--Nerode-Äquivalenzklassen; Hopcroft gab hierfür einen Algorithmus mit einer Laufzeit von $O(n \log n)$ an~\cite{hopcroft1971nlogn}, während das einfachere Verfahren nach Moore die Blöcke so lange anhand der Übergangssignaturen verfeinert, bis sich nichts mehr ändert.
+In Python erfolgt die Verfeinerung meist über verschachtelte Mengenabstraktionen und Hilfswörterbücher, was kompakt ist; die Reihenfolge der Blöcke folgt dabei der ungeordneten Iteration der Mengen und hängt bei Zeichenketten-Zuständen vom Hash-Seed des Prozesses ab.
+In F\# und OCaml wird die Partitionsverfeinerung als funktionale Fixpunktiteration über unveränderlichen, geordneten Mengen formuliert, was eine deterministische und damit im Lehrbetrieb gut nachvollziehbare Blockreihenfolge liefert.
 
 % ------------------------------------------------------------------------------
 \section{Quantitative Auswertung und Codekorpus-Metriken}
 \label{sec:corpus_metrics}
 % ------------------------------------------------------------------------------
 
-Ergänzend zur qualitativen Analyse haben wir den gesamten Quelltext aller 56 Notizbücher automatisiert analysiert (\Cref{tab:expressiveness_metrics}).
+Ergänzend zur qualitativen Analyse haben wir den Quelltext aller Notizbücher der drei Fassungen (49 Python-, 50 OCaml- und 56 F\#-Hefte) automatisiert analysiert (\Cref{tab:expressiveness_metrics}).
+Gezählt werden nichtleere Zeilen außer einzeiligen Kommentaren, und zwar sowohl in den Codezellen als auch in den versionierten Quelldateien, die die Notizbücher laden (Hilfsbibliotheken, Lexer- und Parserspezifikationen, Skripte).
+Test- und Build-Werkzeuge sowie generierte Dateien wie die HTML-Entitätentabelle der OCaml-Fassung bleiben unberücksichtigt.
+Die Berücksichtigung der ausgelagerten Dateien ist wesentlich, weil die F\#-Fassung einen größeren Teil ihres Codes in \texttt{.fs}-, \texttt{.fsx}-, \texttt{.fsl}- und \texttt{.fsy}-Dateien auslagert.
 
 \begin{table}[htbp]
   \centering
   \small
-  \caption{Metriken des Quelltextkorpus über alle Notizbücher des Curriculums.}
+  \caption{Metriken des Quelltextkorpus: Codezellen der Notizbücher und ausgelagerte Quelldateien.}
   \label{tab:expressiveness_metrics}
-  \begin{tabularx}{\textwidth}{lrrrr}
+  \begin{tabularx}{\textwidth}{Xrrrrr}
     \toprule
-    \textbf{Sprachfassung} & \textbf{Notebooks} & \textbf{Codezellen} & \textbf{Gesamt-SLOC} & \textbf{SLOC pro Heft} \\
+    \textbf{Sprachfassung} & \textbf{Notebooks} & \textbf{Codezellen} & \makecell[r]{\textbf{SLOC}\\\textbf{Zellen}} & \makecell[r]{\textbf{SLOC}\\\textbf{ausgelagert}} & \makecell[r]{\textbf{SLOC}\\\textbf{gesamt}} \\
     \midrule
-    \textbf{Python 3.13} & 49 & 1013 & 5333 & 108.8 \\
-    \textbf{OCaml 5.4}   & 50 & 991 & 6453 & 129.1 \\
-    \textbf{F\# 9.0 (.NET 9)} & 56 & 667 & 3486 & 62.2 \\
+    \textbf{Python 3.13} & 49 & 1013 & 5333 & 215 & 5548 \\
+    \textbf{OCaml 5.4}   & 50 & 991 & 6453 & 709 & 7162 \\
+    \textbf{F\# 9.0 (.NET 9)} & 56 & 667 & 3486 & 1114 & 4600 \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
 \begin{finding}[\textbf{Codevolumen und funktionale Dichte}]
-Über das identische Curriculum hinweg erweist sich \textbf{F\# mit lediglich 3486 Zeilen als die mit Abstand kompakteste Sprache}---sie benötigt rund 46 Prozent weniger Programmcode als OCaml und rund 35 Prozent weniger als Python.
-Dieser beachtliche Vorteil resultiert unmittelbar aus der Verbindung von Vorwärts-Pipelining, extrem kompakten aktiven Mustern und automatischer Typinferenz, wodurch unproduktiver Boilerplate-Code vollständig eliminiert wird.
+Einschließlich der ausgelagerten Quelldateien ist \textbf{die F\#-Fassung mit 4600 Zeilen die kompakteste}; sie umfasst rund 36 Prozent weniger Code als die OCaml-Fassung und rund 17 Prozent weniger als die Python-Fassung.
+Betrachtet man nur die Codezellen, fällt der Unterschied mit 3486 Zeilen deutlich größer aus, da F\# mehr Code in Projektdateien auslagert.
+Die Zahlen sind nur eingeschränkt vergleichbar: Die Fassungen sind nicht deckungsgleich, Python bettet Grammatiken teils als Zeichenketten in Zellen ein, und mehrzeilige OCaml-Kommentare sowie Python-Docstrings werden als Code gezählt.
+Pipelining, aktive Muster und Typinferenz sind plausible Ursachen der größeren Kompaktheit; ein kausaler Nachweis ist mit dieser Zählung nicht möglich.
 \end{finding}

@@ -14,7 +14,7 @@ Ein modernes Ausbildungskonzept muss drei zentrale Zielsetzungen harmonisch vere
   \item \textbf{Skalierbare Performanz:} Die zugrunde liegende Sprachplattform muss über hinreichende Leistungsreserven verfügen, um auch realistische Compiler-Szenarien, wie die vollständige Syntaxanalyse großer Grammatiken oder die Generierung lauffähigen Bytecodes, ohne störende Wartezeiten oder Speicherüberläufe zu bewältigen.
 \end{enumerate}
 
-In dieser Monographie wurden Python~3.13, OCaml~5.4 und F\#~9.0 (.NET~9) anhand von 56 inhaltlich äquivalenten Jupyter-Notebooks einer detaillierten vergleichenden Analyse unterzogen.
+In dieser Monographie wurden Python~3.13, OCaml~5.4 und F\#~9.0 (.NET~9) anhand dreier paralleler, inhaltlich verwandter Notebook-Fassungen mit 49, 50 und 56 Heften einer detaillierten vergleichenden Analyse unterzogen.
 In diesem abschließenden Kapitel führen wir die theoretischen Erkenntnisse der vorangegangenen Kapitel mit den empirischen Messwerten zusammen, formulieren eine mehrkriterielle Entscheidungsanalyse für typische Einsatzszenarien und leiten fundierte Empfehlungen für die Praxis ab.
 
 % ------------------------------------------------------------------------------
@@ -36,9 +36,9 @@ Die Gegenüberstellung veranschaulicht das Spannungsfeld zwischen den drei Parad
     \midrule
     \multicolumn{4}{l}{\textit{\textbf{1. Typsystem und statische Garantien (\Cref{chap:type_systems})}}} \\
     \addlinespace[2pt]
-    Typinferenz & Dynamische Typisierung mit optionalen Hinweisen & Globale Damas--Hindley--Milner-Inferenz & Bidirektionale Inferenz im ML-Stil \\
+    Typinferenz & Dynamische Typisierung mit optionalen Hinweisen & Globale Damas--Hindley--Milner-Inferenz & HM-basierte Inferenz von links nach rechts \\
     Algebraische Typen & Nachbildung via Datenklassen und Union-Typen & Erstklassige Summentypen mit Varianten & Erstklassige nominale Discriminated Unions \\
-    Vollständigkeit & Keine statische Prüfung, Fehler erst zur Laufzeit & Compilerwarnung bei fehlenden Mustern & Warnung mit konkretem Gegenbeispiel \\
+    Vollständigkeit & Keine im Interpreter; optional per mypy oder Pyright & Warnung mit konkretem Gegenbeispiel & Warnung mit konkretem Gegenbeispiel \\
     Null-Sicherheit & Fehlerträchtige optionale Werte zur Laufzeit & Erzwingung über den Option-Typ & Erzwingung über den Option-Typ \\
     \midrule
     \multicolumn{4}{l}{\textit{\textbf{2. Syntaktische Ausdruckskraft und Eleganz (\Cref{chap:expressiveness})}}} \\
@@ -46,27 +46,28 @@ Die Gegenüberstellung veranschaulicht das Spannungsfeld zwischen den drei Parad
     Musterabgleich & Anweisungsbasierter Abgleich seit Python 3.10 & Ausdrucksbasierter funktionaler Abgleich & Ausdrucksbasiert mit Active Patterns \\
     Datenfluss & Tief geschachtelte Funktionsaufrufe & Nativer Pipeline-Operator & Nativer Pipeline-Operator \\
     Currying & Umständlich über partielle Funktionsbindung & Automatisch und erstklassig verfügbar & Automatisch und erstklassig verfügbar \\
-    Codeumfang & Mittleres Volumen (5333 Zeilen, 108 pro Heft) & Höheres Volumen (6453 Zeilen, 129 pro Heft) & \textbf{Kompaktester Code} (3486 Zeilen, 62 pro Heft) \\
+    Codeumfang (Zellen + ausgelagert) & Mittleres Volumen (5548 Zeilen) & Höheres Volumen (7162 Zeilen) & \textbf{Kompaktester Code} (4600 Zeilen) \\
     \midrule
     \multicolumn{4}{l}{\textit{\textbf{3. Lexer- und Parser-Werkzeuge (\Cref{chap:toolchains})}}} \\
     \addlinespace[2pt]
-    Parser-Generatoren & Laufzeitbasierte Werkzeuge (Lark und PLY) & Menhir für kanonische LR- und LALR-Tabellen & \texttt{FsLexYacc} als kompilierte Assembly \\
+    Parser-Generatoren & Laufzeitbasierte Werkzeuge (vorwiegend Lark, vereinzelt PLY) & Menhir für LR(1)- und LALR(1)-Tabellen & \texttt{FsLexYacc} als kompilierte Assembly \\
     Semantische Aktionen & Typunsichere dynamische Tupel & Vollständig statisch typisierte Varianten & Vollständig statisch typisierte Unions \\
-    Konfliktdiagnose & Einfache Warnungen, schwer zu analysieren & \textbf{Hervorragend}: minimale Gegenbeispiele & Textuelle Zustandsausgabe in Protokolldateien \\
+    Konfliktdiagnose & Laufzeitausnahmen oder stilles Lösen & \textbf{Hervorragend}: Ableitungsbeispiele (\texttt{--explain}) & Textuelle Zustandsausgabe in Protokolldateien \\
     Grammatik-Aktualisierung & Sofortiges Neuladen direkt im Speicher & Skriptbasierte Neukompilierung via Menhir & Kompilierung über das .NET-Buildsystem \\
     \midrule
     \multicolumn{4}{l}{\textit{\textbf{4. Empirische Rechenleistung (\Cref{chap:performance})}}} \\
     \addlinespace[2pt]
-    AST-Transformation & Langsam durch CPython-Objekt-Overhead & \textbf{Mit Abstand am schnellsten} (Minor Heap) & Sehr schnell durch optimierte Sprungtabellen \\
-    Mengen von Mengen & \textbf{Am schnellsten} dank C-Hashwerten & Mittlere Geschwindigkeit (AVL-Bäume) & Erfordert strukturierte Vergleichsoperatoren \\
-    Scanner-Durchsatz & Rund 3,6 Millionen Token pro Sekunde & Rund 37,5 Millionen Token pro Sekunde & \textbf{Am schnellsten} (156 Mio. Token/s via RyuJIT) \\
-    Hauptspeicherbedarf & Sehr sparsam (rund 58 MB im Median) & Sehr sparsam (103 MB bei aktiver Arbeit) & Höherer Bedarf (530 bis 612 MB für JIT-Host) \\
+    AST-Transformation & Langsam durch CPython-Objekt-Overhead & \textbf{Mit Abstand am schnellsten} (nativ 95-mal schneller als Python) & Sehr schnell (13-mal schneller als Python) \\
+    Mengen von Mengen & \textbf{Am schnellsten} dank C-Hashwerten (9,1 ms) & Nativ nahezu gleichauf (10,7 ms), Bytecode langsamer (44,4 ms) & Langsamer durch Baumvergleiche (58,5 ms) \\
+    Scanner-Durchsatz (M1) & Rund 4,8 Mio.\ Token/s (Regex mit Match-Objekten) & Rund 86 Mio.\ Token/s (nativ, Zählschleife) & \textbf{Am schnellsten} (156 Mio.\ Token/s, Zählschleife) \\
+    Vollständige Notizbücher & \textbf{Am schnellsten} in 14 von 16 Heften & Schneller als Python in 2 Heften & In allen 16 Heften am langsamsten \\
+    Hauptspeicherbedarf & \textbf{Am sparsamsten} im Notebook (57 MB im Median) & Sparsam (103 MB im Notebook, 27 MB im Leerlauf) & Höherer Bedarf (564 bis 722 MB, bis 1,6 GB) \\
     \midrule
     \multicolumn{4}{l}{\textit{\textbf{5. Interaktive Notizbuch-Infrastruktur (\Cref{chap:interactive_kernels})}}} \\
     \addlinespace[2pt]
     Kaltstart des Kernels & \textbf{Am schnellsten} (unter 400 Millisekunden) & Sehr zügig (rund 510 Millisekunden) & Längere Pause (rund 1,9 s für Compiler-Start) \\
-    Typ-Neudefinitionen & Stilles Überschreiben mit Altobjekt-Risiko & Risiko der Typstempel-Inkompatibilität & Saubere lexikalische Ebenenabschattung \\
-    Vektorgrafiken & Über externe Zusatzbibliothek & Autarke Lösung, benötigt Pufferpause & Sehr sauber via native Prozess-Streams \\
+    Typ-Neudefinitionen & Stilles Überschreiben mit Altobjekt-Risiko & Risiko der Typstempel-Inkompatibilität & Gleiches Risiko durch neue FSI-Typen \\
+    Vektorgrafiken & Über externe Zusatzbibliothek & Eigene Module, benötigt Pufferpause & Sehr sauber via Prozess-Streams \\
     Testautomatisierung & Über Pytest und externe Notebook-Treiber & Schneller statischer Gesamt-Typcheck & Mehrstufiges Prüfkonzept bis zur Grafikprüfung \\
     \bottomrule
   \end{tabularx}
@@ -94,7 +95,8 @@ Im Fokus stehen professionelle Parsergeneratoren, das Auflösen realer Grammatik
 
 In \Cref{tab:mcda_scoring} werden die verschiedenen Bewertungskriterien für jedes dieser drei Szenarien gewichtet.
 Die Einzelleistungen der drei Sprachen werden auf einer Skala von 1 (unzureichend) bis 5 (hervorragend) bewertet.
-Durch die Multiplikation der Kriteriengewichte mit den jeweiligen Punktwerten ergibt sich eine fundierte Gesamtbewertung für jedes Szenario.
+Gewichte und Punktwerte sind Einschätzungen der Autoren auf Grundlage der vorangegangenen Kapitel und nicht selbst gemessen.
+Die Summe der Produkte aus Kriteriengewicht und Punktwert ergibt die Gesamtbewertung für jedes Szenario.
 
 \begin{table}[htbp]
   \centering
@@ -118,21 +120,23 @@ Durch die Multiplikation der Kriteriengewichte mit den jeweiligen Punktwerten er
     Cross-Platform-Ökosystem und Werkzeuge & 0.00 & 0.00 & 0.05 & 5 & 3 & 5 \\
     \midrule
     \textbf{Gewichtete Gesamtpunktzahl} & & & & & & \\
-    \textbf{Szenario A: Grundstudium / Didaktik} & & & & \textbf{3.55} & 4.10 & \textbf{4.20} \\
-    \textbf{Szenario B: Theorie und mathematische Exaktheit} & & & & 2.30 & \textbf{4.85} & 4.70 \\
-    \textbf{Szenario C: Praktischer Compilerbau} & & & & 2.65 & 4.60 & \textbf{4.65} \\
+    \textbf{Szenario A: Grundstudium / Didaktik} & & & & 3.50 & \textbf{4.30} & 4.05 \\
+    \textbf{Szenario B: Theorie und mathematische Exaktheit} & & & & 2.55 & \textbf{4.80} & 4.55 \\
+    \textbf{Szenario C: Praktischer Compilerbau} & & & & 2.80 & \textbf{4.65} & 4.40 \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-Das Ergebnis der Nutzwertanalyse widerlegt die weitverbreitete Annahme, Python sei für den Einstieg im Grundstudium automatisch die beste Wahl.
-Zwar punktet Python durch die sofortige Startbereitschaft des Kernels und die allgemeine Bekanntheit bei Studierenden, fällt jedoch bei der Vermittlung rekursiver Datenstrukturen und fehlerfreier Fallunterscheidungen spürbar zurück.
-Im didaktischen Szenario A belegt F\# mit 4,20 Punkten den ersten Platz, knapp gefolgt von OCaml mit 4,10 Punkten, während Python mit 3,55 Punkten deutlich abfällt.
+Unter den gewählten Gewichten und Punktwerten erzielt OCaml in allen drei Szenarien die höchste Gesamtpunktzahl, gefolgt von F\#; Python liegt jeweils auf dem letzten Platz.
+Dass Python selbst im Einstiegsszenario A zurückliegt, stellt die verbreitete Annahme in Frage, Python sei für den Einstieg im Grundstudium automatisch die beste Wahl; da Gewichte und Punktwerte Einschätzungen sind, ist dies jedoch ein Ergebnis unter diesen Annahmen und kein Beweis.
+Zwar punktet Python durch die schnellste Startbereitschaft des Kernels und die allgemeine Bekanntheit bei Studierenden, fällt jedoch bei der Vermittlung rekursiver Datenstrukturen und fehlerfreier Fallunterscheidungen spürbar zurück.
+Im didaktischen Szenario A belegt OCaml mit 4,30 Punkten den ersten Platz vor F\# mit 4,05 Punkten, während Python mit 3,50 Punkten deutlich abfällt.
 
-Im theorieorientierten Szenario B erweist sich OCaml mit 4,85 Punkten als der unangefochtene Maßstab für mathematische Präzision.
-F\# folgt mit 4,70 Punkten auf einem sehr hohen Niveau.
+Im theorieorientierten Szenario B erweist sich OCaml mit 4,80 Punkten als Maßstab für mathematische Präzision.
+F\# folgt mit 4,55 Punkten auf hohem Niveau.
 
-Im praxisbezogenen Szenario C des Compilerbaus behauptet sich F\# mit 4,65 Punkten knapp vor OCaml (4,60 Punkte), während Python aufgrund seiner Schwächen bei statischer Typisierung und rechenintensiven Syntaxbaumtransformationen mit 2,65 Punkten nicht konkurrenzfähig ist.
+Auch im praxisbezogenen Szenario C des Compilerbaus liegt OCaml mit 4,65 Punkten vor F\# (4,40 Punkte), während Python aufgrund seiner Schwächen bei statischer Typisierung und rechenintensiven Syntaxbaumtransformationen mit 2,80 Punkten nicht konkurrenzfähig ist.
+Die Abstände zwischen OCaml und F\# sind gering; bereits kleine Änderungen einzelner Gewichte oder Punktwerte können die Reihenfolge dieser beiden Sprachen umkehren.
 
 % ------------------------------------------------------------------------------
 \section{Differenzierte Empfehlungen für die Praxis}
@@ -143,31 +147,33 @@ Aus den vorliegenden theoretischen und empirischen Ergebnissen lassen sich klare
 
 \subsection{1. Python 3.13: Die pragmatische Minimallösung}
 Python empfiehlt sich vor allem dann, wenn formale Sprachen und Automatentheorie lediglich als kurzes, einleitendes Teilmodul innerhalb eines bereits fest auf Python ausgerichteten Studiengangs (beispielsweise in Data Science oder künstlicher Intelligenz) unterrichtet werden.
-Der Kernel startet praktisch verzögerungsfrei, und die Studierenden müssen sich nicht an eine neue Programmiersyntax gewöhnen.
-Zudem überrascht Python bei rein mengenbasierten Algorithmen, wie der Potenzmengenkonstruktion, durch seine hocheffizienten, in C implementierten Hash-Mengen.
+Der Kernel startet von allen dreien am schnellsten, und die Studierenden müssen sich nicht an eine neue Programmiersyntax gewöhnen.
+Zudem überrascht Python bei rein mengenbasierten Algorithmen, wie der Potenzmengenkonstruktion, durch seine hocheffizienten, in C implementierten Hash-Mengen und ist in 14 der 16 gemessenen Notizbücher am schnellsten, darunter beim rechenintensiven SLR-Tabellengenerator.
 
 Für einen vertiefenden Compilerbaukurs ist Python hingegen nicht zu empfehlen.
-Das Fehlen nativer Summentypen erzwingt unübersichtliche Klassenhierarchien, und das Fehlen einer automatischen Vollständigkeitsprüfung führt dazu, dass vergessene Regelfälle erst spät zur Laufzeit als Ausnahmefehler aufgedeckt werden.
-Hinzu kommt, dass rekursive Transformationen auf verschachtelten Syntaxbäumen in CPython um nahezu zwei Größenordnungen langsamer ablaufen als in OCaml oder F\#.
+Das Fehlen nativer Summentypen erzwingt unübersichtliche Klassenhierarchien, und ohne externe Typprüfer fehlt eine automatische Vollständigkeitsprüfung, sodass vergessene Regelfälle erst spät zur Laufzeit als Ausnahmefehler aufgedeckt werden.
+Hinzu kommt, dass rekursive Transformationen auf verschachtelten Syntaxbäumen in CPython im Mikrobenchmark rund 95-mal langsamer ablaufen als in nativem OCaml und rund 13- bis 15-mal langsamer als in F\# und OCaml-Bytecode.
 
 \subsection{2. OCaml 5.4: Das Ideal für theoretische Eleganz}
-OCaml ist die ideale Wahl für Hochschulen, die großen Wert auf mathematische Präzision, formale Semantik und funktionale Programmierkonzepte legen.
-Die Hindley--Milner-Typinferenz nimmt den Studierenden die manuelle Typdeklaration vollständig ab und garantiert dennoch absolute Typsicherheit.
-Der Parsergenerator Menhir ist unübertroffen in der Diagnose von Grammatikkonflikten, da er präzise, minimale Gegenbeispiele generiert, anstatt Studierende mit kryptischen Zustandsnummern allein zu lassen.
-Darüber hinaus arbeitet die Speicherverwaltung bei rekursiven Baummanipulationen unerreicht schnell und mit minimalem Speicherverbrauch.
+OCaml ist die ideale Wahl für Hochschulen, die großen Wert auf mathematische Präzision, formale Semantik und funktionale Programmierkonzepte legen, und erzielt in der Nutzwertanalyse in allen drei Szenarien die höchste Punktzahl.
+Die Hindley--Milner-Typinferenz macht Typannotationen weitgehend überflüssig und garantiert dennoch Typsicherheit, solange keine unsicheren Primitive verwendet werden.
+Der Parsergenerator Menhir ist in der Diagnose von Grammatikkonflikten besonders stark, da er mit \texttt{--explain} konkrete Ableitungsbeispiele erzeugt, anstatt Studierende mit kryptischen Zustandsnummern allein zu lassen.
+Darüber hinaus ist natives OCaml bei rekursiven Baummanipulationen im Mikrobenchmark mit Abstand am schnellsten und benötigt im Leerlauf den geringsten Speicher.
 
 Als Einschränkung muss bedacht werden, dass das Arbeiten im interaktiven Notizbuch unter OCaml disziplinierte Lademechanismen erfordert, um Inkompatibilitäten durch neu erzeugte Typstempel bei mehrfach ausgeführten Zellen zu verhindern.
 Zudem gestaltet sich die Bereitstellung der Arbeitsumgebung auf Rechnern mit reinem Windows-Betriebssystem nach wie vor aufwendiger als bei den beiden Mitbewerbern.
 
-\subsection{3. F\# 9.0 (.NET 9): Die moderne, ausgewogene Gesamtlösung}
-F\# bietet für moderne Lehrveranstaltungen den überzeugendsten Kompromiss zwischen theoretischer Fundierung und industrieller Praxistauglichkeit.
+\subsection{3. F\# 9.0 (.NET 9): Die moderne Alternative mit .NET-Anbindung}
+F\# bietet für moderne Lehrveranstaltungen einen starken Kompromiss zwischen theoretischer Fundierung und industrieller Praxistauglichkeit und liegt in der Nutzwertanalyse in allen drei Szenarien knapp hinter OCaml.
 Es vereint die theoretischen Stärken von OCaml, namentlich echte algebraische Datentypen, strukturierte Musterabgleiche und automatisierte Vollständigkeitsprüfungen, mit der Leistungsfähigkeit und der hervorragenden Plattformunabhängigkeit des .NET-9-Ökosystems.
 
-Im direkten Vergleich erzielte F\# das mit Abstand geringste Codevolumen über die gesamte Vorlesung hinweg: Mit insgesamt 3486 Zeilen benötigt die F\#-Fassung rund 46 Prozent weniger Code als OCaml und rund 35 Prozent weniger als Python.
+Im direkten Vergleich erzielte F\# das geringste Codevolumen über die gesamte Vorlesung hinweg: Einschließlich ausgelagerter Quelldateien umfasst die F\#-Fassung mit 4600 Zeilen rund 36 Prozent weniger Code als die OCaml-Fassung und rund 17 Prozent weniger als die Python-Fassung, wobei die Fassungen nicht deckungsgleich sind.
 Das mächtige Sprachmittel der Active Patterns ermöglicht es, komplexe Abstraktionen über Grammatiktoken und Syntaxknoten zu formulieren, ohne die Vorzüge statischer Prüfungen aufzugeben.
-Auch die Visualisierung von Automaten und Syntaxbäumen ist in F\# am elegantesten gelöst, da doppelte Knotensymbole über strukturelle Pfadkoordinaten eindeutig unterschieden werden und Grafiken ohne Zwischendateien direkt im Speicher gestreamt werden.
+Auch die Visualisierung von Automaten und Syntaxbäumen ist in der F\#-Fassung am elegantesten umgesetzt, da doppelte Knotensymbole über strukturelle Pfadkoordinaten eindeutig unterschieden werden und Grafiken ohne Zwischendateien direkt im Speicher gestreamt werden; diese Lösung wäre allerdings auch in den anderen Sprachen möglich.
 
 Als Kompromiss müssen Lehrende die längere Initialisierungsphase des Kernels in Kauf nehmen: Der Start benötigt knapp zwei Sekunden und belegt rund 530 Megabyte Arbeitsspeicher, da das System einen vollständigen Compilerprozess im Hintergrund bereitstellt.
+In allen 16 gemessenen Notizbüchern war F\# am langsamsten, beim SLR-Tabellengenerator rund zehnmal langsamer als Python.
+Zudem treten bei wiederholt ausgeführten Typdefinitionen dieselben Typinkompatibilitäten auf wie in OCaml.
 Bei tief verschachtelten Mengenkonstruktionen empfiehlt es sich zudem, Studierenden den Einsatz von Hash-Consing oder Zustandskodierungen zu vermitteln, um Verlangsamungen bei AVL-Baumvergleichen zu vermeiden.
 
 % ------------------------------------------------------------------------------
@@ -175,15 +181,15 @@ Bei tief verschachtelten Mengenkonstruktionen empfiehlt es sich zudem, Studieren
 \label{sec:recommendation_conclusion}
 % ------------------------------------------------------------------------------
 
-Die Ergebnisse dieser Monographie widerlegen das Vorurteil, dass dynamisch typisierte Skriptsprachen wie Python per se die lernfreundlichere Wahl für die theoretische Informatik seien, oder dass funktionale Sprachen zwangsläufig komplizierter zu erlernen seien:
+Die Ergebnisse dieser Monographie stellen die Annahme in Frage, dass dynamisch typisierte Skriptsprachen wie Python per se die lernfreundlichere Wahl für die theoretische Informatik seien:
 
 Erstens erweist sich ein ausdrucksstarkes statisches Typsystem in der Praxis als ein wertvoller didaktischer Begleiter.
 Durch den Zwang zu vollständigen Fallunterscheidungen und die sofortige Lokalisierung unpassender Datentypen fängt der Compiler Flüchtigkeitsfehler bereits beim Schreiben ab, die in Python zu frustrierenden Fehlersuchen zur Laufzeit führen.
 
-Zweitens schärft der Einsatz vorab kompilierender Parsergeneratoren das Verständnis für formale Grammatiken weit besser als dynamische Allzweck-Parser.
-Das bewusste Analysieren von Schiebe-Reduziere-Konflikten vermittelt den Studierenden ein tiefes Verständnis für die theoretischen Grenzen deterministischer Sprachklassen.
+Zweitens bieten Parsergeneratoren mit guter Konfliktdiagnose wie Menhir die Möglichkeit, Schiebe-Reduziere-Konflikte gezielt zu analysieren und so die theoretischen Grenzen deterministischer Sprachklassen zu vermitteln; ob dies das Verständnis tatsächlich besser schärft als dynamische Parser, wurde in dieser Arbeit nicht empirisch untersucht.
 
-Drittens markiert F\# auf modernen .NET-Laufzeitumgebungen eine äußerst vielversprechende Synthese.
-Für Ausbildungsinstitutionen, die eine zeitgemäße, typ- und speichersichere sowie auf allen gängigen Betriebssystemen gleichermaßen verlässliche Plattform suchen, stellt F\# in interaktiven Notizbüchern ein erstklassiges Lehrmedium dar.
+Drittens erzielt OCaml in der Nutzwertanalyse in allen drei Szenarien die höchste Punktzahl, mit F\# knapp dahinter.
+Für Ausbildungsinstitutionen, die zusätzlich eine Anbindung an das .NET-Ökosystem suchen, ist F\# eine typsichere und auf allen gängigen Betriebssystemen verfügbare Alternative, sofern der höhere Speicherbedarf und die längeren Laufzeiten in Notizbüchern akzeptabel sind.
+Python bleibt die pragmatische Wahl, wo kurze Startzeiten, geringer Speicherbedarf und Vorkenntnisse der Studierenden wichtiger sind als statische Garantien.
 
 Indem wir die vollständigen Messreihen, Notizbuchsammlungen und Quelltexte dieser Studie als Open-Science-Materialien zur Verfügung stellen, möchten wir Lehrenden und Fachbereichen eine belastbare, faktenbasierte Entscheidungsgrundlage für die Weiterentwicklung moderner Curricula in den formalen Grundlagen der Informatik an die Hand geben.

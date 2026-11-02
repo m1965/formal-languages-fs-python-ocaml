@@ -5,7 +5,10 @@
     "markdown_cells": 936,
     "sloc": 5333,
     "avg_sloc_per_nb": 108.8,
-    "avg_cells_per_nb": 20.7
+    "avg_cells_per_nb": 20.7,
+    "external_source_files": 2,
+    "external_sloc": 215,
+    "total_sloc": 5548
   },
   "OCaml": {
     "notebooks": 50,
@@ -13,7 +16,10 @@
     "markdown_cells": 968,
     "sloc": 6453,
     "avg_sloc_per_nb": 129.1,
-    "avg_cells_per_nb": 19.8
+    "avg_cells_per_nb": 19.8,
+    "external_source_files": 6,
+    "external_sloc": 709,
+    "total_sloc": 7162
   },
   "FSharp": {
     "notebooks": 56,
@@ -21,6 +27,9 @@
     "markdown_cells": 667,
     "sloc": 3486,
     "avg_sloc_per_nb": 62.2,
-    "avg_cells_per_nb": 11.9
+    "avg_cells_per_nb": 11.9,
+    "external_source_files": 58,
+    "external_sloc": 1114,
+    "total_sloc": 4600
   }
 }
