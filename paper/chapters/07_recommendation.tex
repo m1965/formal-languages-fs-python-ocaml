@@ -44,7 +44,7 @@ Die Gegenüberstellung veranschaulicht das Spannungsfeld zwischen den drei Parad
     \multicolumn{4}{l}{\textit{\textbf{2. Syntaktische Ausdruckskraft und Eleganz (\Cref{chap:expressiveness})}}} \\
     \addlinespace[2pt]
     Musterabgleich & Anweisungsbasierter Abgleich seit Python 3.10 & Ausdrucksbasierter funktionaler Abgleich & Ausdrucksbasierter funktionaler Abgleich \\
-    Datenfluss & Mengenabstraktionen und Schleifen & Pipeline-Operator vorhanden, selten genutzt (6-mal) & Pipeline-Operator, häufig genutzt (314-mal) \\
+    Datenfluss & Mengenabstraktionen und Schleifen & Pipeline-Operator vorhanden, selten genutzt (6-mal) & Pipeline-Operator, häufig genutzt (357-mal) \\
     Partielle Anwendung & Nicht benötigt; Mengenabstraktionen & Verfügbar, in den Notizbüchern selten genutzt & Verfügbar, häufig mit \texttt{|>} kombiniert \\
     Codeumfang (Zellen + ausgelagert) & Mittleres Volumen (5548 Zeilen) & Höheres Volumen (7162 Zeilen) & \textbf{Kompaktester Code} (4600 Zeilen) \\
     \midrule
@@ -68,7 +68,7 @@ Die Gegenüberstellung veranschaulicht das Spannungsfeld zwischen den drei Parad
     Kaltstart des Kernels & \textbf{Am schnellsten} (unter 400 Millisekunden) & Sehr zügig (rund 510 Millisekunden) & Längere Pause (rund 1,9 s für Compiler-Start) \\
     Typ-Neudefinitionen & Stilles Überschreiben mit Altobjekt-Risiko & Risiko der Typstempel-Inkompatibilität & Gleiches Risiko durch neue FSI-Typen \\
     Vektorgrafiken & Paket \texttt{graphviz} & Nachbau der Python-API, temporäre Dateien, Pufferpause & Ohne Dateien über Standardein- und -ausgabe \\
-    Testautomatisierung & Über Pytest und externe Notebook-Treiber & Schneller statischer Gesamt-Typcheck & Mehrstufiges Prüfkonzept bis zur Grafikprüfung \\
+    Testautomatisierung & Eigene Test-Notizbücher, kein automatischer Gesamtlauf & Ausführung aller Notizbücher mit Typprüfung (\texttt{check.py}) & Struktur-, \texttt{fsi}- und Kernel-Prüfung (\texttt{notebooks.py}) \\
     \bottomrule
   \end{tabularx}
 \end{table}

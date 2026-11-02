@@ -41,7 +41,7 @@ Zudem führt sie mit \texttt{classOf} eine lokale Hilfsfunktion ein, die die Äq
 
 OCaml und F\# besitzen den Vorwärts-Pipeline-Operator \texttt{|>}, der das Argument vor die Funktion stellt, sodass der Quelltext in der Reihenfolge der Datenverarbeitung gelesen werden kann.
 Außerdem sind Funktionen in beiden Sprachen curried: Eine Funktion mit mehreren Parametern kann mit weniger Argumenten aufgerufen werden und liefert dann eine Funktion für die übrigen.
-Die Fassungen nutzen diese Sprachmittel sehr unterschiedlich: In den F\#-Notizbüchern kommt \texttt{|>} 314-mal vor, in den OCaml-Notizbüchern nur sechsmal.
+Die Fassungen nutzen diese Sprachmittel sehr unterschiedlich: In den F\#-Notizbüchern kommt \texttt{|>} 357-mal vor, in den OCaml-Notizbüchern nur sechsmal.
 \Cref{fig:find_class} zeigt eine kleine Funktion aus dem Minimierungs-Notizbuch, an der beide Sprachmittel zusammenwirken.
 
 \begin{figure}[tbp]
@@ -82,6 +82,8 @@ Alle drei Fassungen zerlegen die Tokenliste mit Mustern in erstes Token und Rest
 Die Python-Muster stehen den funktionalen damit kaum nach.
 Ein Unterschied liegt in der Laufzeit: \texttt{*RL} kopiert den Rest der Liste bei jedem Token in eine neue Liste, während \texttt{::} in OCaml und F\# nur auf den vorhandenen Rest verweist.
 Der Parser benötigt in Python dadurch quadratische Zeit in der Zahl der Token, in OCaml und F\# lineare.
+Eine Messung mit den Funktionen des Python-Notizbuchs unter CPython~3.13 bestätigt dies: Für Summen aus 1000, 2000, 4000 und 8000 Summanden steigt die Laufzeit von 13 über 51 und 207 auf 951~Millisekunden, also bei jeder Verdopplung der Eingabe auf etwa das Vierfache.
+Da jeder Summand eine weitere Rekursionsebene von \texttt{parseExprRest} öffnet, bricht der Parser mit der Standardgrenze von Python für die Rekursionstiefe außerdem schon bei etwa tausend Summanden ab; für die Messung wurde diese Grenze angehoben.
 
 \paragraph{Fehlerbehandlung.}
 Die größten Unterschiede zeigen sich in \texttt{parseFactor}.

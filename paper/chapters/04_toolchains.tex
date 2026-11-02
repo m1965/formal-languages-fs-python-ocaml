@@ -10,7 +10,7 @@ Das Skript verbindet dabei zwei Zugänge: Die Studierenden benutzen einen Parser
 Die Notizbücher der Vorlesung bilden beide Zugänge ab:
 \begin{enumerate}
   \item \textbf{Industrielle Werkzeugketten:} Wie binden sich etablierte Parsergeneratoren---Lark in Python, \texttt{ocamllex} und Menhir in OCaml sowie \texttt{FsLex} und \texttt{FsYacc} in F\#---in interaktive Notizbücher ein, wie erzeugen sie Tabellenstrukturen, wie sichern sie semantische Aktionen typstatisch ab und wie unterstützen sie bei Grammatikkonflikten?
-  \item \textbf{Didaktische Eigenimplementierungen:} Wie werden Parsing-Verfahren von Grund auf im Quelltext realisiert: vom rekursiven Abstieg für LL(1)-Grammatiken über allgemeines Earley-Parsing für mehrdeutige Grammatiken bis hin zur vollständigen Generierung kanonischer LR- und LALR-Tabellen für die reale ANSI-C-Spezifikation?
+  \item \textbf{Didaktische Eigenimplementierungen:} Wie werden Parsing-Verfahren von Grund auf im Quelltext realisiert: vom rekursiven Abstieg über den Earley-Algorithmus für beliebige kontextfreie Grammatiken bis zur Erzeugung von SLR- und kanonischen LR-Tabellen für eine Grammatik der Sprache C?
 \end{enumerate}
 
 In diesem Kapitel vergleichen wir beide Ebenen über alle drei Sprachwelten hinweg.
@@ -35,13 +35,13 @@ Die drei Programmiersprachen verkörpern drei grundlegend verschiedene Philosoph
     \addlinespace[3pt]
     \textbf{Spezifikation} & EBNF-Zeichenkette direkt in der Zelle & Spezifikationsstrings für Lexer und Parser & Eigene Quelldateien im Projektordner \\
     \addlinespace[3pt]
-    \textbf{Genutzte Verfahren} & LALR(1) (19 Aufrufe), Earley (2 Aufrufe) & LALR(1), kanonisches LR(1) (\texttt{--canonical}), GLR (\texttt{--GLR}) & LALR(1) \\
+    \textbf{Genutzte Verfahren} & LALR(1) (15 Aufrufe), Earley (2 Aufrufe) & LALR(1), kanonisches LR(1) (\texttt{--canonical}), GLR (\texttt{--GLR}) & LALR(1) \\
     \addlinespace[3pt]
     \textbf{Kompilationsziel} & Reine Python-Objekte im Arbeitsspeicher & Standalone-Module, kompiliert zu Bytecode & Typisierter F\#-Quelltext, kompiliert zu DLL \\
     \addlinespace[3pt]
     \textbf{Semantische Typen} & Dynamische Python-Tupel ohne Typcheck & Vollständig statisch typisierte Varianten & Statisch typisierte nominale Unions \\
     \addlinespace[3pt]
-    \textbf{Konfliktdiagnose} & Laufzeitausnahmen oder stilles Lösen & Ableitungsbeispiele und Automaten (\texttt{--explain}, \texttt{--dump}) & Textuelle Protokollausgaben der Zustände \\
+    \textbf{Konfliktdiagnose} & Schiebe-Reduziere still zugunsten von Schieben, Meldungen nur über \texttt{lark.logger}; \texttt{GrammarError} mit \texttt{strict=True} & Ableitungsbeispiele und Automaten (\texttt{--explain}, \texttt{--dump}) & Textuelle Protokolldatei der Zustände (\texttt{.fsyacc.output}) \\
     \addlinespace[3pt]
     \textbf{Interaktivität} & Sofortige Zellauswertung ohne Hilfstools & Transparente Steuerung via Hilfsmodul & Entkoppelte CLI-Kompilierung vorab \\
     \bottomrule
@@ -102,23 +102,39 @@ Dieser Ansatz gewährleistet maximale Robustheit und Geschwindigkeit, erschwert 
 \label{sec:conflict_diagnostics}
 % ------------------------------------------------------------------------------
 
-Beim Entwurf deterministischer Grammatiken stoßen Lernende unausweichlich auf Schiebe-Reduziere- und Reduziere-Reduziere-Konflikte.
-Die Qualität der didaktischen Unterstützung entscheidet darüber, ob Studierende die zugrunde liegende grammatikalische Mehrdeutigkeit verstehen oder frustriert aufgeben.
+Stroetmanns Skript widmet den Schiebe-Reduziere- und Reduziere-Reduziere-Konflikten große Teile von Kapitel~10 und~11~\cite{stroetmann2026formal}; die Notizbücher im Verzeichnis \texttt{Chapter-11} führen die Beispiele vor.
+Die drei Fassungen zeigen dabei sehr unterschiedliche Diagnosen.
 
-In Menhir für OCaml ist die Konfliktanalyse vorbildlich gelöst: Wenn die Grammatik einen Konflikt aufweist, erzeugt Menhir mit der Option \texttt{--explain} nicht lediglich eine abstrakte Liste betroffener Zustände, sondern konstruiert konkrete Ableitungspfade und minimale Satzfragmente, die demonstrieren, wie zwei konkurrierende Interpretationen desselben Textes entstehen können.
+\paragraph{Python mit Lark.}
+Das Python-Notizbuch \texttt{01-Conflicts.ipynb} beschreibt Lark als \glqq quite tight-lipped\grqq: Ein LALR-Parser für eine mehrdeutige Grammatik wird gebaut, und jeder Schiebe-Reduziere-Konflikt wird stillschweigend zugunsten des Schiebens aufgelöst.
+Die Meldungen landen im Logger \texttt{lark.logger}, dessen Level beim Import auf \texttt{CRITICAL} steht; das Notizbuch senkt es deshalb ab, um sie sichtbar zu machen.
+Erst mit \texttt{strict=True} löst der erste Konflikt einen \texttt{GrammarError} aus.
 
-In FsLexYacc für F\# wird eine detaillierte textuelle Protokolldatei erzeugt, die alle Zustände, Item-Mengen und Übergänge auflistet.
-Ein didaktisch hochinteressantes Lehrbeispiel aus Stroetmanns Skript (Abschnitt~11.3.2, Notizbuch \texttt{Chapter-11/05-Mysterious-Conflicts.ipynb}) ist der sogenannte mysteriöse Reduziere-Reduziere-Konflikt:
-Hierbei handelt es sich um eine Grammatik, die in einem kanonischen LR(1)-Parser absolut deterministisch und konfliktfrei arbeitet, weil der Vorausschau-Horizont in den getrennten Zuständen die anstehende Reduktion eindeutig festlegt.
-Da LALR(1) zur Vermeidung von Zustandsexplosionen jedoch Zustände mit identischem LR(0)-Kern miteinander verschmilzt, werden auch deren Vorausschaumengen vereinigt. 
+\paragraph{OCaml mit Menhir.}
+Menhir gibt Konflikte als Warnungen aus und schreibt mit der Option \texttt{--explain} eine Erklärung jedes Konflikts in eine eigene Datei; die Option \texttt{--strict} macht die Warnungen zu Fehlern.
+Das Hilfsmodul \texttt{parser\_generator.ml} ruft Menhir dafür stets mit \texttt{--dump --dump-resolved --explain} auf und legt die Zustände vor und nach der Konfliktauflösung in eigenen Dateien ab.
 
-In dem verschmolzenen Zustand fallen die zuvor getrennten Vorausschauzeichen zusammen: Beim Lesen desselben Zeichens kann der LALR-Automat nicht mehr entscheiden, nach welcher der beiden Regeln reduziert werden soll.
-Es entsteht ein klassischer Reduziere-Reduziere-Konflikt, der im LR(1)-Verfahren gar nicht existierte.
-FsYacc löst dieses Dilemma wie yacc zugunsten der im Quelltext zuerst genannten Regel und meldet den Konflikt lediglich als Warnung in der Build-Ausgabe, sodass alternative Ableitungszweige der Grammatik leicht unbemerkt deaktiviert bleiben.
-Dieser curriculare Beispielfall führt Studierenden die mathematischen Grenzen von LALR-Tabellen drastisch vor Augen.
+\paragraph{F\# mit FsLexYacc.}
+FsYacc schreibt die Zustände mit ihren markierten Regeln und Übergängen in eine Textdatei (\texttt{.fsyacc.output}), die das Notizbuch ausgibt.
 
-Zur sauberen Behebung legitimer Mehrdeutigkeiten unterstützen Menhir, FsYacc und PLY yacc-artige Präzedenz- und Assoziativitätsdeklarationen (wie linksassoziative Punkt- und Strichrechnung), womit Standardkonflikte bei arithmetischen Ausdrücken ohne künstliche Grammatikaufspaltungen gelöst werden.
-Lark bietet stattdessen Prioritäten für Regeln und Terminale, aber keine Assoziativitätsdeklarationen; dort werden solche Konflikte üblicherweise durch eine Schichtung der Grammatik nach Bindungsstärke vermieden.
+\paragraph{Der mysteriöse Reduziere-Reduziere-Konflikt.}
+Ein didaktisch besonders interessantes Beispiel aus Stroetmanns Skript (Abschnitt~11.3.2, Python-Notizbuch \texttt{Chapter-11/05-Mysterious-Conflicts.ipynb}) ist der sogenannte mysteriöse Reduziere-Reduziere-Konflikt.
+Die Grammatik ist eine LR(1)-Grammatik: In den beiden LR(1)-Zuständen $\{a \to X\bullet : \texttt{'y'},\ b \to X\bullet : \texttt{'z'}\}$ und $\{b \to X\bullet : \texttt{'y'},\ a \to X\bullet : \texttt{'z'}\}$ sind die Vorausschaumengen disjunkt.
+Beide Zustände haben jedoch denselben Kern und werden bei der Konstruktion der LALR-Tabelle verschmolzen; im verschmolzenen Zustand kann der Parser bei \texttt{'y'} und \texttt{'z'} nicht mehr zwischen den beiden Reduktionen entscheiden.
+Wie das Skript betont, lässt sich ein solcher Konflikt nicht durch Umschreiben der Grammatik beheben, weil der Fehler nicht in der Grammatik, sondern in der Verschmelzung der Zustände liegt.
+
+Die vier Werkzeuge gehen damit verschieden um:
+\begin{itemize}
+  \item \textbf{Larkita (Skript):} Larkita berechnet kanonische LR(1)-Parser und verschmilzt Zustände nur auf Wunsch und nur dann, wenn es gefahrlos möglich ist; der Konflikt tritt deshalb gar nicht auf.
+  \item \textbf{Lark (Python-Notizbuch):} Der LALR-Parser bricht mit einem \texttt{GrammarError} ab; als Ausweg verwendet das Notizbuch den Earley-Parser von Lark, der ohne Parse-Tabelle auskommt.
+  \item \textbf{Menhir (OCaml-Notizbuch):} Mit \texttt{--lalr --strict} wird die Grammatik abgelehnt und der Konflikt erklärt; mit \texttt{--canonical} baut Menhir den kanonischen LR(1)-Parser, und mit \texttt{--GLR} einen GLR-Parser als Gegenstück zum Earley-Parser.
+  \item \textbf{FsYacc (F\#-Notizbuch \texttt{Chapter-10/Mysterious-Conflicts.ipynb}):} FsYacc meldet zwei Reduziere-Reduziere-Konflikte, baut den Parser aber trotzdem; das Notizbuch zeigt, dass er danach \texttt{vxy} und \texttt{wxz} akzeptiert, \texttt{vxz} und \texttt{wxy} aber verliert.
+\end{itemize}
+
+\paragraph{Präzedenzen.}
+Lark unterstützt nach Aussage des Python-Notizbuchs \texttt{02-Conflicts-Resolved.ipynb} keine Präzedenzdeklarationen; Präzedenz und Assoziativität werden deshalb wie im Skript durch eine Schichtung der Grammatik mit einer Variablen je Präzedenzstufe kodiert.
+PLY, Menhir und FsYacc besitzen dagegen yacc-artige Präzedenzdeklarationen.
+Das einzige Python-Notizbuch mit PLY, der Integer-C-Compiler \texttt{Chapter-13/Compiler-For.ipynb}, nutzt sie, um unter anderem das Dangling-Else-Problem zugunsten des Schiebens aufzulösen.
 
 % ------------------------------------------------------------------------------
 \section{Didaktische Eigenimplementierungen von Parsern}
@@ -136,11 +152,12 @@ Die F\#-Fassung übernimmt diese Struktur direkt als Gruppe \texttt{let rec \dot
 \subsection{2. Allgemeines kontextfreies Parsing nach Earley}
 Um beliebige kontextfreie Grammatiken---auch mehrdeutige, linksrekursive oder solche mit Epsilon-Regeln---verarbeiten zu können, behandelt Kapitel~9 des Skripts den Earley-Algorithmus~\cite{earley1970efficient}; die Python-Notizbücher dazu liegen im Verzeichnis \texttt{Chapter-09}.
 Ein Earley-Objekt $\langle a \to \beta \bullet \gamma, k \rangle$ besteht aus einer Grammatikregel mit Markierungspunkt für die aktuelle Leseposition und einem Index für die Startposition der Regel im Eingabetext.
-Der Algorithmus verwaltet eine Chart-Tabelle von Zustandsmengen über drei fundamentale Operationen: Prädiktor (Vorhersage möglicher Folgeproduktionen), Scanner (Einlesen passender Terminalzeichen) und Komplettierer (Fortführen übergeordneter Regeln nach Abschluss einer Unterregel).
+Für jede Position $j$ der Eingabe verwaltet der Algorithmus eine Menge $Q_j$ von Earley-Objekten, die das Skript mit drei Operationen aufbaut: \emph{Reading} (Einlesen des nächsten Tokens), \emph{Prediction} (Vorhersage der Regeln für eine erwartete Variable) und \emph{Completion} (Fortsetzen übergeordneter Regeln, sobald eine Regel vollständig erkannt ist).
+Laut Skript hat der Algorithmus im allgemeinen Fall eine Komplexität von $O(n^3)$ und für eindeutige Grammatiken von $O(n^2)$.
 
 \subsection{3. Generatoren für SLR(1)- und LR(1)-Tabellen}
 In Kapitel~10 des Skripts konstruieren die Studierenden eigene Tabellengeneratoren für SLR- und kanonische LR-Parser (Notizbücher im Verzeichnis \texttt{Chapter-10}): Sie berechnen die Hülle von Mengen markierter Regeln, bestimmen First- und Follow-Mengen über Fixpunktberechnungen und füllen die Aktions- und Sprungtabellen.
-Als Härtetest dient eine Grammatik für die Sprache C mit 63 Nichtterminalen und 215 Regelalternativen.
+Als Härtetest dient eine Grammatik für die Sprache C mit 63 Nichtterminalen und 211 Regelalternativen.
 Laut Skript kommt ein SLR-Parser für diese Grammatik mit 349 Zuständen aus, erzeugt aber Konflikte, weil C keine SLR-Sprache ist, während der kanonische LR-Parser 1572 Zustände benötigt.
 Für die SLR-Tabelle verwendet Stroetmann deshalb eine angepasste Grammatik ohne Typumwandlungen, Sprungmarken und \texttt{if}-Anweisungen ohne \texttt{else}-Zweig.
 Das Dangling-Else-Problem behandelt das Skript anhand der Grammatik von Integer-C.

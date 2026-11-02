@@ -168,27 +168,24 @@ Ein charakteristisches Merkmal interaktiver Notizbücher besteht darin, dass Zel
 Studierende experimentieren, springen zwischen Beispielen hin und her, modifizieren Funktionen in früheren Zellen und führen diese wiederholt aus.
 Dieses nichtlineare Vorgehen legt fundamentale Unterschiede in der Zustandsverwaltung der drei Sprachen offen.
 
-In Python führt die erneute Ausführung einer Zelle schlicht dazu, dass Bezeichner im globalen Namensraum überschrieben werden.
-Wird beispielsweise eine Klasse für Syntaxbaumknoten definiert, instanziiert und später um ein zusätzliches Attribut erweitert und erneut ausgeführt, verweist der Klassenname auf das neue Klassenobjekt.
-Bereits erzeugte Baumstrukturen verbleiben jedoch mit ihrer alten Klassenzugehörigkeit im Speicher.
-Während generischer Code, der lediglich Attributnamen abfragt, scheinbar weiterfunktioniert, schlagen Typprüfungen mittels \texttt{isinstance} unbemerkt fehl, weil das alte Objekt nicht als Instanz der gleichnamigen neuen Klasse erkannt wird.
-Dies führt zu schwer durchschaubaren Fehlern, die Programmieranfänger vor erhebliche Rätsel stellen.
+In Python führt die erneute Ausführung einer Zelle dazu, dass Bezeichner im globalen Namensraum überschrieben werden.
+Das Notizbuch \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb} zeigt, welche Folgen das haben kann (\cref{sec:case_thompson}): Zelle~11 legt die Klasse \texttt{RegExp2NFA} mit Platzhaltermethoden an, die \texttt{None} liefern, und spätere Zellen hängen die eigentlichen Methoden an.
+Führt man Zelle~11 nach den übrigen Zellen erneut aus, liefert ein neu erzeugter Konverter für \texttt{a*} nur noch \texttt{None}, weil die neue Klasse wieder die Platzhalter enthält.
+Ein vorher erzeugter Konverter arbeitet dagegen weiter, gilt aber nicht mehr als Instanz von \texttt{RegExp2NFA}, da er zur alten, gleichnamigen Klasse gehört; beides haben wir durch Ausführen der Notizbuch-Zellen überprüft.
 
-In OCaml tritt durch die Kombination aus statischem Typsystem und interaktiver Toplevel-Umgebung ein noch gravierenderes Phänomen auf: das Problem der \textbf{Typgenerativität}.
-Jede im Toplevel deklarierte Typdefinition erzeugt intern einen neuen, eindeutigen Typstempel.
-Wird beispielsweise in einer ersten Zelle ein Datentyp für arithmetische Ausdrücke definiert und eine Instanz erzeugt, und in einer zweiten Zelle eine Auswertungsfunktion deklariert, führt eine nachträgliche Modifikation der ersten Zelle zu einer fatalen Inkompatibilität. 
-
-Sobald die erste Zelle erneut ausgeführt wird, erzeugt OCaml eine völlig neue Typidentität.
-Versucht die zuvor kompilierte Auswertungsfunktion nun, einen neu erzeugten Ausdruck zu verarbeiten, bricht der Typchecker mit einer Fehlermeldung ab, die besagt, dass der Ausdruck vom Typ des alten Stempels erwartet wurde, aber der Typ des neuen Stempels übergeben wurde, obwohl beide im Quelltext identisch heißen.
-Da Typdefinitionen in OCaml generativ sind, gelten die beiden gleichnamigen Typen als verschieden und können nicht vereinheitlicht werden.
+In OCaml tritt durch die Kombination aus statischem Typsystem und interaktiver Toplevel-Umgebung das Problem der \textbf{Typgenerativität} auf.
+Jede im Toplevel ausgeführte Typdefinition erzeugt einen neuen Typ, auch wenn sie wörtlich mit einer früheren übereinstimmt.
+Funktionen, die vor der erneuten Ausführung definiert wurden, erwarten weiterhin den alten Typ und lehnen Werte des neuen Typs ab, obwohl beide im Quelltext gleich heißen.
+OCaml~5.4.1 meldet dies etwa als \glqq The value w has type t but an expression was expected of type t/2\grqq.
+Die OCaml-Fassung nennt das Problem selbst: Laut Kommentar in \texttt{ocaml/lib/nb.ml} wird jede Datei höchstens einmal geladen, \glqq since loading it again would create new, incompatible versions of the types it defines\grqq, und dasselbe gilt laut \texttt{notebook.ml} für Notizbücher, die mit \texttt{run\_notebook} geladen werden.
 
 \begin{observation}[\textbf{Das Antipattern generativer Toplevel-Typen}]
 Werden zentrale Domänentypen für Automaten oder Syntaxbäume direkt in gewöhnlichen Notebook-Zellen definiert, macht jede wiederholte Ausführung dieser Zellen alle zuvor deklarierten Funktionen und bestehenden Datenstrukturen inkompatibel mit neu erzeugten Werten.
 Dies gilt für OCaml und, wie unten gezeigt, ebenso für F\#.
 \end{observation}
 
-Um dieses Problem im Vorlesungsbetrieb elegant zu beherrschen, nutzt die OCaml-Fassung des Curriculums ein zentrales Architekturmuster in der Hilfsdatei \texttt{ocaml/\allowbreak lib/\allowbreak nb.ml}.
-Sämtliche grundlegenden Typdefinitionen werden aus den Notizbüchern in separate Bibliotheksdateien ausgelagert und über einen abgesicherten, idempotenten Lademechanismus eingebunden:
+Um dieses Problem zu beherrschen, nutzt die OCaml-Fassung ein zentrales Muster in der Hilfsdatei \texttt{ocaml/\allowbreak lib/\allowbreak nb.ml}.
+Gemeinsame Typdefinitionen stehen in Bibliotheksdateien wie \texttt{fset.ml} oder in eigenen Notizbüchern wie \texttt{Types.ipynb} und werden über einen idempotenten Lademechanismus eingebunden:
 
 \lstinputlisting[language=Caml,caption={Idempotentes Laden von Typbibliotheken in OCaml (\texttt{ocaml/lib/nb.ml}).}]{listings/06-load_lib-ocaml.ml}
 
@@ -197,7 +194,7 @@ Ein versehentliches erneutes Ausführen einer Ladeanweisung bleibt damit ein vol
 
 In F\# tritt unter \texttt{dotnet-interactive} dasselbe Phänomen auf.
 Jede Zellausführung erzeugt eine neue dynamische Assembly, deren Definitionen frühere Definitionen gleichen Namens lediglich lexikalisch überdecken.
-Eine erneut ausgeführte Typdefinition erzeugt dabei einen neuen Typ (etwa \texttt{FSI\_0005.Expr} statt \texttt{FSI\_0003.Expr}); bereits vorhandene Funktionen und Werte verweisen weiterhin auf den alten Typ, sodass ihre Kombination mit neuen Werten zu Typfehlern führt, die zwei gleichnamige, aber verschiedene Typen nennen.
+Eine erneut ausgeführte Typdefinition erzeugt dabei einen neuen Typ (etwa \texttt{FSI\_0003.T} statt \texttt{FSI\_0002.T}); bereits vorhandene Funktionen und Werte verweisen weiterhin auf den alten Typ, sodass ihre Kombination mit neuen Werten zu Typfehlern führt, die zwei gleichnamige, aber verschiedene Typen nennen.
 Die F\#-Fassung begegnet dem wie OCaml durch Auslagerung: Wiederverwendbare Algorithmen und Automatentypen liegen in externen F\#-Skriptdateien und kompilierten Bibliotheken, die über Ladebefehle eingebunden werden.
 Dies trennt interaktiven Experimentiercode von stabilen Kernbibliotheken.
 
@@ -315,27 +312,21 @@ Diese Unterschiede sind Entscheidungen der jeweiligen Übersetzung, keine Eigens
 \label{sec:kernels_ergonomics}
 % ------------------------------------------------------------------------------
 
-Für den erfolgreichen Einsatz in Lehrveranstaltungen ist die Qualität und Verständlichkeit von Fehlermeldungen von herausragender Bedeutung, wenn Studierende fehlerhafte Grammatiken oder unvollständige Automaten programmieren.
+Wie verständlich Fehler gemeldet werden, zeigt der Top-down-Parser aus \cref{sec:pattern_matching}.
+Führt man Stroetmanns Python-Fassung mit fehlerhaften Eingaben aus, erhält man für eine fehlende schließende Klammer (\texttt{(1+2}) und für eine unvollständige Eingabe (\texttt{1+}) jeweils einen \texttt{IndexError} mit der Meldung \glqq list index out of range\grqq{} und für einen Operator an falscher Stelle (\texttt{1+*2}) einen \texttt{ValueError}; die im Code vorgesehene Meldung \glqq Parse Error: expected \texttt{")"}\grqq{} erscheint in keinem dieser Fälle.
+Die OCaml- und F\#-Fassung behandeln diese Fälle ausdrücklich per Musterabgleich und geben fachliche Meldungen aus.
 
-Beim Auftreten syntaktischer oder logischer Fehler zeigen sich deutliche Unterschiede zwischen den Laufzeitumgebungen:
-In Python werden Fehler erst während der tatsächlichen Ausführung als Laufzeitausnahmen mit oft unübersichtlich langen Aufrufstapeln gemeldet.
-Übergibt ein Studierender beispielsweise versehentlich eine Zeichenkette statt einer Zustandsmenge an eine Übergangsfunktion, bricht das Programm tief im Inneren einer Bibliotheksfunktion mit einer unspezifischen Ausnahmemeldung ab.
-Der eigentliche konzeptionelle Denkfehler bleibt für den Lernenden unsichtbar.
+Typfehler melden OCaml und F\# vor der Ausführung einer Zelle mit erwartetem und tatsächlichem Typ.
+Fehlende Fälle in Musterabgleichen melden beide Compiler als Warnung samt Gegenbeispiel, etwa unter OCaml~5.4.1 \glqq Warning 8 [partial-match]: this pattern-matching is not exhaustive.
+Here is an example of a case that is not matched: C\grqq{} und unter F\#~9 \glqq warning FS0025: Incomplete pattern matches on this expression.
+For example, the value 'C' may indicate a case not covered by the pattern(s)\grqq; in beiden Fällen wird der Code dennoch übersetzt und ausgeführt.
+Die didaktische Hürde beider Sprachen bleibt die Meldung bei neu definierten Typen nach Zellausführungen außerhalb der Reihe (\cref{sec:kernels_state_hazards}); sie lautet in OCaml etwa \glqq The value w has type t but an expression was expected of type t/2\grqq{} und in F\# \glqq This expression was expected to have type 'FSI\_0002.T' but here has type 'FSI\_0003.T'\grqq.
 
-In OCaml greift der Compiler bereits vor der Ausführung ein.
-Typfehler werden im Programmtext exakt lokalisiert und mit visuellen Unterstreichungen versehen.
-Versucht man, einer Funktion, die eine Menge erwartet, eine einfache Ganzzahl zu übergeben, erklärt der Typchecker unmissverständlich, welcher Typ erwartet und welcher tatsächlich vorgefunden wurde.
-Die einzige didaktische Hürde bleibt die zuvor beschriebene Meldung bei inkonsistenten Typstempeln nach Zellausführungen außerhalb der Reihe.
-Fehlende Fälle in Musterabgleichen meldet der Compiler mit Warnung~8 samt Gegenbeispiel.
-
-In F\# liefert der Compiler-Dienst strukturierte Diagnosen inklusive offizieller Fehlernummern.
-Von großem didaktischem Wert ist dabei, wie in OCaml, die statische Vollständigkeitsprüfung bei Musterabgleichen: Vergisst ein Studierender bei der Implementierung eines AST-Interpreters einen Sprachoperator, gibt der Compiler eine Warnung (FS0025) mit einem konkreten Gegenbeispiel aus, welcher Fall nicht abgedeckt wurde; die Zelle wird dennoch übersetzt und ausgeführt.
-Auf diese Weise fungiert das Typsystem als ein kontinuierlicher, automatisierter Tutor.
-
-Für den universitären Großbetrieb ist zudem die vollautomatische Überprüfung aller Lehrmaterialien in Continuous-Integration-Pipelines essenziell:
-In Python wird dies über Testframeworks und automatisierte Notebook-Clients gelöst, die alle Notizbücher sequenziell durchrechnen und auf ungefangene Ausnahmen prüfen.
-In OCaml stellt das Curriculum ein eigenständiges Prüfwerkzeug (\texttt{ocaml/tools/check.py}) bereit, das alle OCaml-Notizbücher ohne Browser im Kernel ausführt und jede Zelle meldet, die unerwartet fehlschlägt; da der Kernel jede Zelle vor der Ausführung typprüft, schließt dies die Typprüfung aller Notizbücher ein.
-In F\# ist die Qualitätssicherung mehrstufig aufgebaut: Ein zentrales Prüfskript erlaubt die formale Prüfung von Zell-Metadaten, eine schnelle Gesamtkompilierung über den kopflosen (headless) F\#-Interactive-Compiler sowie einen vollständigen End-to-End-Test im echten Jupyter-Kernel inklusive der Validierung aller gerenderten Vektorgrafiken.
+Auch die Überprüfung der Notizbücher selbst ist in den drei Fassungen verschieden gelöst:
+Stroetmanns Python-Fassung enthält eigene Test-Notizbücher, etwa \texttt{Chapter-04-05/02-Test-NFA-2-DFA.ipynb} oder \texttt{08-Test-Minimize.ipynb}, die die Algorithmen an Beispielen prüfen; ein Werkzeug, das alle Notizbücher automatisch ausführt, gibt es im Python-Verzeichnis nicht.
+Die OCaml-Fassung stellt ein eigenständiges Prüfwerkzeug (\texttt{ocaml/tools/check.py}) bereit, das alle OCaml-Notizbücher ohne Browser im Kernel ausführt und jede Zelle meldet, die unerwartet fehlschlägt; da der Kernel jede Zelle vor der Ausführung typprüft, schließt dies die Typprüfung aller Notizbücher ein.
+Die F\#-Fassung prüft mit \texttt{f\#/tools/notebooks.py} in drei Stufen: Die Stufe \texttt{check} stellt sicher, dass jedes Python-Notizbuch eine F\#-Entsprechung hat, und prüft Format, Kernel, Zellkennungen sowie das Fehlen von Python-Resten, \texttt{assert}-Anweisungen und gespeicherten Ausgaben; die Stufen \texttt{fsi} und \texttt{jupyter} führen alle Notizbücher in F\# Interactive bzw. im echten Jupyter-Kernel aus.
+Statt \texttt{assert}, das Python mit der Option \texttt{-O} abschaltet, verwenden die F\#-Notizbücher eine stets aktive Funktion \texttt{checkNotebook}.
 
 Zusammenfassend lässt sich festhalten: Während Python den leichtesten Einstieg bietet, birgt seine dynamische Zustandsverwaltung erhebliche Risiken für unbemerkt verschleppte Fehlerzustände.
 OCaml überzeugt durch statische Korrektheit und einen geringen Speicherbedarf im Leerlauf, verlangt jedoch durch seine Typgenerativität eine disziplinierte Modulkapselung.
