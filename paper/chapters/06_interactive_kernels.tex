@@ -5,9 +5,9 @@
 \label{chap:interactive_kernels}
 \selectlanguage{ngerman}
 
-Interaktive Rechenhefte, sogenannte Computational Notebooks, wie sie durch das Jupyter-Projekt weltweit in Forschung und akademischer Lehre etabliert wurden~\cite{kluyver2016jupyter,perez2007ipython}, haben den Unterricht in der theoretischen und angewandten Informatik grundlegend verändert.
-Im Kontext der formalen Sprachen, der Automatentheorie und des Compilerbaus ersetzen sie statische Tafelbilder und isolierte Pseudocode-Beispiele durch unmittelbar ausführbare mathematische Modelle.
-Studierende können nichtdeterministische endliche Automaten definieren, Potenzmengenkonstruktionen zur Determinierung anstoßen, Zustandsminimierungen über Äquivalenzklassenzerlegungen durchführen und die resultierenden Übergangsgraphen sowie Syntaxbäume direkt im Webbrowser als Vektorgrafiken betrachten.
+Stroetmann unterrichtet seine Vorlesung mit Jupyter-Notizbüchern~\cite{kluyver2016jupyter,perez2007ipython}, auf die das Skript Kapitel für Kapitel verweist~\cite{stroetmann2026formal}.
+Studierende definieren darin nichtdeterministische endliche Automaten, führen die Potenzmengenkonstruktion und die Minimierung aus und betrachten die entstehenden Übergangsgraphen und Syntaxbäume direkt im Webbrowser als Vektorgrafiken.
+Für die OCaml- und F\#-Übersetzungen bedeutet das, dass nicht nur die Algorithmen, sondern auch diese interaktive Arbeitsweise in einen anderen Jupyter-Kernel übertragen werden muss.
 
 Aus softwarearchitektonischer Sicht stellt der Betrieb komplexer symbolischer Algorithmen in einer interaktiven Notebook-Umgebung jedoch erhebliche Anforderungen an die zugrunde liegende Sprachlaufzeit.
 Der Programmcode wird nicht mehr als in sich geschlossenes Batch-Skript von Anfang bis Ende in einem flüchtigen Einzelprozess ausgeführt.
@@ -190,17 +190,7 @@ Dies gilt für OCaml und, wie unten gezeigt, ebenso für F\#.
 Um dieses Problem im Vorlesungsbetrieb elegant zu beherrschen, nutzt die OCaml-Fassung des Curriculums ein zentrales Architekturmuster in der Hilfsdatei \texttt{ocaml/\allowbreak lib/\allowbreak nb.ml}.
 Sämtliche grundlegenden Typdefinitionen werden aus den Notizbüchern in separate Bibliotheksdateien ausgelagert und über einen abgesicherten, idempotenten Lademechanismus eingebunden:
 
-\begin{lstlisting}[language=Caml,caption={Idempotentes Laden von Typbibliotheken in OCaml (\texttt{ocaml/lib/nb.ml}).}]
-let loaded_libs : (string, unit) Hashtbl.t = Hashtbl.create 8
-
-let load_lib (file : string) : unit =
-  if not (Hashtbl.mem loaded_libs file) then begin
-    if not (Toploop.use_silently Format.std_formatter
-              (Toploop.File (Filename.concat lib_dir file))) then
-      failwith ("could not load " ^ file);
-    Hashtbl.add loaded_libs file ()
-  end
-\end{lstlisting}
+\lstinputlisting[language=Caml,caption={Idempotentes Laden von Typbibliotheken in OCaml (\texttt{ocaml/lib/nb.ml}).}]{listings/06-load_lib-ocaml.ml}
 
 Durch die Protokollierung in einer globalen Hashtabelle und die Ausführung über die interne Compilerfunktion \texttt{Toploop.use\_silently} wird sichergestellt, dass jede Typbibliothek während der gesamten Lebensdauer des Kernels exakt ein einziges Mal kompiliert wird.
 Ein versehentliches erneutes Ausführen einer Ladeanweisung bleibt damit ein vollkommen unschädlicher Leerschritt, und bestehende Baumstrukturen behalten ihre gültige Typidentität.
@@ -216,173 +206,106 @@ Dies trennt interaktiven Experimentiercode von stabilen Kernbibliotheken.
 \label{sec:kernels_visualization}
 % ------------------------------------------------------------------------------
 
-In der universitären Lehre der formalen Sprachen sind visuelle Repräsentationen unverzichtbar.
-Ein komplexer Übergangsgraph eines Automaten mit Dutzenden Zuständen oder ein tiefer Ableitungsbaum eines LR-Parsers ist in reiner Textform oder als verschachtelte Tupelstruktur für das menschliche Auge kaum erfassbar.
-Die unmittelbare Generierung von Vektorgrafiken mittels Graphviz und deren direkte Einbettung im Notebook gehören daher zu den didaktischen Kernfunktionen des Curriculums.
-
-Die drei Sprachwelten nutzen grundlegend verschiedene Ansätze, um interne Datenstrukturen in Graphviz-DOT-Grafiken zu überführen und über den Jupyter-IOPub-Kanal an den Browser zu übermitteln (\Cref{fig:visualization_pipelines}):
+In Stroetmanns Vorlesung sind visuelle Darstellungen allgegenwärtig: Das Skript zeigt Automaten und Parse-Bäume durchgehend als Graphen, und die Notizbücher erzeugen diese Graphen mit Graphviz direkt im Browser.
+Alle drei Fassungen gehen dabei in denselben vier Schritten vor (\Cref{fig:visualization_pipelines}): Sie nummerieren die Knoten eines Baums, beschreiben den Graphen in der Sprache DOT, lassen das Programm \texttt{dot} daraus SVG erzeugen und zeigen das Ergebnis im Notizbuch an.
+Die Unterschiede liegen in der Umsetzung der einzelnen Schritte.
 
 \begin{figure}[htbp]
   \centering
   \resizebox{\linewidth}{!}{%
   \begin{tikzpicture}[
-    node distance=1.2cm and 0.8cm,
-    proc/.style={rectangle, rounded corners=3pt, draw=NavyBlue!80, thick, fill=CodeBg, minimum width=2.4cm, minimum height=0.9cm, align=center, font=\scriptsize\sffamily},
-    data/.style={ellipse, draw=ForestGreen!80, thick, fill=ForestGreen!5, minimum width=2.0cm, minimum height=0.7cm, align=center, font=\scriptsize\ttfamily},
+    proc/.style={rectangle, rounded corners=3pt, draw=NavyBlue!80, thick, fill=CodeBg, minimum width=2.6cm, minimum height=0.9cm, align=center, font=\scriptsize\sffamily},
     flow/.style={thick, -{Stealth[length=2mm]}, NavyBlue!80}
   ]
-    % Python Pipeline
-    \node[proc, fill=PythonBlue!10, draw=PythonBlue] (py_ast) at (0, 0) {\textbf{Python}\\\texttt{Node} / Dict};
-    \node[data] (py_dot) at (3.0, 0) {DOT-String};
-    \node[proc] (py_sub) at (6.0, 0) {\texttt{graphviz.Source}\\Subprozess-Pipe};
-    \node[data] (py_svg) at (9.0, 0) {SVG-Vektordaten};
-    \node[proc, fill=PythonBlue!10, draw=PythonBlue] (py_io) at (12.0, 0) {IPython-Display\\\tiny Rich-Media-Protokoll};
+    \node[font=\scriptsize\bfseries\sffamily] at (0, 0.9) {Nummerierung};
+    \node[font=\scriptsize\bfseries\sffamily] at (3.4, 0.9) {DOT-Beschreibung};
+    \node[font=\scriptsize\bfseries\sffamily] at (6.8, 0.9) {Aufruf von \texttt{dot}};
+    \node[font=\scriptsize\bfseries\sffamily] at (10.2, 0.9) {Anzeige};
 
-    \draw[flow] (py_ast) -- (py_dot);
-    \draw[flow] (py_dot) -- (py_sub);
-    \draw[flow] (py_sub) -- (py_svg);
-    \draw[flow] (py_svg) -- (py_io);
+    \node[proc, fill=PythonBlue!10, draw=PythonBlue] (p1) at (0, 0) {\textbf{Python}\\\texttt{assign\_numbers}\\Wörterbuch};
+    \node[proc] (p2) at (3.4, 0) {\texttt{gv.Digraph}\\\texttt{node} / \texttt{edge}};
+    \node[proc] (p3) at (6.8, 0) {Paket \texttt{graphviz}};
+    \node[proc] (p4) at (10.2, 0) {SVG-Ausgabe\\der Zelle};
+    \draw[flow] (p1) -- (p2); \draw[flow] (p2) -- (p3); \draw[flow] (p3) -- (p4);
 
-    % OCaml Pipeline
-    \node[proc, fill=OCamlOrange!10, draw=OCamlOrange] (ml_ast) at (0, -1.6) {\textbf{OCaml}\\\texttt{Graphviz.t} DSL};
-    \node[data] (ml_file1) at (3.0, -1.6) {Temp-DOT-Datei};
-    \node[proc] (ml_sub) at (6.0, -1.6) {\texttt{Sys.command}\\CLI \texttt{dot -Tsvg}};
-    \node[data] (ml_file2) at (9.0, -1.6) {Temp-SVG-Datei};
-    \node[proc, fill=OCamlOrange!10, draw=OCamlOrange] (ml_io) at (12.0, -1.6) {\texttt{send\_iopub}\\\tiny $50\text{ ms}$ Pufferpause};
+    \node[proc, fill=OCamlOrange!10, draw=OCamlOrange] (o1) at (0, -1.4) {\textbf{OCaml}\\\texttt{assign\_numbers}\\Hashtabelle};
+    \node[proc] (o2) at (3.4, -1.4) {\texttt{Graphviz.digraph}\\Nachbau der Python-API};
+    \node[proc] (o3) at (6.8, -1.4) {\texttt{dot\_to\_svg}\\temporäre Dateien};
+    \node[proc] (o4) at (10.2, -1.4) {\texttt{display}\\50 ms Pause};
+    \draw[flow] (o1) -- (o2); \draw[flow] (o2) -- (o3); \draw[flow] (o3) -- (o4);
 
-    \draw[flow] (ml_ast) -- (ml_file1);
-    \draw[flow] (ml_file1) -- (ml_sub);
-    \draw[flow] (ml_sub) -- (ml_file2);
-    \draw[flow] (ml_file2) -- (ml_io);
-
-    % F# Pipeline
-    \node[proc, fill=FSharpPurple!10, draw=FSharpPurple] (fs_ast) at (0, -3.2) {\textbf{F\#}\\\texttt{Tree} ADT};
-    \node[data] (fs_num) at (3.0, -3.2) {Pre-Order-Pfade\\\tiny \texttt{assignNumbers}};
-    \node[proc] (fs_sub) at (6.0, -3.2) {\texttt{ProcessStartInfo}\\Async Stdio-Streams};
-    \node[data] (fs_svg) at (9.0, -3.2) {Reiner SVG-String};
-    \node[proc, fill=FSharpPurple!10, draw=FSharpPurple] (fs_io) at (12.0, -3.2) {\texttt{Kernel.display}\\\tiny HTML-Container};
-
-    \draw[flow] (fs_ast) -- (fs_num);
-    \draw[flow] (fs_num) -- (fs_sub);
-    \draw[flow] (fs_sub) -- (fs_svg);
-    \draw[flow] (fs_svg) -- (fs_io);
+    \node[proc, fill=FSharpPurple!10, draw=FSharpPurple] (f1) at (0, -2.8) {\textbf{F\#}\\\texttt{assignNumbers}\\\texttt{Map}};
+    \node[proc] (f2) at (3.4, -2.8) {\texttt{treeToDot}\\\texttt{StringBuilder}};
+    \node[proc] (f3) at (6.8, -2.8) {\texttt{renderDot}\\Standardein-/ausgabe};
+    \node[proc] (f4) at (10.2, -2.8) {\texttt{Kernel.display}\\als HTML};
+    \draw[flow] (f1) -- (f2); \draw[flow] (f2) -- (f3); \draw[flow] (f3) -- (f4);
   \end{tikzpicture}%
   }
-  \caption{Datenfluss der Graphviz-Visualisierungspipelines in Python, OCaml und F\#.}
+  \caption{Die vier Schritte der Baumvisualisierung in den Notizbüchern der drei Fassungen.}
   \label{fig:visualization_pipelines}
 \end{figure}
 
-In Python greift die Implementierung auf das externe Paket \texttt{graphviz} zurück.
-Ein Objekt erzeugt die DOT-Grafikbeschreibung und ruft über das Betriebssystem den Graphviz-Befehl auf.
-Über eine spezielle Anzeigemethode erkennt IPython, dass eine Vektorgrafik vorliegt, und überträgt das fertige Bild als SVG-Datenpaket über den IOPub-Kanal direkt an das Webinterface.
-Dieser Ablauf ist unkompliziert; in der Python-Fassung werden eindeutige Knotennamen manuell verwaltet, um Namenskollisionen bei gleichnamigen Zuständen oder Grammatikelementen zu verhindern.
+\paragraph{Nummerierung der Knoten.}
+In Parse-Bäumen kommen gleiche Beschriftungen wie Pluszeichen oder Nichtterminale mehrfach vor, sodass sie nicht als Knotennamen in DOT taugen.
+Bereits Stroetmanns Python-Notizbuch \texttt{AST2Dot.ipynb} löst dieses Problem, indem es jedem Knoten über seine Pfadadresse im Baum eine laufende Nummer in Vorordnung zuweist; die OCaml- und F\#-Fassung übernehmen dieses Verfahren (\Cref{fig:assign_numbers}).
 
-Für OCaml existiert mit \texttt{ocamlgraph} zwar eine Graphbibliothek mit DOT-Export, aber keine auf Notizbücher zugeschnittene Anzeige.
-Die Autoren des Curriculums entwickelten daher eine eigenständige, schlanke Graphviz-Abstraktion in den Modulen \texttt{graphviz.ml} und \texttt{notebook.ml}.
-Das Modul erlaubt den schrittweisen Aufbau gerichteter Graphen und übergibt die fertige Beschreibung an eine Ausführungsfunktion:
+\begin{figure}[htbp]
+\lstinputlisting[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-06/AST2Dot.ipynb}, Zelle 9}]{listings/06-assign_numbers-python.py}
+\lstinputlisting[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-06/AST2Dot.ipynb}, Zelle 9}]{listings/06-assign_numbers-ocaml.ml}
+\lstinputlisting[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Support/Visualization.fsx}}]{listings/06-assign_numbers-fsharp.fs}
+\caption{Nummerierung der Baumknoten über Pfadadressen in den drei Fassungen.}
+\label{fig:assign_numbers}
+\end{figure}
 
-\begin{lstlisting}[language=Caml,caption={Subprozess-Ausführung und IOPub-Pufferung in OCaml.}]
-let display mime s =
-  ignore (Jupyter_notebook.display mime s);
-  Unix.sleepf 0.05
+Die drei Fassungen interpretieren dasselbe Verfahren unterschiedlich.
+Python stellt Bäume als verschachtelte Tupel dar, erkennt Blätter über \texttt{isinstance}-Abfragen, trägt die Nummern in ein übergebenes Wörterbuch ein und führt den Zähler in einer Schleife mit; die Schleifenvariable \texttt{t} überdeckt dabei sogar den Parameter gleichen Namens.
+OCaml übersetzt das wörtlich: Ein Variantentyp ersetzt die \texttt{isinstance}-Abfragen, eine Hashtabelle das Wörterbuch und eine veränderliche Referenz den Zähler.
+F\# formuliert die Funktion ohne veränderlichen Zustand: Die Abbildung von Adressen auf Nummern wird als unveränderliche \texttt{Map} durch die Rekursion gereicht, und \texttt{List.fold} führt Zähler und Abbildung als Paar mit; das Ergebnis ist eine neue Abbildung statt einer veränderten.
+Auch das Baum-Modell ist kleiner: F\# kennt nur Blätter und innere Knoten mit Beschriftung, während Python und OCaml Zeichenketten, ganze Zahlen und Gleitkommazahlen als Blätter unterscheiden.
 
-let dot_to_svg ?(engine = "dot") (dot : string) : string =
-  let input = Filename.temp_file "graph" ".dot" in
-  let output = Filename.temp_file "graph" ".svg" in
-  write_file input dot;
-  let cmd = Printf.sprintf "dot -K%s -Tsvg %s -o %s" 
-              (Filename.quote engine) (Filename.quote input) (Filename.quote output) in
-  if Sys.command cmd <> 0 then failwith "dot failed";
-  let svg = read_file output in
-  Sys.remove input; Sys.remove output;
-  svg
+\paragraph{DOT-Beschreibung.}
+Python verwendet das Paket \texttt{graphviz}, dessen Objekt \texttt{Digraph} Knoten und Kanten über die Methoden \texttt{node} und \texttt{edge} sammelt.
+Die OCaml-Fassung bildet genau diese Schnittstelle in einem eigenen Modul \texttt{ocaml/lib/graphviz.ml} nach; sein Kommentar stellt jedem Python-Aufruf das OCaml-Gegenstück gegenüber, und intern speichert ein Record mit veränderlichen Feldern die gesammelten Zeilen.
+Für OCaml existiert mit \texttt{ocamlgraph} zwar eine Graphbibliothek mit DOT-Export; die Übersetzung hält sich mit dem eigenen Modul aber so nah wie möglich an Stroetmanns Python-Code.
+F\# erzeugt den DOT-Text direkt mit einem \texttt{StringBuilder} in der Funktion \texttt{treeToDot}.
 
-let display_svg s = display "image/svg+xml" s
-\end{lstlisting}
+\paragraph{Aufruf von \texttt{dot} und Anzeige.}
+\Cref{fig:render_dot} zeigt, wie OCaml und F\# das Programm \texttt{dot} aufrufen; in Python übernimmt das Paket \texttt{graphviz} diesen Schritt.
 
-Bei dieser Implementierung fallen zwei bemerkenswerte Details auf:
-Erstens erfolgt der Aufruf des externen Graphviz-Werkzeugs dateibasiert über temporäre Dateien im Dateisystem.
-Der DOT-Quelltext wird auf die Festplatte geschrieben, der Prozess \texttt{dot} über den Systembefehl aufgerufen, das erzeugte Vektorbild eingelesen und beide Zwischendateien anschließend wieder gelöscht.
-Zweitens enthält die Anzeigefunktion eine bewusste Pause von 50 Millisekunden nach dem Absenden der Grafik an den IOPub-Kanal.
-Da Ausgaben und Ausführungsbestätigungen über getrennte ZeroMQ-Sockets laufen, könnte ein automatisches Testwerkzeug das Zellenende bereits registrieren, bevor das Bild vollständig im Frontend angekommen ist.
-Die kurze Wartezeit stellt sicher, dass die Grafikpuffer zuverlässig geleert werden.
-Zudem bietet die OCaml-Umgebung über eine direkte JSON-Paketkonstruktion die Möglichkeit, auch statistische Diagramme im Vega-Lite-Format ohne externe Grafiktreiber direkt darzustellen.
+\begin{figure}[htbp]
+\lstinputlisting[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{ocaml/lib/notebook.ml} (Auszug)}]{listings/06-render_dot-ocaml.ml}
+\lstinputlisting[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Support/Visualization.fsx} (Auszug)}]{listings/06-render_dot-fsharp.fs}
+\caption{Aufruf des Programms \texttt{dot} in OCaml und F\#.}
+\label{fig:render_dot}
+\end{figure}
 
-Die F\#-Implementierung in der Datei \texttt{Visualization.fsx} zeichnet sich durch eine architektonisch besonders saubere Trennung und Prozessbehandlung aus:
-
-\begin{lstlisting}[language=FSharp,caption={Eindeutige Pfadadressierung und Stream-Piping in F\#.}]
-type Tree = Leaf of string | Node of string * Tree list
-
-/// Pre-Order-Pfade unterscheiden identische Bezeichner ohne Objektreferenzen.
-let assignNumbers tree =
-    let rec visit address next tree numbers =
-        let numbers = Map.add address next numbers
-        match tree with
-        | Leaf _ -> next + 1, numbers
-        | Node (_, children) ->
-            children
-            |> List.indexed
-            |> List.fold (fun (counter, known) (index, child) ->
-                visit (address @ [index]) counter child known) (next + 1, numbers)
-    visit [] 0 tree Map.empty |> snd
-
-let renderDot (dot: string) =
-    let settings = ProcessStartInfo("dot")
-    settings.ArgumentList.Add "-Tsvg"
-    settings.UseShellExecute <- false
-    settings.RedirectStandardInput <- true
-    settings.RedirectStandardOutput <- true
-    use graphviz = new Process(StartInfo = settings)
-    graphviz.Start() |> ignore
-    let output = graphviz.StandardOutput.ReadToEndAsync()
-    graphviz.StandardInput.Write dot
-    graphviz.StandardInput.Close()
-    graphviz.WaitForExit()
-    output.GetAwaiter().GetResult()
-\end{lstlisting}
-
-Dieser Entwurf bietet zwei entscheidende Vorteile:
-Erstens löst die Funktion \texttt{assignNumbers} das Problem wiederkehrender Bezeichner im Syntaxbaum auf rein mathematisch-strukturelle Weise.
-In Parse-Bäumen treten identische Nichtterminale und Operatoren wie Pluszeichen naturgemäß mehrfach auf.
-Statt auf veränderliche globale Zähler oder Objektreferenzen im Speicher zurückzugreifen, nummeriert F\# jeden Knoten anhand seiner eindeutigen Pfadkoordinate in der Pre-Order-Traversierung des Baumes.
-Zweitens verzichtet F\# vollständig auf temporäre Dateien auf der Festplatte.
-Über die asynchronen Standard-Eingabe- und Ausgabe-Streams der .NET-Prozessverwaltung wird der Quelltext direkt in den laufenden Graphviz-Prozess gestreamt und das fertige Vektorbild unmittelbar aus dem Ausgabestrom im Hauptspeicher empfangen.
-Dies vermeidet Festplattenzugriffe, Zugriffsrechteprobleme und Dateikollisionen vollständig.
-Beide Vorteile sind Entscheidungen der Implementierung und keine Eigenschaften der Sprache: Pfadbasierte Knotennummern und Stream-Piping ließen sich ebenso in Python (\texttt{subprocess}) und OCaml (\texttt{Unix.open\_process}) umsetzen.
+Die OCaml-Fassung schreibt den DOT-Text in eine temporäre Datei, ruft \texttt{dot} über \texttt{Sys.command} und damit über die Shell auf, liest das Ergebnis aus einer zweiten temporären Datei und löscht beide Dateien wieder.
+Ihre Anzeigefunktion wartet nach jeder Ausgabe 50 Millisekunden; der Kommentar in \texttt{notebook.ml} begründet dies damit, dass der Kernel angezeigte Objekte asynchron weiterleitet und ein Werkzeug wie \texttt{jupyter nbconvert} sie ohne die Pause verlieren kann.
+Die F\#-Fassung startet \texttt{dot} ohne Shell, schreibt den DOT-Text in dessen Standardeingabe und liest das SVG aus der Standardausgabe, sodass keine Dateien entstehen.
+Sie liest die Fehlerausgabe parallel mit, prüft den Rückgabewert von \texttt{dot} und gibt verständliche Meldungen aus, wenn Graphviz fehlt oder scheitert; die OCaml-Fassung meldet in beiden Fällen nur \glqq dot failed\grqq.
+Angezeigt wird das SVG in F\# über \texttt{Kernel.display} als HTML.
+Diese Unterschiede sind Entscheidungen der jeweiligen Übersetzung, keine Eigenschaften der Sprachen: Eine Anbindung über Standardein- und -ausgabe wäre auch in OCaml möglich.
 
 \begin{table}[htbp]
   \centering
   \footnotesize
-  \caption{Vergleich der technischen Umsetzungen der Vektorgrafik-Pipelines.}
+  \caption{Umsetzung der Baumvisualisierung in den Notizbüchern der drei Fassungen.}
   \label{tab:visualization_comparison}
-  \begin{tabularx}{\textwidth}{lXXX}
+  \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
     \toprule
     \textbf{Kriterium} & \textbf{Python 3.13} & \textbf{OCaml 5.4} & \textbf{F\# 9.0 (.NET 9)} \\
     \midrule
-    \textbf{Graphkonstruktion} &
-      Objektorientiert via Hilfsbibliothek &
-      Funktionale DSL-Datensätze &
-      Algebraischer Baumtyp und Stringbuilder \\
+    \textbf{Knotennummern} & Pfadadressen, Wörterbuch und Zähler (Original) & Pfadadressen, Hashtabelle und \texttt{ref} & Pfadadressen, unveränderliche \texttt{Map} und \texttt{fold} \\
     \addlinespace[3pt]
-    \textbf{Knoten-Eindeutigkeit (Implementierung)} &
-      Manuelle Verwaltung von ID-Strings &
-      Manuelle Verwaltung von ID-Strings &
-      Automatische strukturelle Pre-Order-Adressierung \\
+    \textbf{Graphkonstruktion} & Objekt \texttt{gv.Digraph} des Pakets \texttt{graphviz} & Eigener Nachbau der Python-API mit veränderlichem Record & \texttt{StringBuilder} in \texttt{treeToDot} \\
     \addlinespace[3pt]
-    \textbf{Subprozess-Anbindung} &
-      Gepuffertes Pipe-Verfahren &
-      Temporäre Dateien im Dateisystem &
-      Direktes asynchrones Stream-Piping im Speicher \\
+    \textbf{Aufruf von \texttt{dot}} & Über das Paket \texttt{graphviz} & Shell-Aufruf mit temporären Dateien & Ohne Shell über Standardein- und -ausgabe \\
     \addlinespace[3pt]
-    \textbf{MIME-Übertragung} &
-      Standard-SVG-Format &
-      SVG mit Pufferpause von 50 ms &
-      HTML-Container über Kernelfunktion \\
+    \textbf{Fehlermeldungen} & Durch das Paket \texttt{graphviz} & \glqq dot failed\grqq{} & Fehlende Installation und Fehlerausgabe von \texttt{dot} \\
     \addlinespace[3pt]
-    \textbf{Externe Abhängigkeit} &
-      PyPI-Paket \texttt{graphviz} und Graphviz-Programm \texttt{dot} &
-      Eigene Module; Graphviz-Programm \texttt{dot} &
-      Eigenes Skript; Graphviz-Programm \texttt{dot} \\
+    \textbf{Anzeige} & SVG-Ausgabe der Zelle & SVG mit Pause von 50 ms & HTML über \texttt{Kernel.display} \\
+    \addlinespace[3pt]
+    \textbf{Abhängigkeiten} & Paket \texttt{graphviz} und Programm \texttt{dot} & Eigene Module und Programm \texttt{dot} & Eigenes Skript und Programm \texttt{dot} \\
     \bottomrule
   \end{tabularx}
 \end{table}

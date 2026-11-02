@@ -28,7 +28,7 @@
   {\huge\bfseries\color{NavyBlue}
     Sprachparadigmen, Typsysteme und Ausf{\"u}hrungsdynamik:\\[0.35em]
     \Large Eine vergleichende Studie von Python, OCaml und F\#\\
-    in der formalen Sprachverarbeitung und im Compilerbau\par}
+    anhand der Vorlesung \glqq Formale Sprachen\grqq{} von Karl Stroetmann\par}
   \vspace{0.3cm}
   \rule{\textwidth}{1.5pt}\\[1.5cm]
 
@@ -58,7 +58,7 @@
     };
     \node[box, fill=FSharpPurple!10, draw=FSharpPurple] (fs) at (10.4,0) {
       \textbf{\color{FSharpPurple}F\# 9.0 (.NET 9)}\\
-      Nominale ADTs $\cdot$ Active Patterns\\
+      Nominale ADTs $\cdot$ Pipelines\\
       \texttt{FsLexYacc} $\cdot$ CoreCLR RyuJIT
     };
     \draw[<->, thick, NavyBlue!70] (py) -- (ml);
@@ -69,8 +69,8 @@
   \vfill
 
   {\large
-    Institut f{\"u}r Informatik\\
-    Formale Sprachen, Automatentheorie und Compilerbau\\[0.8em]
+    Grundlage: Vorlesung \glqq Formale Sprachen\grqq{} von Prof.~Dr.~Karl Stroetmann\\
+    Duale Hochschule Baden-W{\"u}rttemberg Mannheim\\[0.8em]
     \today\par}
 \end{titlepage}
 
@@ -80,15 +80,16 @@
 \chapter*{Kurzzusammenfassung}
 \addcontentsline{toc}{chapter}{Kurzzusammenfassung}
 
-Die Theorie der formalen Sprachen, die Automatentheorie und der Compilerbau bilden ein unverzichtbares Fundament der Informatik.
-Ihre zentralen Abstraktionen---reguläre Ausdrücke, nichtdeterministische und deterministische endliche Automaten, kontextfreie Grammatiken, Schiebe-Reduziere-Parsertabellen für LR- und LALR-Verfahren, abstrakte Syntaxbäume und Stack-Maschinen-Compiler---stellen höchste Anforderungen an das Typsystem, die Musterabgleichssemantik, die Datenstrukturen und die Ausführungsleistung einer Programmiersprache.
+Grundlage dieser Arbeit ist der Formale-Sprachen-Unterricht an der DHBW Mannheim vom legendären Karl Stroetmann.
+Zu seiner Vorlesung hat Prof.~Dr.~Karl Stroetmann das Skript \emph{The Parse Tree of Knowledge -- Formal Languages and Their Applications} verfasst, dessen 13 Kapitel von regulären Ausdrücken, Scannern und endlichen Automaten über kontextfreie Grammatiken, den Earley-Parser und SLR-, LR- und LALR-Parser bis zu einem Compiler für die C-Teilmenge Integer-C reichen~\cite{stroetmann2026formal}.
+Zu jedem Thema stellt er Jupyter-Notizbücher in Python bereit.
 
-Diese Monographie präsentiert eine empirisch gestützte vergleichende Evaluation dreier paralleler Implementierungen eines dreizehn Kapitel umfassenden Curriculums der formalen Sprachen, bereitgestellt in Form interaktiver Jupyter-Notebooks.
+Diese Monographie vergleicht Stroetmanns originale Python-Notizbücher mit zwei daraus entstandenen Übersetzungen nach OCaml und F\#.
 Die drei Fassungen decken dieselben Themen ab, sind aber nicht deckungsgleich: Sie umfassen 49 (Python), 50 (OCaml) und 56 (F\#) Notizbücher.
 \begin{enumerate}
-  \item \textbf{Python 3.13 (CPython)}, als Repräsentant dynamischer Duck-Typisierung mit optionalen Typhilfen nach PEP~484, hashbasierten unveränderlichen Mengensammlungen (\texttt{frozenset}) und laufzeitbasierten Parsergeneratoren (vorwiegend \texttt{Lark}, vereinzelt \texttt{PLY});
+  \item \textbf{Python 3.13 (CPython)}, die Originalfassung von Karl Stroetmann, als Repräsentant dynamischer Duck-Typisierung mit optionalen Typhilfen nach PEP~484, hashbasierten unveränderlichen Mengensammlungen (\texttt{frozenset}) und laufzeitbasierten Parsergeneratoren (vorwiegend \texttt{Lark}, vereinzelt \texttt{PLY});
   \item \textbf{OCaml 5.4}, als klassischer Vertreter des Hindley--Milner-Typsystems mit statischer Typinferenz, algebraischen Summentypen, eigenen polymorphen und unveränderlichen Mengen (\texttt{FSet}) und Ahead-of-Time-Parsergenerierung (\texttt{ocamllex}, \texttt{Menhir}); sowie
-  \item \textbf{F\# 9.0 unter .NET 9 CoreCLR}, als moderne, pragmatische funktionale Sprache mit nominalen discriminated unions, erweiterbaren aktiven Mustern (Active Patterns), vorab kompilierten \texttt{FsLexYacc}-Bibliotheken und nativer RyuJIT-Codeerzeugung.
+  \item \textbf{F\# 9.0 unter .NET 9 CoreCLR}, als moderne, pragmatische funktionale Sprache mit nominalen discriminated unions, Pipeline-Operator und Sequenzausdrücken, vorab kompilierten \texttt{FsLexYacc}-Bibliotheken und nativer RyuJIT-Codeerzeugung.
 \end{enumerate}
 
 Anstelle subjektiver Umfragen untersucht diese Studie die intrinsischen technischen Eigenschaften der drei Sprachplattformen entlang fünf orthogonaler Dimensionen: erstens die Typsystem-Architektur und ihre statischen Korrektheitsgarantien, zweitens die syntaktische Ausdrucksstärke und algorithmische Eleganz, drittens die Funktionsweise der Lexer- und Parser-Werkzeuge, viertens die empirische Rechenleistung und Speicherbelegung in isolierten Mikrobenchmarks sowie vollständigen Notizbuch-Läufen und fünftens die Architektur und Zustandsisolation der interaktiven Jupyter-Kernel.

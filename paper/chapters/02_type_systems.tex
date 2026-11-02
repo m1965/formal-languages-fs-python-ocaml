@@ -4,9 +4,9 @@
 \chapter{Typsystem-Architektur und statische Korrektheit}
 \label{chap:type_systems}
 
-In den theoretischen Grundlagen der Informatik und im Compilerbau dient ein Typsystem nicht lediglich der Verhinderung von Speicherzugriffsfehlern auf unterster Systemebene.
-Es fungiert vielmehr als das formale Gerüst, mit dem sich strukturelle Invarianten über komplexe Sprach- und Graphentransformationen hinweg mathematisch beweisbar absichern lassen~\cite{pierce2002types}.
-Ein abstrakter Syntaxbaum muss zwingend wohlgeformt sein, eine Übergangsrelation eines Automaten darf Zustände nur auf gültige Nachfolgemengen abbilden, und ein LR-Zustandselement muss eine konsistente Konfiguration der zugrunde liegenden Grammatik widerspiegeln.
+Stroetmanns Skript definiert seine Gegenstände mathematisch: reguläre Ausdrücke induktiv über einem Alphabet, endliche Automaten als Fünftupel $\langle Q, \Sigma, \delta, q_0, A \rangle$ und kontextfreie Grammatiken als Viertupel $\langle V, T, R, S \rangle$~\cite{stroetmann2026formal}.
+In den Notizbüchern muss jede dieser Definitionen in eine Datenstruktur der jeweiligen Sprache übersetzt werden.
+Ein Typsystem kann dabei helfen, die Invarianten dieser Definitionen abzusichern~\cite{pierce2002types}: Ein abstrakter Syntaxbaum soll wohlgeformt sein, eine Übergangsrelation darf Zustände nur auf gültige Nachfolgemengen abbilden, und ein LR-Zustandselement muss eine konsistente Konfiguration der Grammatik widerspiegeln.
 
 In diesem Kapitel untersuchen wir die typentheoretischen Fundamente von Python~3.13, OCaml~5.4 und F\#~9.0. Wir analysieren, wie die jeweiligen Paradigmen symbolische Datenstrukturen abbilden, wie sie die Vollständigkeit rekursiver Compilerphasen garantieren und mit welchen Speicher- und Laufzeiteigenschaften sie mathematische Mengen und Relationen modellieren.
 
@@ -74,32 +74,9 @@ Ein Typ-Alias beschreibt diese Kodierung für externe Typprüfer.
 Alle Listings in \Cref{fig:adt_definitions} sind wörtlich aus den Notebooks bzw. der gemeinsam geladenen Typdatei übernommen.
 
 \begin{figure}[htbp]
-\begin{lstlisting}[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/Types.ipynb}, Zelle 3}]
-type regexp =
-  | Empty                         (* ∅       *)
-  | Epsilon                       (* 𝜀       *)
-  | Char    of char               (* c       *)
-  | Star    of regexp             (* r*      *)
-  | Product of regexp * regexp    (* r1 ⋅ r2 *)
-  | Sum     of regexp * regexp    (* r1 + r2 *)
-\end{lstlisting}
-\begin{lstlisting}[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/AutomataTypes.fsx}}]
-type RegExp =
-    | Empty
-    | Epsilon
-    | Literal of char
-    | Concat of RegExp * RegExp
-    | Alt of RegExp * RegExp
-    | Star of RegExp
-\end{lstlisting}
-\begin{lstlisting}[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zellen 3 und 5}]
-type BinaryOp  = Literal['⋅', '+']
-type UnaryOp   = Literal['*']
-type NullaryOP = Literal[0]
-
-Char = str
-type RegExp = NullaryOP | Char | tuple[RegExp, UnaryOp] | tuple[RegExp, BinaryOp, RegExp]
-\end{lstlisting}
+\lstinputlisting[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/Types.ipynb}, Zelle 3}]{listings/02-adt_definitions-ocaml.ml}
+\lstinputlisting[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/AutomataTypes.fsx}}]{listings/02-adt_definitions-fsharp.fs}
+\lstinputlisting[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zellen 3 und 5}]{listings/02-adt_definitions-python.py}
 \caption{Repräsentation regulärer Ausdrücke in OCaml, F\# und Python.}
 \label{fig:adt_definitions}
 \end{figure}
@@ -135,8 +112,8 @@ Die Übersetzung wird dabei nicht abgebrochen; erst mit \texttt{-warn-error +8} 
 
 Dieser Mechanismus erweist sich bei der schrittweisen Weiterentwicklung eines Compilers im Lehrbetrieb als unschätzbarer Vorteil:
 \begin{observation}[\textbf{Typgesteuertes Refactoring im Compilerbau}]
-Wird die Grammatik einer formalen Sprache im Laufe des Semesters um ein neues Sprachelement erweitert---beispielsweise um eine Schleifenkonstruktion in einem Integer-C-Compiler---, fügt die Lehrperson oder der Studierende lediglich einen neuen Konstruktor zum algebraischen Typ hinzu.
-In F\# und OCaml meldet der Compiler sofort und ohne einen einzigen Testlauf jeden Musterabgleich im Projekt, der den neuen Konstruktor nicht behandelt (etwa in Typprüfung, Codegenerator und Visualisierung), und markiert die exakte Zeile, die angepasst werden muss.
+Wird ein Typ der Notizbücher um einen Konstruktor erweitert, etwa der Typ \texttt{regexp} aus \Cref{fig:adt_definitions} um einen weiteren Operator, so genügt in OCaml und F\# die Änderung der Typdefinition.
+Der Compiler meldet dann sofort und ohne einen einzigen Testlauf jeden Musterabgleich über diesen Typ, der den neuen Konstruktor nicht behandelt, beispielsweise in der Thompson-Konstruktion (\cref{sec:case_thompson}), und markiert die exakte Zeile, die angepasst werden muss.
 Das gilt allerdings nur für Abgleiche ohne Platzhalterfall~(\texttt{\_}), der den neuen Konstruktor stillschweigend mit abdeckt.
 Der Python-Interpreter bietet keine vergleichbare Prüfung; nur externe Typprüfer wie mypy oder Pyright liefern bei konsequent annotiertem Code ähnliche Hinweise.
 Ohne sie fallen fehlende Regelfälle erst dann auf, wenn ein Testfall die entsprechende Quelltextzeile zur Laufzeit ausführt.
@@ -147,10 +124,10 @@ Ohne sie fallen fehlende Regelfälle erst dann auf, wenn ein Testfall die entspr
 \label{sec:set_models}
 % ------------------------------------------------------------------------------
 
-Die Automatentheorie ist in ihrem Kern mengentheoretisch aufgebaut.
-Ein deterministischer oder nichtdeterministischer endlicher Automat wird mathematisch als Fünftupel definiert, bestehend aus einer endlichen Zustandsmenge, einem Eingabealphabet, einer Zustandsübergangsfunktion, einem eindeutigen Startzustand sowie einer Menge von Endzuständen.
-
-Die drei untersuchten Programmiersprachen nutzen grundlegend verschiedene Ansätze zur Realisierung dieser Mengenstrukturen:
+Stroetmanns Skript definiert einen endlichen Automaten als Fünftupel $\langle Q, \Sigma, \delta, q_0, A \rangle$ aus Zustandsmenge, Alphabet, Übergangsfunktion, Startzustand und Menge der akzeptierenden Zustände~\cite{stroetmann2026formal}.
+Die Python-Notizbücher übernehmen diese Definition wörtlich als Tupel, etwa \texttt{NFA = tuple[set[State], set[Char], Delta, State, set[State]]} in \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}.
+Die OCaml- und F\#-Fassung verwenden stattdessen Records mit benannten Feldern (\texttt{states}, \texttt{sigma}, \texttt{delta}, \texttt{start}, \texttt{accepting} bzw. \texttt{States}, \texttt{Alphabet}, \texttt{Transitions}, \texttt{Start}, \texttt{Accepting}).
+Für die Mengen in diesen Definitionen nutzen die drei Fassungen grundlegend verschiedene Datenstrukturen:
 
 Python modelliert Mengen über Hash-Tabellen mit offener Adressierung (lineares Sondieren, kombiniert mit einer Perturbationsfolge).
 Dies ermöglicht das Einfügen, Löschen und Prüfen auf Elementzugehörigkeit in amortisierter konstanter Zeit.
@@ -202,7 +179,7 @@ In \Cref{tab:soundness_matrix} sind die zentralen Eigenschaften der drei Sprachs
 \end{table}
 
 \begin{finding}[\textbf{Statische Korrektheit als Produktivitätsfaktor}]
-In der formalen Sprachverarbeitung bietet statische Typsicherheit einen immensen Produktivitätsvorteil.
+Für die Algorithmen aus Stroetmanns Vorlesung bietet statische Typsicherheit einen deutlichen Vorteil.
 Während Python eine scheinbar schnellere erste Niederschrift erlaubt, zwingt das Fehlen in die Sprache eingebauter Vollständigkeitsprüfungen zu umfangreicheren Tests oder zum zusätzlichen Einsatz externer Typprüfer.
 OCaml und F\# schließen ganze Fehlerklassen symbolischer Transformationen (etwa Typfehler und, über Warnungen, vergessene Konstruktoren) bereits zur Übersetzungszeit aus und bieten damit ein verlässlicheres Fundament für den Compilerbau.
 \end{finding}

@@ -4,99 +4,96 @@
 \chapter{Syntaktische Ausdrucksstärke und Programmieridiome}
 \label{chap:expressiveness}
 
-In der formalen Sprachverarbeitung und im Compilerbau prägt die Wahl der Programmiersprache unmittelbar die Art und Weise, wie theoretische Algorithmen konzipiert, implementiert und im Lehrbetrieb vermittelt werden.
-Mathematische Konzepte der Automatentheorie und der formalen Semantik sind von Natur aus induktiv: Reguläre Ausdrücke, kontextfreie Grammatiken und abstrakte Syntaxbäume werden durch formale Ableitungsregeln spezifiziert, während Automatentransformationen wie die Potenzmengenkonstruktion, Produktautomaten und Fixpunktberechnungen am elegantesten als relationale Verknüpfungen höherer Ordnung formuliert werden.
+In Stroetmanns Vorlesung steht neben jeder mathematischen Definition des Skripts ein Python-Notizbuch, das sie ausführbar macht.
+Wie nah dieser Code an der Notation des Skripts bleibt, hängt unmittelbar von der Programmiersprache ab: Reguläre Ausdrücke und Syntaxbäume sind induktiv definiert, während die Konstruktionen auf Automaten und Grammatiken, etwa die Potenzmengenkonstruktion oder die Berechnung von First- und Follow-Mengen, als Mengenoperationen und Fixpunktberechnungen formuliert sind.
 
-In diesem Kapitel untersuchen wir die syntaktische und semantische Ausdrucksstärke von Python~3.13, OCaml~5.4 und F\#~9.0 über das gesamte Vorlesungscurriculum hinweg.
-Wir analysieren, wie grundlegende Sprachidiome---ausdrucksbasierter Kontrollfluss, Funktions-Pipelining, automatisches Currying und erweiterte Musterabgleiche---die Lesbarkeit, das Codevolumen und die mathematische Treue der Implementierungen beeinflussen.
+In diesem Kapitel untersuchen wir die syntaktische und semantische Ausdrucksstärke von Python~3.13, OCaml~5.4 und F\#~9.0 über alle Notizbücher der Vorlesung hinweg.
+Wir analysieren, wie grundlegende Sprachidiome---ausdrucksbasierter Kontrollfluss, Funktions-Pipelining, partielle Anwendung und Musterabgleich---die Lesbarkeit, das Codevolumen und die Nähe zur Notation des Skripts beeinflussen.
+Alle Listings dieses Kapitels sind wörtlich aus den Notizbüchern der drei Fassungen übernommen; jede Überschrift nennt Notizbuch und Zellen, und Auslassungen sind durch einen Kommentar mit drei Punkten markiert.
 
 % ------------------------------------------------------------------------------
 \section{Ausdrucksbasierte Semantik im Vergleich zu anweisungsorientiertem Kontrollfluss}
 \label{sec:expression_semantics}
 % ------------------------------------------------------------------------------
 
-Eine fundamentale Trennlinie zwischen modernen funktionalen Sprachen wie OCaml und F\# auf der einen Seite und traditionell imperativen Sprachen wie Python auf der anderen Seite bildet der Unterschied zwischen \textbf{ausdrucksbasierter} und \textbf{anweisungsorientierter} Ausführungssemantik.
+In OCaml und F\# ist jedes syntaktische Konstrukt ein Ausdruck, der einen Wert liefert; auch Musterabgleiche und Sequenzausdrücke sind Ausdrücke.
+In Python sind Schleifen, bedingte Anweisungen und \texttt{match} dagegen Anweisungen, die über Zuweisungen wirken.
+Wie sich dieser Unterschied in den Notizbüchern auswirkt, zeigt der letzte Schritt der Minimierung aus \texttt{Chapter-04-05/07-Minimize.ipynb}: Aus den Äquivalenzklassen wird die Übergangsfunktion des minimalen Automaten aufgebaut (\Cref{fig:minimize_delta}).
 
-In OCaml und F\# ist jedes syntaktische Konstrukt ein Ausdruck, der bei seiner Auswertung einen konkreten Wert liefert.
-Eine bedingte Verzweigung über Wenn-Dann-Sonst wertet unmittelbar zum Ergebnis des gewählten Zweigs aus, wobei das statische Typsystem garantiert, dass beide Zweige denselben Typ besitzen.
-Musterabgleiche sind vollwertige Ausdrücke, die beliebig tief verschachtelt, als Funktionsargumente übergeben oder unveränderlichen Variablen zugewiesen werden können.
-Selbst die sequentielle Bindung von Zwischenergebnissen über Let-Ausdrücke erzeugt streng abgegrenzte lexikalische Gültigkeitsbereiche, ohne globale Zustände zu kontaminieren.
+\begin{figure}[tbp]
+\lstinputlisting[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/07-Minimize.ipynb}, Zelle 36 (Auszug)}]{listings/03-minimize_delta-python.py}
+\lstinputlisting[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/07-Minimize.ipynb}, Zelle 35 (Auszug)}]{listings/03-minimize_delta-ocaml.ml}
+\lstinputlisting[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/07-Minimize.ipynb}, Zelle 18 (Auszug)}]{listings/03-minimize_delta-fsharp.fs}
+\caption{Aufbau der Übergangsfunktion des minimalen Automaten: Akkumulator in Python und OCaml, Sequenzausdruck in F\#.}
+\label{fig:minimize_delta}
+\end{figure}
 
-Im Gegensatz dazu ist Python historisch anweisungsorientiert geprägt.
-Zentrale Kontrollstrukturen wie Schleifen, bedingte Anweisungen, Funktionsdefinitionen und Musterabgleiche sind Anweisungen, die per se keinen Wert zurückgeben, sondern ausschließlich über Nebeneffekte durch Variablenzuweisungen wirken.
-Zwar bietet Python ternäre Kurzschreibweisen und Listenabstraktionen (List Comprehensions), doch komplexe mehrarmige Fallunterscheidungen lassen sich nicht direkt an Ausdrücke binden. 
-
-Dies führt in Python regelmäßig zum sogenannten Akkumulator-Muster: Vor einem Anweisungsblock wird eine leere Sammelstruktur oder ein Platzhalterwert allokiert, innerhalb bedingter Verzweigungen schrittweise befüllt und abschließend zurückgegeben.
-Dieser imperative Stil birgt erhebliche kognitive Risiken: Wird eine Zuweisung in einem Verzweigungsast versehentlich ausgelassen, liest der nachfolgende Code veraltete Werte oder stürzt mit einem Zugriffsfehler ab.
-Zudem bleiben Variablen, die innerhalb von Schleifen oder Verzweigungsblöcken angelegt werden, über den gesamten Gültigkeitsbereich der umgebenden Funktion hinweg sichtbar, was das Risiko unbeabsichtigter Variablenüberdeckungen drastisch erhöht.
+Python verwendet das Akkumulator-Muster: Ein leeres Wörterbuch wird angelegt, in zwei geschachtelten Schleifen befüllt und am Ende zurückgegeben.
+Die OCaml-Fassung übernimmt dieses Muster wörtlich; weil ihre Abbildungen unveränderlich sind, braucht sie dafür eine veränderliche Referenz (\texttt{ref Dict.empty}), die bei jedem Schritt mit \texttt{:=} neu belegt und am Ende mit \texttt{!} ausgelesen wird.
+Die Übersetzung hält sich damit eng an das Python-Original, nutzt aber die ausdrucksbasierte Semantik von OCaml nicht aus.
+Die F\#-Fassung formuliert denselben Schritt als Ausdruck: Ein Sequenzausdruck erzeugt alle Paare aus Schlüssel und Zielklasse, und \texttt{Map.ofSeq} baut daraus die Abbildung, ohne dass ein Zwischenzustand verändert wird.
+Zudem führt sie mit \texttt{classOf} eine lokale Hilfsfunktion ein, die die Äquivalenzklassen als festes Argument bindet und die Zeile kürzer macht als in den beiden anderen Fassungen.
 
 % ------------------------------------------------------------------------------
-\section{Pipelining, Currying und kompositioneller Datenfluss}
+\section{Pipelining und partielle Anwendung}
 \label{sec:pipelining_currying}
 % ------------------------------------------------------------------------------
 
-Algorithmen der Automatentheorie bestehen typischerweise aus Ketten relationaler Transformationen: Ein regulärer Ausdruck wird in einen Automaten mit Epsilon-Übergängen überführt, dieser wird von Epsilon-Schritten befreit, anschließend über eine Potenzmengenkonstruktion determiniert und schließlich über eine Äquivalenzklassenzerlegung minimiert.
+OCaml und F\# besitzen den Vorwärts-Pipeline-Operator \texttt{|>}, der das Argument vor die Funktion stellt, sodass der Quelltext in der Reihenfolge der Datenverarbeitung gelesen werden kann.
+Außerdem sind Funktionen in beiden Sprachen curried: Eine Funktion mit mehreren Parametern kann mit weniger Argumenten aufgerufen werden und liefert dann eine Funktion für die übrigen.
+Die Fassungen nutzen diese Sprachmittel sehr unterschiedlich: In den F\#-Notizbüchern kommt \texttt{|>} 314-mal vor, in den OCaml-Notizbüchern nur sechsmal.
+\Cref{fig:find_class} zeigt eine kleine Funktion aus dem Minimierungs-Notizbuch, an der beide Sprachmittel zusammenwirken.
 
-\subsection{Der funktionale Pipeline-Operator}
-OCaml und F\# stellen für solche Verarbeitungsketten den Vorwärts-Pipeline-Operator bereit.
-Dieser Operator kehrt die funktionale Notation um, sodass das Argument links und die auszuführende Funktion rechts steht.
-Dadurch entspricht die Anordnung des Quelltextes exakt der logischen Flussrichtung der Datenverarbeitung:
+\begin{figure}[tbp]
+\lstinputlisting[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/07-Minimize.ipynb}, Zelle 27}]{listings/03-find_class-python.py}
+\lstinputlisting[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/07-Minimize.ipynb}, Zelle 26}]{listings/03-find_class-ocaml.ml}
+\lstinputlisting[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/07-Minimize.ipynb}, Zelle 11 (Auszug)}]{listings/03-find_class-fsharp.fs}
+\caption{Suche der Äquivalenzklasse eines Zustands: Mengenabstraktion, Lambda-Ausdruck und partielle Anwendung.}
+\label{fig:find_class}
+\end{figure}
 
-\begin{lstlisting}[language=FSharp,caption={Mehrstufige Automatenpipeline in F\#.}]
-let minimizeRegExp (alphabet: Set<char>) (r: RegExp) : Dfa<Set<int>> =
-    r
-    |> regexp2nfa alphabet
-    |> eliminateEpsilons
-    |> nfa2dfa
-    |> hopcroftMinimize
-\end{lstlisting}
-
-In Python fehlt ein vergleichbarer nativer Operator.
-Entwickler stehen vor dem Dilemma, entweder tief verschachtelte Funktionsaufrufe zu notieren, die von innen nach außen gelesen werden müssen, oder zahlreiche temporäre Zwischenvariablen einzuführen, die den Code aufblähen und fehleranfällig für Verwechslungen machen.
-
-\subsection{Currying und funktionale Komposition}
-In ML und F\# sind Funktionen standardmäßig curried: Eine Funktion mit mehreren Parametern ist formal eine einstellige Funktion, die eine weitere Funktion für den nächsten Parameter zurückgibt.
-Dies erlaubt eine elegante partielle Anwendung.
-Wenn beispielsweise Übergangsrelationen über Alphabete gefaltet werden, kann die Zielzustandsabfrage partiell gebunden und als Argument an Standardbibliotheksfunktionen übergeben werden, ohne dass zusätzliche Lambda-Hüllen erforderlich sind.
-
-In Python hingegen erwarten Funktionen feste Tupellisten von Argumenten.
-Eine partielle Anwendung erfordert den Import von Hilfswerkzeugen wie \texttt{functools.partial} oder explizite Lambda-Ausdrücke, was den Programmtext visuell überfrachtet.
+Python bildet zunächst mit einer Mengenabstraktion die Menge aller Klassen, die den Zustand enthalten, und wählt daraus mit \texttt{arb} ein Element; das entspricht der mathematischen Formulierung, durchsucht aber stets die ganze Partition.
+OCaml übersetzt dies eins zu eins mit \texttt{FSet.filter} und benötigt einen Lambda-Ausdruck, weil der gesuchte Zustand das \emph{erste} Argument von \texttt{FSet.mem} ist und die Menge das zweite.
+F\# nutzt die Argumentreihenfolge von \texttt{Set.contains}, die das Element zuerst erwartet: \texttt{Set.contains state} ist eine partiell angewendete Funktion, die als Prädikat an \texttt{Seq.find} übergeben wird.
+Zusammen mit dem Pipeline-Operator entsteht eine Zeile ohne Lambda-Ausdruck und ohne Zwischenmenge, die bei der ersten passenden Klasse abbricht.
+Partielle Anwendung ist also nur dann ohne Lambda-Ausdruck möglich, wenn die Argumentreihenfolge der Bibliotheksfunktion dazu passt.
+Python kennt kein Currying; die Notizbücher benötigen es aber auch nicht, da sie stattdessen Mengenabstraktionen verwenden.
+Ein weiteres Beispiel für Pipelines zeigt die Thompson-Konstruktion in \cref{fig:thompson_kleene}, wo OCaml und F\# die Epsilon-Übergänge mit \texttt{|>} nacheinander in eine unveränderliche Abbildung einfügen.
 
 % ------------------------------------------------------------------------------
-\section{Fortgeschrittene Musterabgleichs-Idiome und aktive Muster}
+\section{Musterabgleich über Listen und Fehlerbehandlung}
 \label{sec:pattern_matching}
 % ------------------------------------------------------------------------------
 
-Der Musterabgleich ist das zentrale softwaretechnische Werkzeug im modernen Compilerbau.
-Ein abstrakter Syntaxbaum ist ein rekursiver Verbund heterogener Knoten; Analysephasen müssen gezielt nach bestimmten Baumkonfigurationen suchen, Operanden zerlegen, semantische Randbedingungen prüfen und transformierte Bäume erzeugen.
+Alle drei Sprachen besitzen strukturellen Musterabgleich, Python seit Version 3.10 über \texttt{match}/\texttt{case} nach PEP~634.
+F\# bietet darüber hinaus aktive Muster~\cite{syme2007extensible}, mit denen eigene Zerlegungen von Daten definiert werden können; die F\#-Notizbücher verwenden dieses Sprachmittel jedoch an keiner Stelle.
+Der Vergleich stützt sich deshalb auf den gewöhnlichen Musterabgleich, wie ihn der Top-down-Parser aus Kapitel~6 des Skripts verwendet (\Cref{fig:topdown_parser}).
 
-Während OCaml reinen strukturellen Musterabgleich über Varianten mit Oder-Mustern und Bedingungswächtern (Guards) unterstützt, bietet F\# mit den sogenannten \textbf{Active Patterns} eine herausragende Abstraktionserweiterung~\cite{syme2007extensible}.
-Aktive Muster erlauben es, benutzerdefinierte Erkennungsregeln zu deklarieren, die Daten dynamisch zerlegen und als semantisch strukturierte Sichten präsentieren, ohne die internen Repräsentationsdetails der Datenstruktur offenzulegen:
+\begin{figure}[tbp]
+\lstinputlisting[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-06/1-Top-Down-Parser.ipynb}, Zellen 13 und 19}]{listings/03-topdown_parser-python.py}
+\lstinputlisting[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-06/1-Top-Down-Parser.ipynb}, Zellen 15 und 21}]{listings/03-topdown_parser-ocaml.ml}
+\lstinputlisting[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-06/1-Top-Down-Parser.ipynb}, Zelle 15 (Auszug)}]{listings/03-topdown_parser-fsharp.fs}
+\caption{Top-down-Parser für arithmetische Ausdrücke: Listenmuster und Fehlerbehandlung in den drei Fassungen.}
+\label{fig:topdown_parser}
+\end{figure}
 
-\begin{lstlisting}[language=FSharp,caption={Aktive Muster zur algebraischen Baumvereinfachung in F\#.}]
-// Partielles aktives Muster fuer ganzzahlige Konstanten
-let (|IntegerConstant|_|) (expr: Expression) : int option =
-    match expr with
-    | Number n when n = Math.Floor(n) -> Some (int n)
-    | _ -> None
+\paragraph{Listenmuster.}
+Alle drei Fassungen zerlegen die Tokenliste mit Mustern in erstes Token und Rest: Python mit Sequenzmustern (\texttt{case '+', *RL}), OCaml und F\# mit dem Listenkonstruktor (\texttt{"+" :: rl}).
+Die Python-Muster stehen den funktionalen damit kaum nach.
+Ein Unterschied liegt in der Laufzeit: \texttt{*RL} kopiert den Rest der Liste bei jedem Token in eine neue Liste, während \texttt{::} in OCaml und F\# nur auf den vorhandenen Rest verweist.
+Der Parser benötigt in Python dadurch quadratische Zeit in der Zahl der Token, in OCaml und F\# lineare.
 
-// Vereinfachung arithmetischer Ausdruecke ueber aktive Muster
-let rec simplify (expr: Expression) : Expression =
-    match expr with
-    | Binary ("*", _, IntegerConstant 0)
-    | Binary ("*", IntegerConstant 0, _) -> Number 0.0
-    | Binary ("*", e, IntegerConstant 1)
-    | Binary ("*", IntegerConstant 1, e) -> simplify e
-    | Binary ("+", e, IntegerConstant 0)
-    | Binary ("+", IntegerConstant 0, e) -> simplify e
-    | other -> other
-\end{lstlisting}
+\paragraph{Fehlerbehandlung.}
+Die größten Unterschiede zeigen sich in \texttt{parseFactor}.
+Python prüft die schließende Klammer mit \texttt{assert Rest[0] == ')'}; fehlt das Token ganz, bricht der Zugriff \texttt{Rest[0]} mit einem \texttt{IndexError} ab, bevor die Meldung erscheint, und mit der Option \texttt{-O} entfällt die Prüfung vollständig.
+Auch der Auffangfall \texttt{float(TL[0])} scheitert bei leerer Eingabe mit einem \texttt{IndexError} und bei einem Operator an falscher Stelle mit einem \texttt{ValueError}.
+OCaml und F\# gleichen das Ergebnis des inneren Aufrufs ebenfalls per Muster ab (\texttt{expr, ")" :: rest}) und behandeln die leere Liste als eigenen Fall mit eigener Fehlermeldung.
+F\# geht noch weiter und ersetzt die Umwandlung durch \texttt{Double.TryParse} mit fester Kultur, sodass auch eine ungültige Zahl eine fachliche Meldung erzeugt und das Ergebnis nicht von den Spracheinstellungen des Rechners abhängt.
 
-Dieses Konzept ermöglicht eine Entkopplung: Werden Compiler-Phasen konsequent über aktive Muster statt über die Konstruktoren formuliert, kann die interne Darstellung eines Syntaxbaums geändert werden, ohne diese Phasen anzupassen.
-Im obigen Beispiel gilt das nur für die Erkennung ganzzahliger Konstanten, da der Konstruktor \texttt{Binary} weiterhin direkt abgeglichen wird.
-
-Python führte mit Version 3.10 über PEP~634 ebenfalls einen strukturellen Musterabgleich über \texttt{match/case} ein.
-Obwohl dies eine deutliche Verbesserung gegenüber historischen Typabfrage-Kaskaden darstellt, unterscheidet sich Pythons Mechanismus grundlegend von funktionalen Sprachen: Die Auswertung erfolgt interpretativ über dynamische Typ- und Strukturprüfungen in Bytecode-Befehlen, Variablenbindungen lecken in den umgebenden Funktionsbereich durch, und der Interpreter bietet keinerlei Prüfung auf Vollständigkeit der Muster.
+\paragraph{Arithmetik und Struktur.}
+OCaml trennt die Operatoren für Gleitkommazahlen von denen für ganze Zahlen (\texttt{+.} statt \texttt{+}); F\# und Python überladen \texttt{+}.
+Wie bei der Thompson-Konstruktion (\cref{sec:case_thompson}) braucht die OCaml-Fassung Vorwärtsreferenzen (\texttt{!parseProduct\_ref}), um die Funktionen in der Reihenfolge des Python-Notizbuchs zu erklären, während F\# alle Funktionen in einer Zelle als Gruppe \texttt{let rec \dots{} and \dots} definiert.
+F\# lässt außerdem den Fall der leeren Liste in \texttt{parseExprRest} im Auffangfall aufgehen und kommt so mit einem Fall weniger aus.
 
 % ------------------------------------------------------------------------------
 \section{Vergleichende Fallstudien aus dem Curriculum}
@@ -116,72 +113,9 @@ Alle drei Fassungen folgen derselben Zerlegung in einen rekursiven Verteiler \te
 \Cref{fig:thompson_dispatch} zeigt den Verteiler, \Cref{fig:thompson_kleene} die Konstruktion für den Kleene-Stern.
 
 \begin{figure}[p]
-\begin{lstlisting}[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zellen 14--15}]
-def toNFA(self: RegExp2NFA, r: RegExp) -> NFA:
-    match r:
-        case 0:
-            return self.genEmptyNFA()
-        case '𝜀':
-            return self.genEpsilonNFA()
-        case r if isinstance(r, str) and len(r) == 1:
-            return self.genCharNFA(r)
-        case (r1, '⋅', r2):
-            return self.catenate(self.toNFA(r1), self.toNFA(r2))
-        case (r1, '+', r2):
-            return self.disjunction(self.toNFA(r1), self.toNFA(r2))
-        case (r1, '*'):
-            return self.kleene(self.toNFA(r1))
-        case _:
-            raise ValueError(f'{r} is not a proper regular expression.')
-
-RegExp2NFA.toNFA = toNFA # type: ignore
-del toNFA
-\end{lstlisting}
-\begin{lstlisting}[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zellen 10, 13--14}]
-type regExp2NFA = { alphabet : char FSet.t; mutable stateCount : int }
-let genEmptyNFA_ref   : (regExp2NFA -> state nfa) ref                             = ref not_yet_defined
-(* ... *)
-let rec toNFA (self : regExp2NFA) (r : regexp) : state nfa =
-  match r with
-  | Empty -> !genEmptyNFA_ref self
-  | Epsilon -> !genEpsilonNFA_ref self
-  | Char c -> !genCharNFA_ref self c
-  | Product (r1, r2) ->
-      let f1 = toNFA self r1 in
-      let f2 = toNFA self r2 in
-      !catenate_ref self f1 f2
-  | Sum (r1, r2) ->
-      let f1 = toNFA self r1 in
-      let f2 = toNFA self r2 in
-      !disjunction_ref self f1 f2
-  | Star r1 -> !kleene_ref self (toNFA self r1)
-toNFA_ref := toNFA
-\end{lstlisting}
-\begin{lstlisting}[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zelle 19}]
-let regexp2nfa (alphabet: Set<char>) (expression: RegExp) : Nfa<int> =
-    // State allocation is local to one conversion. No previous run affects its result.
-    let mutable stateCount = 0
-    let getNewState () =
-        stateCount <- stateCount + 1
-        stateCount
-    let rec toNFA expression =
-        match expression with
-        | Empty -> genEmptyNFA alphabet (getNewState ()) (getNewState ())
-        | Epsilon -> genEpsilonNFA alphabet (getNewState ()) (getNewState ())
-        | Literal c -> genCharNFA alphabet c (getNewState ()) (getNewState ())
-        | Concat (left, right) ->
-            let first = toNFA left
-            let second = toNFA right
-            catenate first second
-        | Alt (left, right) ->
-            let first = toNFA left
-            let second = toNFA right
-            disjunction (getNewState ()) (getNewState ()) first second
-        | Star expression ->
-            let fragment = toNFA expression
-            kleene (getNewState ()) (getNewState ()) fragment
-    toNFA expression
-\end{lstlisting}
+\lstinputlisting[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zellen 14--15}]{listings/03-thompson_dispatch-python.py}
+\lstinputlisting[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zellen 10, 13--14}]{listings/03-thompson_dispatch-ocaml.ml}
+\lstinputlisting[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zelle 19}]{listings/03-thompson_dispatch-fsharp.fs}
 \caption{Thompson-Konstruktion: der rekursive Verteiler \texttt{toNFA} in den drei Notebook-Fassungen.}
 \label{fig:thompson_dispatch}
 \end{figure}
@@ -214,43 +148,9 @@ OCaml legt die Auswertungsreihenfolge von Argumenten nicht fest, und der Compile
 Die OCaml-Fassung erzwingt die Reihenfolge deshalb ausdrücklich über \texttt{let f1 = \dots{} in} \texttt{let f2 = \dots{} in}; ohne diese Bindungen würden Zustände in anderer Reihenfolge nummeriert als in den Python-Beispielen der Vorlesung.
 
 \begin{figure}[tbp]
-\begin{lstlisting}[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zelle 38}]
-def kleene(self: RegExp2NFA, f: NFA) -> NFA:
-    Q, Sigma, delta0, q1, A = f
-    q2, = A
-    q0 = self.getNewState()
-    q3 = self.getNewState()
-    delta = delta0 | {}    # copy delta0, so that f is not changed
-    delta[q0, '𝜀'] = { q1, q3 }
-    delta[q2, '𝜀'] = { q1, q3 }
-    return { q0, q3 } | Q, Sigma, delta, q0, { q3 }
-\end{lstlisting}
-\begin{lstlisting}[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zelle 37}]
-let kleene (self : regExp2NFA) (f : state nfa) : state nfa =
-  let ({ states = q; sigma; delta = delta0; start = q1; accepting = a } : state nfa) = f in
-  let q2 = the_element a in
-  let q0 = !getNewState_ref self in
-  let q3 = !getNewState_ref self in
-  let delta =
-    delta0
-    |> Dict.add (q0, Eps) (FSet.of_list [ q1; q3 ])
-    |> Dict.add (q2, Eps) (FSet.of_list [ q1; q3 ])
-  in
-  { states = FSet.union (FSet.of_list [ q0; q3 ]) q; sigma; delta; start = q0; accepting = FSet.singleton q3 }
-\end{lstlisting}
-\begin{lstlisting}[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zellen 11 und 17}]
-let singleFinal (nfa: Nfa<int>) =
-    if Set.count nfa.Accepting <> 1 then invalidArg "nfa" "A Thompson fragment must have exactly one final state."
-    Set.minElement nfa.Accepting
-
-let kleene q0 q3 (fragment: Nfa<int>) : Nfa<int> =
-    let transitions =
-        fragment.Transitions
-        |> Map.add (q0, Eps) (set [fragment.Start; q3])
-        |> Map.add (singleFinal fragment, Eps) (set [fragment.Start; q3])
-    { fragment with States = Set.union (set [q0; q3]) fragment.States
-                    Transitions = transitions; Start = q0; Accepting = set [q3] }
-\end{lstlisting}
+\lstinputlisting[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zelle 38}]{listings/03-thompson_kleene-python.py}
+\lstinputlisting[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zelle 37}]{listings/03-thompson_kleene-ocaml.ml}
+\lstinputlisting[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zellen 11 und 17}]{listings/03-thompson_kleene-fsharp.fs}
 \caption{Thompson-Konstruktion: Automat für den Kleene-Stern in den drei Notebook-Fassungen.}
 \label{fig:thompson_kleene}
 \end{figure}
@@ -278,56 +178,8 @@ Das Curriculum implementiert die Ableitung selbst in keiner der drei Fassungen, 
 An dieser Vereinfachung zeigt sich der größte konzeptionelle Unterschied zwischen den Fassungen: Python und OCaml normalisieren Ausdrücke algorithmisch über eine flache Darstellung (\Cref{fig:simplify_nullable}), während F\# die Vereinfachung als Termersetzung mit deklarativ notierten Regeln formuliert (\Cref{fig:simplify_rewrite}).
 
 \begin{figure}[tbp]
-\begin{lstlisting}[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/Simplify.ipynb}, Zellen 6 und 27}]
-type Flat = (str | tuple[Literal['*'], Flat] | tuple[Literal['+'], frozenset[Flat]]
-                 | tuple[Literal['⋅'], tuple[Flat, ...]])
-
-Empty:   Flat = ('+', frozenset())
-Epsilon: Flat = ('⋅', ())
-
-@cache
-def nullable(r: Flat) -> bool:
-    match r:
-        case ('*', _):
-            return True
-        case ('+', S):
-            return any(nullable(s) for s in S)
-        case ('⋅', F):
-            return all(nullable(f) for f in F)
-        case _:
-            return False
-\end{lstlisting}
-\begin{lstlisting}[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/Simplify.ipynb}, Zellen 4, 8 und 28}]
-let cache (f : ('a -> 'b) -> 'a -> 'b) : 'a -> 'b =
-  let table = Hashtbl.create 1024 in
-  let rec self x =
-    let key = (Hashtbl.hash_param 100 1000 x, x) in
-    match Hashtbl.find_opt table key with
-    | Some y -> y
-    | None ->
-        let y = f self x in
-        Hashtbl.replace table key y;
-        y
-  in
-  self
-
-type flat =
-  | FChar of char           (* a character c                                  *)
-  | FStar of flat           (* r*                                             *)
-  | FSum  of flat FSet.t    (* r1 + ... + rn, none of the summands is a sum   *)
-  | FProd of flat list      (* r1 ⋅ ... ⋅ rn, none of the factors is a product *)
-
-let empty   : flat = FSum FSet.empty    (* ∅ is the empty sum     *)
-let epsilon : flat = FProd []           (* 𝜀 is the empty product *)
-
-let nullable : flat -> bool =
-  cache (fun nullable r ->
-    match r with
-    | FStar _ -> true
-    | FSum s  -> FSet.exists nullable s
-    | FProd f -> List.for_all nullable f
-    | FChar _ -> false)
-\end{lstlisting}
+\lstinputlisting[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/Simplify.ipynb}, Zellen 6 und 27}]{listings/03-simplify_nullable-python.py}
+\lstinputlisting[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/Simplify.ipynb}, Zellen 4, 8 und 28}]{listings/03-simplify_nullable-ocaml.ml}
 \caption{Flache Normaldarstellung und Epsilon-Test (\texttt{nullable}) in Python und OCaml.}
 \label{fig:simplify_nullable}
 \end{figure}
@@ -345,31 +197,7 @@ OCaml besitzt keinen solchen Mechanismus in der Standardbibliothek; die Fassung 
 Der Hashschlüssel kombiniert einen tiefen Strukturhash (\texttt{Hashtbl.hash\_param 100 1000}) mit dem Wert selbst, weil der Standardhash tiefe Ausdrucksbäume nur bis zu einer begrenzten Tiefe betrachtet.
 
 \begin{figure}[tbp]
-\begin{lstlisting}[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/Rewrite.ipynb}, Zellen 7 und 11}]
-let rec matchPattern pattern term (substitution: Substitution) : Substitution option =
-    match pattern, term with
-    | PatternVariable name, _ ->
-        match Map.tryFind name substitution with
-        | Some previous when previous = term -> Some substitution
-        | Some _ -> None
-        | None -> Some (Map.add name term substitution)
-    | PatternEmpty, Empty | PatternEpsilon, Epsilon -> Some substitution
-    | PatternLiteral c, Literal d when c = d -> Some substitution
-    | PatternConcat (p1, p2), Concat (t1, t2)
-    | PatternAlt (p1, p2), Alt (t1, t2) ->
-        matchPattern p1 t1 substitution |> Option.bind (fun next -> matchPattern p2 t2 next)
-    | PatternStar p, Star t -> matchPattern p t substitution
-    | _ -> None
-
-let getRules () : Rule list =
-    [ "R+∅", "R"
-      "∅+R", "R"
-      "R+R", "R"
-      "𝜀+R*", "R*"
-      // ...
-      "(RS*)(𝜀+S)", "RS*" ]
-    |> List.map (fun (left, right) -> patternOf (parse left), patternOf (parse right))
-\end{lstlisting}
+\lstinputlisting[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/Rewrite.ipynb}, Zellen 7 und 11}]{listings/03-simplify_rewrite-fsharp.fs}
 \caption{Vereinfachung regulärer Ausdrücke als Termersetzung in F\#: Musterabgleich mit Variablen und deklarativ notierte Regeln.}
 \label{fig:simplify_rewrite}
 \end{figure}
@@ -394,68 +222,9 @@ Das Curriculum verwendet in allen drei Fassungen stattdessen das anschaulichere 
 \Cref{fig:minimize_separable} zeigt diese Fixpunktberechnung und die Auswahl eines Repräsentanten.
 
 \begin{figure}[tbp]
-\begin{lstlisting}[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/07-Minimize.ipynb}, Zellen 17, 24 und 30}]
-def arb[S](M: set[S] | frozenset[S]) -> S:
-    x, *_ = M
-    return x
-
-def separate(Pairs: set[Pair], States: set[State], Σ: set[Char], 𝛿: TransRel) -> set[Pair]:
-    Result = { (q1, q2) for q1 in States
-                        for q2 in States
-                        for c  in Σ
-                        if (𝛿[q1, c], 𝛿[q2, c]) in Pairs
-             }
-    return Result
-
-def all_separable(Q: set[State], A: set[State], Σ: set[Char], 𝛿: TransRel) -> set[Pair]:
-        Separable = cart_prod(Q - A, A) | cart_prod(A, Q - A)
-        while True:
-            NewPairs = separate(Separable, Q, Σ, 𝛿)
-            if NewPairs <= Separable:
-                return Separable
-            Separable |= NewPairs
-\end{lstlisting}
-\begin{lstlisting}[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/07-Minimize.ipynb}, Zellen 16, 23 und 29}]
-let arb (m : 's FSet.t) : 's =
-  FSet.choose m
-
-let separate (pairs : 'q pair FSet.t) (states : 'q FSet.t) (sigma : char FSet.t) (delta : 'q trans_rel_det)
-    : 'q pair FSet.t =
-  let open FSet in
-  let* q1 = states in
-  let* q2 = states in
-  let* c  = sigma in
-  if mem (Dict.find (q1, c) delta, Dict.find (q2, c) delta) pairs then return (q1, q2) else empty
-
-let all_separable (q : 'q FSet.t) (a : 'q FSet.t) (sigma : char FSet.t) (delta : 'q trans_rel_det) : 'q pair FSet.t =
-  let rec loop (separable : 'q pair FSet.t) : 'q pair FSet.t =
-    let newPairs = separate separable q sigma delta in
-    if FSet.subset newPairs separable then separable
-    else loop (FSet.union separable newPairs)
-  in
-  loop (FSet.union (cart_prod (FSet.diff q a) a) (cart_prod a (FSet.diff q a)))
-\end{lstlisting}
-\begin{lstlisting}[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/07-Minimize.ipynb}, Zellen 7, 11 und 13}]
-let arb states =
-    if Set.isEmpty states then invalidArg "states" "Cannot choose an element of an empty set."
-    Set.minElement states
-
-let separate pairs states alphabet (delta: Map<'state * char, 'state>) =
-    seq { for q1 in states do
-              for q2 in states do
-                  if alphabet |> Seq.exists (fun c -> Set.contains (delta[q1, c], delta[q2, c]) pairs) then
-                      yield q1, q2 }
-    |> Set.ofSeq
-
-let allSeparable states accepting alphabet delta =
-    let accepting = Set.intersect states accepting
-    let nonAccepting = Set.difference states accepting
-    let initial = Set.union (cartesianProduct nonAccepting accepting) (cartesianProduct accepting nonAccepting)
-    let rec expand pairs =
-        let newPairs = separate pairs states alphabet delta
-        if Set.isSubset newPairs pairs then pairs else expand (Set.union pairs newPairs)
-    expand initial
-\end{lstlisting}
+\lstinputlisting[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/07-Minimize.ipynb}, Zellen 17, 24 und 30}]{listings/03-minimize_separable-python.py}
+\lstinputlisting[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/07-Minimize.ipynb}, Zellen 16, 23 und 29}]{listings/03-minimize_separable-ocaml.ml}
+\lstinputlisting[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/07-Minimize.ipynb}, Zellen 7, 11 und 13}]{listings/03-minimize_separable-fsharp.fs}
 \caption{Zustandsminimierung: Fixpunktberechnung der unterscheidbaren Zustandspaare und Auswahl eines Repräsentanten.}
 \label{fig:minimize_separable}
 \end{figure}
@@ -555,5 +324,5 @@ Die Berücksichtigung der ausgelagerten Dateien ist wesentlich, weil die F\#-Fas
 Einschließlich der ausgelagerten Quelldateien ist \textbf{die F\#-Fassung mit 4600 Zeilen die kompakteste}; sie umfasst rund 36 Prozent weniger Code als die OCaml-Fassung und rund 17 Prozent weniger als die Python-Fassung.
 Betrachtet man nur die Codezellen, fällt der Unterschied mit 3486 Zeilen deutlich größer aus, da F\# mehr Code in Projektdateien auslagert.
 Die Zahlen sind nur eingeschränkt vergleichbar: Die Fassungen sind nicht deckungsgleich, Python bettet Grammatiken teils als Zeichenketten in Zellen ein, und mehrzeilige OCaml-Kommentare sowie Python-Docstrings werden als Code gezählt.
-Pipelining, aktive Muster und Typinferenz sind plausible Ursachen der größeren Kompaktheit; ein kausaler Nachweis ist mit dieser Zählung nicht möglich.
+Pipelining, Sequenzausdrücke und Typinferenz sind plausible Ursachen der größeren Kompaktheit (\cref{sec:expression_semantics,sec:pipelining_currying}); ein kausaler Nachweis ist mit dieser Zählung nicht möglich.
 \end{finding}

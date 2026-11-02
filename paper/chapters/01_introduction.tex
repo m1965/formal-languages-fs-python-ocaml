@@ -4,47 +4,56 @@
 \chapter{Einleitung und methodischer Rahmen}
 \label{chap:introduction}
 
-Die Theorie der formalen Sprachen, die Automatentheorie und der Compilerbau bilden seit den Anfängen der theoretischen und praktischen Informatik ein unverzichtbares Fundament der Softwarewissenschaft~\cite{aho2006compilers,hopcroft2006automata,sipser2012introduction}.
-Seit der Etablierung der Chomsky-Hierarchie~\cite{chomsky1956three}, der mathematischen Formalisierung endlicher Zustandsautomaten und der Entwicklung deterministischer Verfahren für die kontextfreie Syntaxanalyse~\cite{knuth1965translation,earley1970efficient} dient dieses Fachgebiet als Prüfstein für das Design und die Leistungsfähigkeit von Programmiersprachen.
+Der Formale-Sprachen-Unterricht an der DHBW Mannheim vom legendären Karl Stroetmann ist Ausgangspunkt und Gegenstand dieser Arbeit.
+Prof.~Dr.~Karl Stroetmann lehrt an der Dualen Hochschule Baden-Württemberg (DHBW) Mannheim und hat zu seiner Vorlesung über formale Sprachen das Skript \emph{The Parse Tree of Knowledge -- Formal Languages and Their Applications: An Introduction via Larkita} verfasst~\cite{stroetmann2026formal}.
+Skript, \LaTeX{}-Quellen und alle zugehörigen Programme stellt er öffentlich im GitHub-Repository \texttt{karlstroetmann/Formal-Languages} bereit und aktualisiert sie laufend; dieser Arbeit liegt die Fassung vom 1.~November 2026 zugrunde.
+Die Vorlesung behandelt die Theorie der formalen Sprachen gemeinsam mit ihren Anwendungen, nämlich der Entwicklung von Scannern, Parsern, Interpretern und Compilern.
+Zu jedem Thema gehören Jupyter-Notizbücher in Python, auf die das Skript direkt verweist, sodass Theorie und lauffähiger Code im Unterricht stets nebeneinanderstehen.
 
-Im Unterschied zur rein numerischen Datenverarbeitung oder klassischen Webanwendungen operiert die formale Sprachverarbeitung auf tief verschachtelten, rekursiven symbolischen Datenstrukturen: induktiv definierten regulären Ausdrücken, abstrakten Syntaxbäumen, gerichteten Übergangsgraphen mit Nichtdeterminismus sowie tabellenbasierten Fixpunktiterationen.
-Die Eleganz, funktionale Korrektheit und Rechenleistung, mit der eine Programmiersprache diese Algorithmen beschreiben kann, offenbaren die fundamentalen Stärken und Grenzen ihres Typsystems, ihrer semantischen Ausdruckskraft und ihrer Ausführungsumgebung.
+Diese Python-Notizbücher von Karl Stroetmann bilden die Originalfassung, aus der die beiden anderen hier untersuchten Fassungen entstanden sind: eine Übersetzung nach OCaml und eine Übersetzung nach F\#.
+Die vorliegende Arbeit vergleicht die drei Fassungen und fragt, wie sich die Wahl der Programmiersprache auf die Darstellung, die Korrektheitsgarantien und die Laufzeit genau der Algorithmen auswirkt, die Stroetmann in seiner Vorlesung lehrt.
+Wo im Folgenden vom \glqq Curriculum\grqq{} die Rede ist, ist stets diese Vorlesung mit ihrem Skript und ihren Notizbüchern gemeint.
 
 % ------------------------------------------------------------------------------
-\section{Der Gegenstandsbereich: Symbolische Komplexität und mathematische Strenge}
+\section{Die Vorlesung und das Skript von Karl Stroetmann}
 \label{sec:intro_domain}
 % ------------------------------------------------------------------------------
 
-Die Algorithmen eines modernen Curriculums der formalen Sprachen und des Compilerbaus lassen sich vier grundlegenden rechnerischen Mustern zuordnen:
+Stroetmanns Skript umfasst 13 Kapitel, die er selbst in drei Teile gliedert~\cite{stroetmann2026formal}:
 \begin{enumerate}
-  \item \textbf{Induktive symbolische Transformationen:} Abstrakte Syntaxbäume und reguläre Ausdrücke sind mathematisch als induktiv definierte Strukturen aufgebaut.
-  Operationen wie algebraische Vereinfachungen, symbolische Ableitungen nach Brzozowski~\cite{brzozowski1964derivatives} und semantische Syntaxbaumoptimierungen verlangen strukturierten Musterabgleich über heterogene Baumknoten und tiefgreifende rekursive Baumtraversierungen.
-  \item \textbf{Automaten und Graphen:} Algorithmen wie die Thompson-Konstruktion zur Erzeugung von Nichtdeterminismus, die Potenzmengenkonstruktion zur Determinierung von Automaten, die Berechnung von Epsilon-Hüllen sowie die Zustandsminimierung nach Hopcroft über sukzessive Partitionsverfeinerungen manipulieren komplexe, mengentheoretische Graphenstrukturen.
-  \item \textbf{Fixpunktbasierte Tabellensynthesen:} Die Analyse kontextfreier Grammatiken erfordert die Berechnung relationaler Fixpunkte über Mengen, darunter die Synthese von First- und Follow-Mengen, die Konstruktion kanonischer LR-, SLR- und LALR-Zustandssammlungen sowie die Erkennung und Behebung von Schiebe-Reduziere-Konflikten auf realistischen Sprachgrammatiken wie der ANSI-C-Spezifikation.
-  \item \textbf{Mehrstufige Compiler-Pipelines:} Die Übersetzung höherer Programmiersprachen in ausführbaren Bytecode, die statische Typanalyse sowie die zielgerichtete Codegenerierung für virtuelle Maschinen wie die Java Virtual Machine.
+  \item \textbf{Reguläre Sprachen (Kapitel 2 bis 5):} Das Skript definiert reguläre Ausdrücke formal und zeigt, wie sie sich algebraisch vereinfachen lassen.
+  Anschließend werden mit den regulären Ausdrücken von Python Scanner gebaut, darunter eine Klausurauswertung und eine Umwandlung von HTML in Text.
+  Es folgen deterministische und nichtdeterministische endliche Automaten, die Übersetzungen zwischen regulären Ausdrücken und Automaten in beide Richtungen sowie die Minimierung von Automaten.
+  Den Abschluss bilden Abschlusseigenschaften regulärer Sprachen, die Entscheidung der Äquivalenz regulärer Ausdrücke und das Pumping-Lemma.
+  \item \textbf{Kontextfreie Sprachen (Kapitel 6 bis 11):} Auf kontextfreie Grammatiken und einen Top-down-Parser mit rekursivem Abstieg folgt der Parsergenerator Larkita, mit dem ein symbolischer Taschenrechner, ein Programm zur symbolischen Differentiation und ein Interpreter für ein kleines Fragment von C entstehen.
+  Danach behandelt das Skript die Theorie der Parsing-Verfahren: den Earley-Parser sowie SLR-, kanonische LR- und LALR-Parser, einschließlich der Diagnose und Auflösung von Schiebe-Reduziere- und Reduziere-Reduziere-Konflikten.
+  \item \textbf{Compiler (Kapitel 12 und 13):} Das Skript führt in die Java Virtual Machine und ihre Assemblersprache Jasmin ein und entwickelt einen Compiler, der die C-Teilmenge Integer-C nach Jasmin übersetzt.
 \end{enumerate}
 
-Historisch wurden diese Lehrinhalte vorrangig in hardwarenahen imperativen Sprachen wie C und C++ oder in funktionalen Forschungssprachen wie Standard ML vermittelt.
-In der modernen universitären Praxis hat sich die Lehre jedoch zunehmend in Richtung interaktiver Notizbuch-Umgebungen---namentlich Computational Notebooks auf Basis von Project Jupyter~\cite{perez2007ipython}---verschoben.
-Hier verschmelzen erklärender Fließtext, ausführbarer Programmcode und eingebettete Vektorgrafiken zur Visualisierung von Automaten und Ableitungsbäumen zu einem geschlossenen didaktischen Ganzen.
+Larkita ist nach Stroetmanns eigener Beschreibung eine schlanke, rein in Python geschriebene Variante des Parsergenerators Lark.
+Die in dieser Arbeit untersuchten Python-Notizbücher stammen aus einem früheren Stand des Repositorys und verwenden noch Lark selbst sowie in einem Notizbuch PLY.
+Als weiterführende Literatur empfiehlt Stroetmann die Lehrbücher von Hopcroft, Motwani und Ullman, von Sipser sowie von Aho, Lam, Sethi und Ullman~\cite{hopcroft2006automata,sipser2012introduction,aho2006compilers}.
+
+Die Verzeichnisse der Python-Notizbücher (\texttt{Chapter-03}, \texttt{Chapter-04-05} usw.) folgen der Kapitelzählung des Skripts; das Verzeichnis \texttt{Chapter-04-05} fasst die Kapitel~4 und~5 zusammen.
+Kapitelangaben zu den Notizbüchern beziehen sich im Folgenden auf diese Zählung.
 
 % ------------------------------------------------------------------------------
 \section{Motivation: Ein kontrolliertes natürliches Experiment über drei Sprachen}
 \label{sec:intro_motivation}
 % ------------------------------------------------------------------------------
 
-Die vorliegende Untersuchung stützt sich auf ein seltenes natürliches Experiment: Ein anspruchsvolles Curriculum aus 13 Kapiteln zu formalen Sprachen und Compilerbau liegt in drei parallelen Implementierungen vor, die für den interaktiven Betrieb in Jupyter-Notebooks geschrieben wurden.
+Die vorliegende Untersuchung stützt sich auf ein seltenes natürliches Experiment: Stroetmanns Vorlesung liegt mit ihren Notizbüchern in drei parallelen Implementierungen vor, die alle für den interaktiven Betrieb in Jupyter geschrieben sind.
 Die Fassungen behandeln dieselben Themen, sind aber weder im Umfang noch im Zuschnitt der einzelnen Notizbücher deckungsgleich; diese Unterschiede schränken die Vergleichbarkeit ein und werden bei den Messungen ausgewiesen:
 \begin{enumerate}
-  \item \textbf{Python 3.13 (\texttt{ipykernel}):} Der weltweite De-facto-Standard in der Datenverarbeitung und Lehre.
-  Python verkörpert den Archetyp einer dynamisch typisierten, interpretierten und anweisungsorientierten Skriptsprache mit optionalen Typ-Annotationen nach PEP~484, C-optimierten offenen Hash-Mengen und strukturellem Musterabgleich nach PEP~634.
-  \item \textbf{OCaml 5.4 (\texttt{ocaml-jupyter}):} Die klassische Referenzsprache im akademischen Compilerbau.
+  \item \textbf{Python 3.13 (\texttt{ipykernel}):} Die Originalfassung von Karl Stroetmann.
+  Python ist eine dynamisch typisierte, interpretierte und anweisungsorientierte Skriptsprache mit optionalen Typ-Annotationen nach PEP~484, C-optimierten offenen Hash-Mengen und strukturellem Musterabgleich nach PEP~634.
+  \item \textbf{OCaml 5.4 (\texttt{ocaml-jupyter}):} Eine Übersetzung der Python-Notizbücher in die klassische Referenzsprache des akademischen Compilerbaus.
   OCaml vertritt das Paradigma einer statisch typisierten, primär funktionalen ML-Sprache (mit veränderlichen Referenzen und Arrays als imperativen Ergänzungen) mit globaler Damas--Hindley--Milner-Typinferenz, unveränderlichen persistenten Mengen und Abbildungen und optimierender Übersetzung in nativen Maschinencode~\cite{leroy2023ocaml,sivaramakrishnan2020retrofitting}.
-  \item \textbf{F\# 9.0 unter .NET 9 (\texttt{dotnet-interactive}):} Eine moderne, multiparadigmatische und primär funktionale Sprache, die ML-Typinferenz und algebraische Datentypen mit der leistungsstarken Infrastruktur der Microsoft .NET 9 CoreCLR, mehrstufiger RyuJIT-Kompilierung und einer modernen Paketverwaltung verbindet~\cite{syme2020early}.
+  \item \textbf{F\# 9.0 unter .NET 9 (\texttt{dotnet-interactive}):} Eine weitere Übersetzung der Python-Notizbücher, in eine moderne, multiparadigmatische und primär funktionale Sprache, die ML-Typinferenz und algebraische Datentypen mit der leistungsstarken Infrastruktur der Microsoft .NET 9 CoreCLR, mehrstufiger RyuJIT-Kompilierung und einer modernen Paketverwaltung verbindet~\cite{syme2020early}.
 \end{enumerate}
 
 Der untersuchte Gesamtkorpus umfasst 49 Python-, 50 OCaml- und 56 F\#-Notizbücher, die von den Grundlagen der regulären Ausdrücke über Parsing-Verfahren bis hin zu vollständigen Codegeneratoren reichen.
-Statt subjektive Eindrücke abzufragen, widmet sich unsere Untersuchung den tiefgreifenden technischen und architektonischen Wechselwirkungen zwischen formaler Sprachtheorie, Typsicherheit, syntaktischer Dichte und realer Laufzeitperformanz.
+Statt subjektive Eindrücke abzufragen, untersucht die Arbeit am Code dieser Notizbücher, wie Typsicherheit, syntaktische Dichte und Laufzeitverhalten der drei Sprachen die Umsetzung von Stroetmanns Algorithmen prägen.
 
 % ------------------------------------------------------------------------------
 \section{Forschungsfragen und Evaluierungsdimensionen}
@@ -60,7 +69,7 @@ Die Monographie gliedert sich entlang fünf zentraler softwaretechnischer Forsch
 
   \item[\textbf{Forschungsfrage 2: Syntaktische Ausdruckskraft und Programmieridiome (\cref{chap:expressiveness})}]
   Welche Sprachmittel minimieren die kognitive Belastung bei relationalen Fixpunktiterationen, regulären Baumableitungen und semantischen AST-Transformationen?
-  Wie schneiden der funktionale Pipeline-Operator, automatisches Currying und Active Patterns im Vergleich zum anweisungsorientierten Kontrollfluss von Python ab?
+  Wie schneiden der funktionale Pipeline-Operator, partielle Anwendung und Musterabgleich in den OCaml- und F\#-Notizbüchern im Vergleich zum anweisungsorientierten Kontrollfluss der Python-Notizbücher ab?
 
   \item[\textbf{Forschungsfrage 3: Integration von Lexer- und Parser-Werkzeugen (\cref{chap:toolchains})}]
   Wie verhalten sich dynamische, speicherbasierte Parsergeneratoren wie Lark im Vergleich zu vorab kompilierenden Werkzeugen wie Menhir in OCaml und FsLexYacc in F\# hinsichtlich Spezifikationsergonomie, Durchsatz und der Klarheit bei der Diagnose von Grammatikkonflikten?
@@ -106,7 +115,7 @@ Die eingesetzten Compiler und Laufzeitumgebungen entsprechen den aktuellen stabi
 Die weitere Arbeit ist wie folgt gegliedert:
 \begin{itemize}
   \item \textbf{\Cref{chap:type_systems} (Typsysteme):} Untersucht Hindley--Milner-Inferenz, algebraische Summentypen, statische Vollständigkeitsprüfungen und unveränderliche Datenstrukturen.
-  \item \textbf{\Cref{chap:expressiveness} (Ausdrucksstärke):} Analysiert ausdrucksbasierte Semantik, Vorwärtspipelining, Active Patterns und vergleicht algorithmische Implementierungen Seite an Seite.
+  \item \textbf{\Cref{chap:expressiveness} (Ausdrucksstärke):} Analysiert ausdrucksbasierte Semantik, Vorwärtspipelining und Musterabgleich und vergleicht die Implementierungen aus den Notizbüchern Seite an Seite.
   \item \textbf{\Cref{chap:toolchains} (Parser-Werkzeuge):} Bewertet dynamische versus vorab kompilierte Lexer- und Parser-Pipelines, LR-Konfliktdiagnosen und allgemeine Chart-Parser.
   \item \textbf{\Cref{chap:performance} (Rechenleistung):} Präsentiert die empirischen Messergebnisse, analysiert das Paradoxon tiefer Mengenstrukturen und beleuchtet Speicherallokationen sowie JIT-Optimierungen.
   \item \textbf{\Cref{chap:interactive_kernels} (Interaktive Kernel):} Beleuchtet die interne Architektur der Jupyter-Kernel, Zustandskonsistenz und Vektorgrafik-Pipelines.

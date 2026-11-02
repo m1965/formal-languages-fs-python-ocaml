@@ -4,11 +4,10 @@
 \chapter{Integration von Lexer- und Parser-Werkzeugen}
 \label{chap:toolchains}
 
-Die syntaktische Analyse transformiert unstrukturierte Zeichenfolgen in wohlgeformte, hierarchische Syntaxbäume.
-In der Informatik vereint das Parsing zwei fundamentale Facetten: Einerseits ist es eine mathematisch strenge Disziplin, die auf der Chomsky-Hierarchie, kontextfreien Grammatiken, deterministischen Kellerautomaten und allgemeinen Chart-Parsing-Verfahren aufbaut~\cite{chomsky1956three,knuth1965translation,earley1970efficient}.
-Andererseits ist es eine anspruchsvolle Ingenieursdisziplin, die hohe Anforderungen an Entwickler-Ergonomie, verständliche Fehlerdiagnosen und maximalen Rechendurchsatz stellt.
+Der größte Teil von Stroetmanns Skript, die Kapitel~6 bis~11, ist der Syntaxanalyse kontextfreier Sprachen gewidmet~\cite{stroetmann2026formal}.
+Das Skript verbindet dabei zwei Zugänge: Die Studierenden benutzen einen Parsergenerator als Werkzeug, um einen Taschenrechner, ein Programm zur symbolischen Differentiation, einen Interpreter und schließlich den Integer-C-Compiler zu bauen, und sie implementieren die zugrunde liegenden Parsing-Verfahren selbst~\cite{earley1970efficient,knuth1965translation}.
 
-Das vorliegende Curriculum beleuchtet diesen Dualismus auf zwei komplementären Ebenen:
+Die Notizbücher der Vorlesung bilden beide Zugänge ab:
 \begin{enumerate}
   \item \textbf{Industrielle Werkzeugketten:} Wie binden sich etablierte Parsergeneratoren---Lark in Python, \texttt{ocamllex} und Menhir in OCaml sowie \texttt{FsLex} und \texttt{FsYacc} in F\#---in interaktive Notizbücher ein, wie erzeugen sie Tabellenstrukturen, wie sichern sie semantische Aktionen typstatisch ab und wie unterstützen sie bei Grammatikkonflikten?
   \item \textbf{Didaktische Eigenimplementierungen:} Wie werden Parsing-Verfahren von Grund auf im Quelltext realisiert: vom rekursiven Abstieg für LL(1)-Grammatiken über allgemeines Earley-Parsing für mehrdeutige Grammatiken bis hin zur vollständigen Generierung kanonischer LR- und LALR-Tabellen für die reale ANSI-C-Spezifikation?
@@ -36,7 +35,7 @@ Die drei Programmiersprachen verkörpern drei grundlegend verschiedene Philosoph
     \addlinespace[3pt]
     \textbf{Spezifikation} & EBNF-Zeichenkette direkt in der Zelle & Spezifikationsstrings für Lexer und Parser & Eigene Quelldateien im Projektordner \\
     \addlinespace[3pt]
-    \textbf{Algorithmen} & LALR(1), Earley, CYK & LR(1) (Pager oder kanonisch), LALR(1) & LALR(1) \\
+    \textbf{Genutzte Verfahren} & LALR(1) (19 Aufrufe), Earley (2 Aufrufe) & LALR(1), kanonisches LR(1) (\texttt{--canonical}), GLR (\texttt{--GLR}) & LALR(1) \\
     \addlinespace[3pt]
     \textbf{Kompilationsziel} & Reine Python-Objekte im Arbeitsspeicher & Standalone-Module, kompiliert zu Bytecode & Typisierter F\#-Quelltext, kompiliert zu DLL \\
     \addlinespace[3pt]
@@ -69,14 +68,14 @@ Die drei Programmiersprachen verkörpern drei grundlegend verschiedene Philosoph
     % OCaml pipeline
     \node[ocbox, below=1.2cm of p1] (o1) {\textbf{OCaml-Zelle}\\Spezifikationsstrings};
     \node[ocbox, right=of o1] (o2) {\textbf{Subprozess}\\Aufruf: \texttt{ocamllex} +\\\texttt{menhir --lalr}};
-    \node[ocbox, right=of o2] (o3) {\textbf{Toplevel-Lader}\\\texttt{Toploop.load\_file}\\Statischer Baum};
+    \node[ocbox, right=of o2] (o3) {\textbf{Toplevel-Lader}\\\texttt{Toploop.mod\_use\_input}\\Statischer Baum};
     \draw[arrow] (o1) -- node[above, font=\tiny] {Generierung} (o2);
     \draw[arrow] (o2) -- node[above, font=\tiny] {Kompilierung} (o3);
 
     % F# pipeline
     \node[fsbox, below=1.2cm of o1] (f1) {\textbf{Projektquellen}\\\texttt{.fsl}- und \texttt{.fsy}-Dateien\\im Dateisystem};
     \node[fsbox, right=of f1] (f2) {\textbf{MSBuild-Build}\\\texttt{FsLexYacc}-Tasks\\erzeugt Quellcode};
-    \node[fsbox, right=of f2] (f3) {\textbf{Notebook-Zelle}\\\texttt{\#r "Syntax.dll"}\\Native JIT-Ausführung};
+    \node[fsbox, right=of f2] (f3) {\textbf{Notebook-Zelle}\\\texttt{\#r "CalculatorSyntax.dll"}\\Native JIT-Ausführung};
     \draw[arrow] (f1) -- node[above, font=\tiny] {\texttt{dotnet build}} (f2);
     \draw[arrow] (f2) -- node[above, font=\tiny] {CoreCLR} (f3);
   \end{tikzpicture}
@@ -109,7 +108,7 @@ Die Qualität der didaktischen Unterstützung entscheidet darüber, ob Studieren
 In Menhir für OCaml ist die Konfliktanalyse vorbildlich gelöst: Wenn die Grammatik einen Konflikt aufweist, erzeugt Menhir mit der Option \texttt{--explain} nicht lediglich eine abstrakte Liste betroffener Zustände, sondern konstruiert konkrete Ableitungspfade und minimale Satzfragmente, die demonstrieren, wie zwei konkurrierende Interpretationen desselben Textes entstehen können.
 
 In FsLexYacc für F\# wird eine detaillierte textuelle Protokolldatei erzeugt, die alle Zustände, Item-Mengen und Übergänge auflistet.
-Ein didaktisch hochinteressantes Lehrbeispiel im Curriculum (Kapitel~10) ist der sogenannte mysteriöse LALR-Konflikt:
+Ein didaktisch hochinteressantes Lehrbeispiel aus Stroetmanns Skript (Abschnitt~11.3.2, Notizbuch \texttt{Chapter-11/05-Mysterious-Conflicts.ipynb}) ist der sogenannte mysteriöse Reduziere-Reduziere-Konflikt:
 Hierbei handelt es sich um eine Grammatik, die in einem kanonischen LR(1)-Parser absolut deterministisch und konfliktfrei arbeitet, weil der Vorausschau-Horizont in den getrennten Zuständen die anstehende Reduktion eindeutig festlegt.
 Da LALR(1) zur Vermeidung von Zustandsexplosionen jedoch Zustände mit identischem LR(0)-Kern miteinander verschmilzt, werden auch deren Vorausschaumengen vereinigt. 
 
@@ -128,21 +127,23 @@ Lark bietet stattdessen Prioritäten für Regeln und Terminale, aber keine Assoz
 
 Neben der Nutzung vorgefertigter Generatoren implementieren die Studierenden im Verlauf der Vorlesung drei eigenständige Parsing-Engines:
 
-\subsection{1. Rekursiver Abstieg und LL(1)-Bedingungen}
-In Kapitel~06 wird der klassische rekursive Abstieg behandelt.
-Die Studierenden analysieren die formale Bedingung für deterministische LL(1)-Grammatiken: Für jedes Nichtterminal mit alternativen Produktionen dürfen sich die First-Mengen der Alternativen nicht überschneiden.
-Ist eine Alternative in der Lage, das leere Wort abzuleiten, muss deren First-Menge zudem disjunkt zur Follow-Menge des Nichtterminals sein.
-Zudem wird die Beseitigung direkter Linksrekursionen demonstriert, da linksrekursive Regeln beim rekursiven Abstieg zu Endlosschleifen im Aufrufstapel führen.
-In OCaml und F\# wird der Parser als System gegenseitig rekursiver Funktionen formuliert, während Python auf methodenbasierte Klassenstrukturen mit veränderlichen Token-Iteratoren setzt.
+\subsection{1. Rekursiver Abstieg}
+Kapitel~6 des Skripts entwickelt einen Top-down-Parser mit rekursivem Abstieg für arithmetische Ausdrücke~\cite{stroetmann2026formal}.
+Weil dieses Verfahren für linksrekursive Grammatiken nicht funktioniert, ersetzt Stroetmann die Linksrekursion durch die Iteration einer EBNF-Grammatik.
+Bereits seine Python-Fassung formuliert den Parser als gegenseitig rekursive Funktionen, die jeweils ein Paar aus Ergebnis und verbleibender Tokenliste zurückgeben und die Fälle über Listenmuster unterscheiden (\texttt{case '+', *RL}).
+Die F\#-Fassung übernimmt diese Struktur direkt als Gruppe \texttt{let rec \dots{} and \dots}, während die OCaml-Fassung wie bei der Thompson-Konstruktion (\cref{sec:case_thompson}) Vorwärtsreferenzen anlegt, damit die Funktionen in derselben Reihenfolge wie im Python-Notizbuch erklärt werden können.
 
 \subsection{2. Allgemeines kontextfreies Parsing nach Earley}
-Um beliebige kontextfreie Grammatiken---auch mehrdeutige, linksrekursive oder solche mit Epsilon-Regeln---verarbeiten zu können, implementieren die Kapitel~08 und~09 den Earley-Algorithmus~\cite{earley1970efficient}.
-Ein Earley-Zustand ist ein Tripel aus einer Grammatikproduktion mit Markierungspunkt für die aktuelle Leseposition und einem Index für die Startposition der Regel im Eingabetext.
+Um beliebige kontextfreie Grammatiken---auch mehrdeutige, linksrekursive oder solche mit Epsilon-Regeln---verarbeiten zu können, behandelt Kapitel~9 des Skripts den Earley-Algorithmus~\cite{earley1970efficient}; die Python-Notizbücher dazu liegen im Verzeichnis \texttt{Chapter-09}.
+Ein Earley-Objekt $\langle a \to \beta \bullet \gamma, k \rangle$ besteht aus einer Grammatikregel mit Markierungspunkt für die aktuelle Leseposition und einem Index für die Startposition der Regel im Eingabetext.
 Der Algorithmus verwaltet eine Chart-Tabelle von Zustandsmengen über drei fundamentale Operationen: Prädiktor (Vorhersage möglicher Folgeproduktionen), Scanner (Einlesen passender Terminalzeichen) und Komplettierer (Fortführen übergeordneter Regeln nach Abschluss einer Unterregel).
 
 \subsection{3. Generatoren für SLR(1)- und LR(1)-Tabellen}
-In den Kapiteln~09 und~10 konstruieren die Studierenden eigenständige Tabellengeneratoren: Sie berechnen die Hülle von Item-Mengen, synthetisieren First- und Follow-Mengen über Fixpunktalgorithmen und füllen die Aktions- und Sprungtabellen.
-Als abschließender Härtetest dient die vollständige ANSI-C-Grammatik mit über 65 Nichtterminalen und mehr als 220 Regeln, an der reale Mehrdeutigkeiten wie das Dangling-Else-Problem im Detail analysiert werden.
+In Kapitel~10 des Skripts konstruieren die Studierenden eigene Tabellengeneratoren für SLR- und kanonische LR-Parser (Notizbücher im Verzeichnis \texttt{Chapter-10}): Sie berechnen die Hülle von Mengen markierter Regeln, bestimmen First- und Follow-Mengen über Fixpunktberechnungen und füllen die Aktions- und Sprungtabellen.
+Als Härtetest dient eine Grammatik für die Sprache C mit 63 Nichtterminalen und 215 Regelalternativen.
+Laut Skript kommt ein SLR-Parser für diese Grammatik mit 349 Zuständen aus, erzeugt aber Konflikte, weil C keine SLR-Sprache ist, während der kanonische LR-Parser 1572 Zustände benötigt.
+Für die SLR-Tabelle verwendet Stroetmann deshalb eine angepasste Grammatik ohne Typumwandlungen, Sprungmarken und \texttt{if}-Anweisungen ohne \texttt{else}-Zweig.
+Das Dangling-Else-Problem behandelt das Skript anhand der Grammatik von Integer-C.
 
 % ------------------------------------------------------------------------------
 \section{Empirische Performanz der Parser-Werkzeuge}
