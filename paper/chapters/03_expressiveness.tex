@@ -103,32 +103,427 @@ Obwohl dies eine deutliche Verbesserung gegenüber historischen Typabfrage-Kaska
 \label{sec:algorithmic_case_studies}
 % ------------------------------------------------------------------------------
 
-Anhand dreier repräsentativer Kernalgorithmen des Curriculums lässt sich der Einfluss dieser Paradigmen auf den praktischen Code demonstrieren:
+Anhand dreier repräsentativer Kernalgorithmen des Curriculums lässt sich der Einfluss dieser Paradigmen auf den praktischen Code demonstrieren.
+Alle Listings in diesem Abschnitt sind wörtlich aus den Jupyter-Notebooks der drei Fassungen übernommen; jede Überschrift nennt Notebook und Zellen.
+Auslassungen sind durch einen Kommentar mit drei Punkten markiert.
+Wir zeigen nur die Stellen, an denen sich die drei Fassungen am deutlichsten unterscheiden, und arbeiten jeweils heraus, wie die Sprachen denselben Algorithmus unterschiedlich interpretieren und welche Vorteile daraus folgen.
 
 \subsection{1. Thompson-Konstruktion für nichtdeterministische Automaten}
+\label{sec:case_thompson}
 Die Thompson-Konstruktion überführt einen regulären Ausdruck induktiv in einen äquivalenten Automaten mit Epsilon-Schritten.
-Für jeden Teilausdruck müssen frische Zustände generiert und Teilautomaten parallel oder seriell verknüpft werden.
-In Python wird dieser Algorithmus typischerweise über eine zustandsbehaftete Klasse mit internem Zähler realisiert, die Zwischenergebnisse mutiert.
-In F\# hingegen präsentiert die Funktion nach außen eine rein funktionale, seiteneffektfreie Schnittstelle: Aus einem Alphabet und einem regulären Ausdruck entsteht ein unveränderlicher Automat.
-Intern wird die Erzeugung neuer Zustandsnummern durch eine streng lokal gekapselte veränderliche Zählervariable gelöst, die außerhalb der Funktion nicht existiert und Nebenläufigkeitskonflikte ausschließt.
+Für jeden Teilausdruck müssen frische Zustände erzeugt und Teilautomaten parallel oder seriell verknüpft werden.
+Alle drei Fassungen folgen derselben Zerlegung in einen rekursiven Verteiler \texttt{toNFA} und sechs Hilfsfunktionen für die Grundfälle und Verknüpfungen.
+\Cref{fig:thompson_dispatch} zeigt den Verteiler, \Cref{fig:thompson_kleene} die Konstruktion für den Kleene-Stern.
 
-\subsection{2. Reguläre Ausdrücke und Brzozowski-Ableitungen}
+\begin{figure}[p]
+\begin{lstlisting}[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zellen 14--15}]
+def toNFA(self: RegExp2NFA, r: RegExp) -> NFA:
+    match r:
+        case 0:
+            return self.genEmptyNFA()
+        case '𝜀':
+            return self.genEpsilonNFA()
+        case r if isinstance(r, str) and len(r) == 1:
+            return self.genCharNFA(r)
+        case (r1, '⋅', r2):
+            return self.catenate(self.toNFA(r1), self.toNFA(r2))
+        case (r1, '+', r2):
+            return self.disjunction(self.toNFA(r1), self.toNFA(r2))
+        case (r1, '*'):
+            return self.kleene(self.toNFA(r1))
+        case _:
+            raise ValueError(f'{r} is not a proper regular expression.')
+
+RegExp2NFA.toNFA = toNFA # type: ignore
+del toNFA
+\end{lstlisting}
+\begin{lstlisting}[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zellen 10, 13--14}]
+type regExp2NFA = { alphabet : char FSet.t; mutable stateCount : int }
+let genEmptyNFA_ref   : (regExp2NFA -> state nfa) ref                             = ref not_yet_defined
+(* ... *)
+let rec toNFA (self : regExp2NFA) (r : regexp) : state nfa =
+  match r with
+  | Empty -> !genEmptyNFA_ref self
+  | Epsilon -> !genEpsilonNFA_ref self
+  | Char c -> !genCharNFA_ref self c
+  | Product (r1, r2) ->
+      let f1 = toNFA self r1 in
+      let f2 = toNFA self r2 in
+      !catenate_ref self f1 f2
+  | Sum (r1, r2) ->
+      let f1 = toNFA self r1 in
+      let f2 = toNFA self r2 in
+      !disjunction_ref self f1 f2
+  | Star r1 -> !kleene_ref self (toNFA self r1)
+toNFA_ref := toNFA
+\end{lstlisting}
+\begin{lstlisting}[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zelle 19}]
+let regexp2nfa (alphabet: Set<char>) (expression: RegExp) : Nfa<int> =
+    // State allocation is local to one conversion. No previous run affects its result.
+    let mutable stateCount = 0
+    let getNewState () =
+        stateCount <- stateCount + 1
+        stateCount
+    let rec toNFA expression =
+        match expression with
+        | Empty -> genEmptyNFA alphabet (getNewState ()) (getNewState ())
+        | Epsilon -> genEpsilonNFA alphabet (getNewState ()) (getNewState ())
+        | Literal c -> genCharNFA alphabet c (getNewState ()) (getNewState ())
+        | Concat (left, right) ->
+            let first = toNFA left
+            let second = toNFA right
+            catenate first second
+        | Alt (left, right) ->
+            let first = toNFA left
+            let second = toNFA right
+            disjunction (getNewState ()) (getNewState ()) first second
+        | Star expression ->
+            let fragment = toNFA expression
+            kleene (getNewState ()) (getNewState ()) fragment
+    toNFA expression
+\end{lstlisting}
+\caption{Thompson-Konstruktion: der rekursive Verteiler \texttt{toNFA} in den drei Notebook-Fassungen.}
+\label{fig:thompson_dispatch}
+\end{figure}
+
+Obwohl die drei Verteiler strukturell gleich aufgebaut sind, unterscheiden sie sich in vier Punkten deutlich:
+
+\paragraph{Darstellung des regulären Ausdrucks.}
+Python stellt reguläre Ausdrücke nicht als eigene Klassen dar, sondern als Werte eingebauter Typen: \texttt{0} steht für die leere Sprache, eine Zeichenkette der Länge eins für ein Zeichen, Tupel wie \texttt{(r1, '⋅', r2)} für Verknüpfungen.
+Der Typ \texttt{RegExp} ist ein reiner Typ-Alias für externe Prüfer.
+Deshalb braucht der Abgleich einen Wächter (\texttt{isinstance(r, str) and len(r) == 1}), um Zeichen von anderen Zeichenketten zu unterscheiden, und einen Auffangfall, der fehlerhafte Werte erst zur Laufzeit mit \texttt{ValueError} abweist.
+OCaml und F\# verwenden Varianten bzw. Discriminated Unions; ein Auffangfall ist überflüssig, und ein vergessener Konstruktor würde vom Compiler gemeldet.
+Der Vorteil der Python-Interpretation liegt in der Kürze der Testdaten: Ein Ausdruck wie \texttt{(('a', '+', 'b'), '*')} lässt sich ohne Konstruktoren direkt hinschreiben.
+
+\paragraph{Reihenfolge der Definitionen im Notebook.}
+Die Notebooks erklären zuerst den Verteiler und danach die Hilfsfunktionen.
+Python bildet das ab, indem eine Klasse mit Platzhaltermethoden angelegt und jede Methode in einer späteren Zelle nachträglich angehängt wird (\texttt{RegExp2NFA.toNFA = toNFA}); der Kommentar \texttt{\# type: ignore} zeigt, dass externe Typprüfer dieses Vorgehen nicht akzeptieren.
+OCaml verlangt, dass jeder Bezeichner vor seiner Verwendung definiert ist; die Fassung legt deshalb für jede Hilfsfunktion eine veränderliche Vorwärtsreferenz an (\texttt{genEmptyNFA\_ref}), die über \texttt{!} dereferenziert und später mit \texttt{:=} belegt wird.
+F\# kehrt stattdessen die Reihenfolge um: Die Hilfsfunktionen stehen in früheren Zellen, und \texttt{regexp2nfa} folgt als letzte Zelle, sodass weder Vorwärtsreferenzen noch nachträglich angehängte Methoden nötig sind.
+
+\paragraph{Erzeugung neuer Zustände.}
+In Python und OCaml ist der Zustandszähler ein Feld des Konverterobjekts (\texttt{self.StateCount} bzw. \texttt{mutable stateCount}); wird derselbe Konverter für mehrere Ausdrücke verwendet, setzt sich die Nummerierung fort.
+F\# kapselt den Zähler als lokale veränderliche Variable innerhalb von \texttt{regexp2nfa}; jeder Aufruf beginnt bei null, und die Funktion ist nach außen eine reine Funktion vom Alphabet und Ausdruck auf einen Automaten, wie es auch der Kommentar im Notebook festhält.
+Zudem reichen die F\#-Hilfsfunktionen die frischen Zustände als Parameter herein, statt sie selbst zu erzeugen; sie sind dadurch ohne Konverterobjekt testbar.
+
+\paragraph{Auswertungsreihenfolge.}
+Weil frische Zustände über Seiteneffekte entstehen, hängt die Nummerierung von der Auswertungsreihenfolge ab.
+Python und F\# werten Funktionsargumente garantiert von links nach rechts aus.
+Die beiden rekursiven \texttt{toNFA}-Aufrufe als Argumente von \texttt{catenate} in Python und die beiden \texttt{getNewState ()}-Aufrufe als Argumente von \texttt{genEmptyNFA} in F\# nummerieren daher vorhersagbar.
+OCaml legt die Auswertungsreihenfolge von Argumenten nicht fest, und der Compiler wertet in der Praxis von rechts nach links aus.
+Die OCaml-Fassung erzwingt die Reihenfolge deshalb ausdrücklich über \texttt{let f1 = \dots{} in} \texttt{let f2 = \dots{} in}; ohne diese Bindungen würden Zustände in anderer Reihenfolge nummeriert als in den Python-Beispielen der Vorlesung.
+
+\begin{figure}[tbp]
+\begin{lstlisting}[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zelle 38}]
+def kleene(self: RegExp2NFA, f: NFA) -> NFA:
+    Q, Sigma, delta0, q1, A = f
+    q2, = A
+    q0 = self.getNewState()
+    q3 = self.getNewState()
+    delta = delta0 | {}    # copy delta0, so that f is not changed
+    delta[q0, '𝜀'] = { q1, q3 }
+    delta[q2, '𝜀'] = { q1, q3 }
+    return { q0, q3 } | Q, Sigma, delta, q0, { q3 }
+\end{lstlisting}
+\begin{lstlisting}[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zelle 37}]
+let kleene (self : regExp2NFA) (f : state nfa) : state nfa =
+  let ({ states = q; sigma; delta = delta0; start = q1; accepting = a } : state nfa) = f in
+  let q2 = the_element a in
+  let q0 = !getNewState_ref self in
+  let q3 = !getNewState_ref self in
+  let delta =
+    delta0
+    |> Dict.add (q0, Eps) (FSet.of_list [ q1; q3 ])
+    |> Dict.add (q2, Eps) (FSet.of_list [ q1; q3 ])
+  in
+  { states = FSet.union (FSet.of_list [ q0; q3 ]) q; sigma; delta; start = q0; accepting = FSet.singleton q3 }
+\end{lstlisting}
+\begin{lstlisting}[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zellen 11 und 17}]
+let singleFinal (nfa: Nfa<int>) =
+    if Set.count nfa.Accepting <> 1 then invalidArg "nfa" "A Thompson fragment must have exactly one final state."
+    Set.minElement nfa.Accepting
+
+let kleene q0 q3 (fragment: Nfa<int>) : Nfa<int> =
+    let transitions =
+        fragment.Transitions
+        |> Map.add (q0, Eps) (set [fragment.Start; q3])
+        |> Map.add (singleFinal fragment, Eps) (set [fragment.Start; q3])
+    { fragment with States = Set.union (set [q0; q3]) fragment.States
+                    Transitions = transitions; Start = q0; Accepting = set [q3] }
+\end{lstlisting}
+\caption{Thompson-Konstruktion: Automat für den Kleene-Stern in den drei Notebook-Fassungen.}
+\label{fig:thompson_kleene}
+\end{figure}
+
+Die Konstruktion für den Kleene-Stern (\Cref{fig:thompson_kleene}) zeigt den Unterschied zwischen veränderlichen und persistenten Datenstrukturen besonders deutlich.
+Python stellt den Automaten als Fünftupel mit einem veränderlichen Wörterbuch dar und muss dieses vor dem Einfügen der Epsilon-Übergänge ausdrücklich kopieren (\texttt{delta0 | \{\}}); der Kommentar \glqq so that f is not changed\grqq{} benennt die Gefahr, dass ein vergessener Kopierschritt den Teilautomaten des Aufrufers verändern würde.
+OCaml und F\# arbeiten auf persistenten Abbildungen: \texttt{Dict.add} bzw. \texttt{Map.add} liefern eine neue Abbildung und lassen \texttt{delta0} unverändert, sodass dieser Fehler gar nicht auftreten kann.
+F\# nutzt zusätzlich den Kopierausdruck \texttt{\{ fragment with \dots{} \}}, der nur die geänderten Felder nennt.
+
+Auch der einzige Endzustand eines Fragments wird unterschiedlich bestimmt.
+Python entpackt die einelementige Menge mit \texttt{q2, = A}; das ist sehr knapp und scheitert bei mehr oder weniger als einem Element mit einer allgemeinen \texttt{ValueError}-Meldung.
+OCaml (\texttt{the\_element}) und F\# (\texttt{singleFinal}) formulieren dieselbe Annahme als benannte Funktion; F\# gibt dabei eine fachliche Fehlermeldung aus, die die verletzte Invariante der Thompson-Konstruktion nennt.
+
+\begin{finding}[\textbf{Interpretation der Thompson-Konstruktion}]
+Python erlaubt die knappste, am nächsten an der Tafelnotation liegende Formulierung, erkauft dies aber mit Laufzeitprüfungen, manuellem Kopieren und nachträglich angehängten Methoden.
+OCaml bietet statische Vollständigkeit und Persistenz, benötigt im Notebook aber Vorwärtsreferenzen und eine ausdrücklich erzwungene Auswertungsreihenfolge.
+F\# kombiniert Persistenz mit einer nach außen reinen Funktion und kommt durch die umgekehrte Zellenreihenfolge ohne Vorwärtsreferenzen aus.
+\end{finding}
+
+\subsection{2. Reguläre Ausdrücke: Epsilon-Test und algebraische Vereinfachung}
+\label{sec:case_simplify}
 Die Brzozowski-Ableitung eines regulären Ausdrucks nach einem Eingabezeichen beschreibt die Restsprache aller Wörter, die nach dem Einlesen dieses Zeichens noch akzeptiert werden~\cite{brzozowski1964derivatives,owens2009regular}.
-Die mathematische Definition stützt sich auf eine Epsilon-Prüfung, die feststellt, ob ein Ausdruck das leere Wort akzeptiert, sowie auf induktive Regeln für Basisfälle, Alternativen, Verkettungen und den Kleene-Stern:
-Die Ableitung der leeren Menge oder des leeren Wortes ergibt stets die leere Menge.
-Die Ableitung eines Zeichens nach sich selbst ergibt das leere Wort, nach einem abweichenden Zeichen die leere Menge.
-Bei einer Alternative werden beide Zweige abgeleitet.
-Bei einer Verkettung zweier Ausdrücke wird die Ableitung des ersten Teils mit dem zweiten Teil verkettet; akzeptiert der erste Teil das leere Wort, kommt die Ableitung des zweiten Teils als Alternative hinzu.
-Beim Kleene-Stern wird die Ableitung des inneren Ausdrucks mit dem wiederholten Gesamtausdruck verkettet.
+Ihre Definition stützt sich auf einen Epsilon-Test, der feststellt, ob ein Ausdruck das leere Wort akzeptiert.
+Das Curriculum implementiert die Ableitung selbst in keiner der drei Fassungen, wohl aber den Epsilon-Test als Teil der algebraischen Vereinfachung regulärer Ausdrücke.
+An dieser Vereinfachung zeigt sich der größte konzeptionelle Unterschied zwischen den Fassungen: Python und OCaml normalisieren Ausdrücke algorithmisch über eine flache Darstellung (\Cref{fig:simplify_nullable}), während F\# die Vereinfachung als Termersetzung mit deklarativ notierten Regeln formuliert (\Cref{fig:simplify_rewrite}).
 
-In OCaml lässt sich dieses Regelwerk buchstäblich eins-zu-eins als strukturierter Musterabgleich niederschreiben.
-Jede mathematische Regel entspricht exakt einem einzigen Funktionszweig.
-Sollte jemals ein neuer Sprachoperator zum regulären Ausdruck hinzugefügt werden, meldet der OCaml-Compiler mit Warnung~8 sowohl in der Epsilon-Prüfung als auch in der Ableitungsfunktion den fehlenden Fall; wird diese Warnung mit \texttt{-warn-error +8} als Fehler behandelt, verweigert er die Übersetzung, bis beide Funktionen ergänzt wurden.
+\begin{figure}[tbp]
+\begin{lstlisting}[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/Simplify.ipynb}, Zellen 6 und 27}]
+type Flat = (str | tuple[Literal['*'], Flat] | tuple[Literal['+'], frozenset[Flat]]
+                 | tuple[Literal['⋅'], tuple[Flat, ...]])
 
-\subsection{3. Zustandsminimierung durch Partitionsverfeinerung}
-Die Minimierung deterministischer Automaten zerlegt die Zustandsmenge iterativ in Myhill--Nerode-Äquivalenzklassen; Hopcroft gab hierfür einen Algorithmus mit einer Laufzeit von $O(n \log n)$ an~\cite{hopcroft1971nlogn}, während das einfachere Verfahren nach Moore die Blöcke so lange anhand der Übergangssignaturen verfeinert, bis sich nichts mehr ändert.
-In Python erfolgt die Verfeinerung meist über verschachtelte Mengenabstraktionen und Hilfswörterbücher, was kompakt ist; die Reihenfolge der Blöcke folgt dabei der ungeordneten Iteration der Mengen und hängt bei Zeichenketten-Zuständen vom Hash-Seed des Prozesses ab.
-In F\# und OCaml wird die Partitionsverfeinerung als funktionale Fixpunktiteration über unveränderlichen, geordneten Mengen formuliert, was eine deterministische und damit im Lehrbetrieb gut nachvollziehbare Blockreihenfolge liefert.
+Empty:   Flat = ('+', frozenset())
+Epsilon: Flat = ('⋅', ())
+
+@cache
+def nullable(r: Flat) -> bool:
+    match r:
+        case ('*', _):
+            return True
+        case ('+', S):
+            return any(nullable(s) for s in S)
+        case ('⋅', F):
+            return all(nullable(f) for f in F)
+        case _:
+            return False
+\end{lstlisting}
+\begin{lstlisting}[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/Simplify.ipynb}, Zellen 4, 8 und 28}]
+let cache (f : ('a -> 'b) -> 'a -> 'b) : 'a -> 'b =
+  let table = Hashtbl.create 1024 in
+  let rec self x =
+    let key = (Hashtbl.hash_param 100 1000 x, x) in
+    match Hashtbl.find_opt table key with
+    | Some y -> y
+    | None ->
+        let y = f self x in
+        Hashtbl.replace table key y;
+        y
+  in
+  self
+
+type flat =
+  | FChar of char           (* a character c                                  *)
+  | FStar of flat           (* r*                                             *)
+  | FSum  of flat FSet.t    (* r1 + ... + rn, none of the summands is a sum   *)
+  | FProd of flat list      (* r1 ⋅ ... ⋅ rn, none of the factors is a product *)
+
+let empty   : flat = FSum FSet.empty    (* ∅ is the empty sum     *)
+let epsilon : flat = FProd []           (* 𝜀 is the empty product *)
+
+let nullable : flat -> bool =
+  cache (fun nullable r ->
+    match r with
+    | FStar _ -> true
+    | FSum s  -> FSet.exists nullable s
+    | FProd f -> List.for_all nullable f
+    | FChar _ -> false)
+\end{lstlisting}
+\caption{Flache Normaldarstellung und Epsilon-Test (\texttt{nullable}) in Python und OCaml.}
+\label{fig:simplify_nullable}
+\end{figure}
+
+\paragraph{Gemeinsame Idee von Python und OCaml.}
+Beide Fassungen überführen einen Ausdruck in eine flache Darstellung, in der eine Summe eine \emph{Menge} von Summanden und ein Produkt eine \emph{Folge} von Faktoren ist.
+Kommutativität, Assoziativität und Idempotenz der Alternative ergeben sich dadurch automatisch aus der Mengensemantik, und die leere Sprache und das leere Wort sind keine eigenen Fälle mehr, sondern die leere Summe bzw. das leere Produkt.
+Der Epsilon-Test schrumpft so auf vier Fälle, die unmittelbar der mathematischen Definition entsprechen.
+
+\paragraph{Unterschiede in der Interpretation.}
+Python kodiert die Fälle über Zeichenketten-Markierungen in Tupeln wie \texttt{('+', S)} und braucht einen Auffangfall \texttt{case \_}, der Zeichen behandelt, aber auch jeden fehlerhaften Wert stillschweigend als nicht leer einstuft.
+OCaml benennt jeden Fall als Konstruktor (\texttt{FChar}, \texttt{FStar}, \texttt{FSum}, \texttt{FProd}) und kommt ohne Auffangfall aus; der Abgleich ist damit nachweislich vollständig.
+Für die Memoisierung genügt in Python der Dekorator \texttt{@cache}.
+OCaml besitzt keinen solchen Mechanismus in der Standardbibliothek; die Fassung definiert deshalb einen eigenen Kombinator \texttt{cache}, der die Funktion in offener Rekursion erhält (\texttt{fun nullable r -> \dots}) und das Ergebnis in einer Hashtabelle ablegt.
+Der Hashschlüssel kombiniert einen tiefen Strukturhash (\texttt{Hashtbl.hash\_param 100 1000}) mit dem Wert selbst, weil der Standardhash tiefe Ausdrucksbäume nur bis zu einer begrenzten Tiefe betrachtet.
+
+\begin{figure}[tbp]
+\begin{lstlisting}[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/Rewrite.ipynb}, Zellen 7 und 11}]
+let rec matchPattern pattern term (substitution: Substitution) : Substitution option =
+    match pattern, term with
+    | PatternVariable name, _ ->
+        match Map.tryFind name substitution with
+        | Some previous when previous = term -> Some substitution
+        | Some _ -> None
+        | None -> Some (Map.add name term substitution)
+    | PatternEmpty, Empty | PatternEpsilon, Epsilon -> Some substitution
+    | PatternLiteral c, Literal d when c = d -> Some substitution
+    | PatternConcat (p1, p2), Concat (t1, t2)
+    | PatternAlt (p1, p2), Alt (t1, t2) ->
+        matchPattern p1 t1 substitution |> Option.bind (fun next -> matchPattern p2 t2 next)
+    | PatternStar p, Star t -> matchPattern p t substitution
+    | _ -> None
+
+let getRules () : Rule list =
+    [ "R+∅", "R"
+      "∅+R", "R"
+      "R+R", "R"
+      "𝜀+R*", "R*"
+      // ...
+      "(RS*)(𝜀+S)", "RS*" ]
+    |> List.map (fun (left, right) -> patternOf (parse left), patternOf (parse right))
+\end{lstlisting}
+\caption{Vereinfachung regulärer Ausdrücke als Termersetzung in F\#: Musterabgleich mit Variablen und deklarativ notierte Regeln.}
+\label{fig:simplify_rewrite}
+\end{figure}
+
+\paragraph{Die F\#-Interpretation: Regeln als Daten.}
+Die F\#-Fassung verfolgt einen grundsätzlich anderen Ansatz.
+Die Vereinfachungsregeln werden in der Notation der Vorlesung als Paare von Zeichenketten geschrieben (\texttt{"R+∅", "R"}), mit dem vorhandenen Parser für reguläre Ausdrücke eingelesen und in Muster übersetzt, in denen Großbuchstaben als Mustervariablen gelten.
+Die Funktion \texttt{matchPattern} gleicht ein solches Muster gegen einen Ausdruck ab und baut dabei eine Substitution auf.
+Sie behandelt auch nichtlineare Muster korrekt: Bei \texttt{R+R} wird die zweite Bindung von \texttt{R} nur akzeptiert, wenn sie mit der ersten übereinstimmt.
+Der Abgleich zweier Strukturen ist als Musterabgleich über ein Paar (\texttt{match pattern, term with}) formuliert, und Oder-Muster fassen Verkettung und Alternative in einem Zweig zusammen.
+
+\paragraph{Vor- und Nachteile der beiden Interpretationen.}
+Die Termersetzung in F\# ist didaktisch sehr direkt: Jede Regel steht im Code genau so, wie sie an der Tafel steht, und eine neue Regel ist eine einzige Zeile.
+Da die Regeln aber nur syntaktisch auf Bäume angewendet werden, kennt das Verfahren keine Kommutativität; Regeln wie \texttt{R+∅} und \texttt{∅+R} müssen deshalb doppelt aufgeführt werden, und das Ergebnis kann von der Reihenfolge der Regeln abhängen.
+Die flache Normaldarstellung in Python und OCaml ist aufwendiger, behandelt Kommutativität und Idempotenz aber strukturell und liefert über eine Inklusionsprüfung auch Vereinfachungen, die keine einzelne Regel ausdrückt.
+
+\subsection{3. Zustandsminimierung über unterscheidbare Zustandspaare}
+\label{sec:case_minimize}
+Die Minimierung deterministischer Automaten fasst äquivalente Zustände zu Myhill--Nerode-Äquivalenzklassen zusammen.
+Hopcroft gab hierfür einen Algorithmus mit einer Laufzeit von $O(n \log n)$ an~\cite{hopcroft1971nlogn}.
+Das Curriculum verwendet in allen drei Fassungen stattdessen das anschaulichere Verfahren über unterscheidbare Zustandspaare: Ausgehend von allen Paaren aus einem akzeptierenden und einem nicht akzeptierenden Zustand werden so lange Paare hinzugefügt, deren Nachfolger für ein Zeichen bereits unterscheidbar sind, bis ein Fixpunkt erreicht ist.
+\Cref{fig:minimize_separable} zeigt diese Fixpunktberechnung und die Auswahl eines Repräsentanten.
+
+\begin{figure}[tbp]
+\begin{lstlisting}[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/07-Minimize.ipynb}, Zellen 17, 24 und 30}]
+def arb[S](M: set[S] | frozenset[S]) -> S:
+    x, *_ = M
+    return x
+
+def separate(Pairs: set[Pair], States: set[State], Σ: set[Char], 𝛿: TransRel) -> set[Pair]:
+    Result = { (q1, q2) for q1 in States
+                        for q2 in States
+                        for c  in Σ
+                        if (𝛿[q1, c], 𝛿[q2, c]) in Pairs
+             }
+    return Result
+
+def all_separable(Q: set[State], A: set[State], Σ: set[Char], 𝛿: TransRel) -> set[Pair]:
+        Separable = cart_prod(Q - A, A) | cart_prod(A, Q - A)
+        while True:
+            NewPairs = separate(Separable, Q, Σ, 𝛿)
+            if NewPairs <= Separable:
+                return Separable
+            Separable |= NewPairs
+\end{lstlisting}
+\begin{lstlisting}[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/07-Minimize.ipynb}, Zellen 16, 23 und 29}]
+let arb (m : 's FSet.t) : 's =
+  FSet.choose m
+
+let separate (pairs : 'q pair FSet.t) (states : 'q FSet.t) (sigma : char FSet.t) (delta : 'q trans_rel_det)
+    : 'q pair FSet.t =
+  let open FSet in
+  let* q1 = states in
+  let* q2 = states in
+  let* c  = sigma in
+  if mem (Dict.find (q1, c) delta, Dict.find (q2, c) delta) pairs then return (q1, q2) else empty
+
+let all_separable (q : 'q FSet.t) (a : 'q FSet.t) (sigma : char FSet.t) (delta : 'q trans_rel_det) : 'q pair FSet.t =
+  let rec loop (separable : 'q pair FSet.t) : 'q pair FSet.t =
+    let newPairs = separate separable q sigma delta in
+    if FSet.subset newPairs separable then separable
+    else loop (FSet.union separable newPairs)
+  in
+  loop (FSet.union (cart_prod (FSet.diff q a) a) (cart_prod a (FSet.diff q a)))
+\end{lstlisting}
+\begin{lstlisting}[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/07-Minimize.ipynb}, Zellen 7, 11 und 13}]
+let arb states =
+    if Set.isEmpty states then invalidArg "states" "Cannot choose an element of an empty set."
+    Set.minElement states
+
+let separate pairs states alphabet (delta: Map<'state * char, 'state>) =
+    seq { for q1 in states do
+              for q2 in states do
+                  if alphabet |> Seq.exists (fun c -> Set.contains (delta[q1, c], delta[q2, c]) pairs) then
+                      yield q1, q2 }
+    |> Set.ofSeq
+
+let allSeparable states accepting alphabet delta =
+    let accepting = Set.intersect states accepting
+    let nonAccepting = Set.difference states accepting
+    let initial = Set.union (cartesianProduct nonAccepting accepting) (cartesianProduct accepting nonAccepting)
+    let rec expand pairs =
+        let newPairs = separate pairs states alphabet delta
+        if Set.isSubset newPairs pairs then pairs else expand (Set.union pairs newPairs)
+    expand initial
+\end{lstlisting}
+\caption{Zustandsminimierung: Fixpunktberechnung der unterscheidbaren Zustandspaare und Auswahl eines Repräsentanten.}
+\label{fig:minimize_separable}
+\end{figure}
+
+\paragraph{Mengenschreibweise.}
+Alle drei Fassungen formulieren \texttt{separate} als Mengenbildung, aber mit verschiedenen Sprachmitteln.
+Python verwendet eine Mengenabstraktion mit drei Generatoren und einer Bedingung, die der mathematischen Definition $\{(q_1, q_2) \mid \exists c \in \Sigma : (\delta(q_1, c), \delta(q_2, c)) \in P\}$ fast wörtlich entspricht; selbst die griechischen Bezeichner \texttt{Σ} und \texttt{𝛿} werden übernommen.
+OCaml besitzt keine Mengenabstraktion und bildet sie über Bindungsoperatoren nach: \texttt{let*} bindet nacheinander jedes Element einer Menge, \texttt{return} erzeugt eine einelementige und \texttt{empty} eine leere Menge.
+Die eigene Mengenbibliothek der Fassung (\texttt{ocaml/lib/fset.ml}) stellt diese Operatoren laut ihrem Kommentar ausdrücklich als Nachbildung von Pythons Mengenabstraktion bereit und wird so als Monade verwendet; das ist ausdrucksstark, setzt aber Wissen über Monaden voraus, das nicht zum Stoff einer Automatentheorie-Vorlesung gehört.
+F\# nutzt einen Sequenzausdruck (\texttt{seq \{ \dots{} yield \dots{} \}}), der anschließend in eine Menge überführt wird, und drückt den Existenzquantor ausdrücklich über \texttt{Seq.exists} aus.
+
+\paragraph{Fixpunktiteration.}
+Python formuliert den Fixpunkt als \texttt{while True}-Schleife, die die Menge \texttt{Separable} mit \texttt{|=} an Ort und Stelle erweitert, und prüft die Abbruchbedingung mit dem Teilmengenoperator \texttt{<=}.
+OCaml und F\# formulieren denselben Fixpunkt als endrekursive Funktion (\texttt{loop} bzw. \texttt{expand}), die bei jedem Schritt eine neue Menge erzeugt.
+Die F\#-Fassung abstrahiert dieses Muster im Notebook \texttt{Minimize-FP.ipynb} zusätzlich zu einem allgemeinen Kombinator \texttt{fixpoint2}, mit dem Erreichbarkeit und Unterscheidbarkeit über dieselbe Funktion berechnet werden.
+
+\paragraph{Wahl des Repräsentanten.}
+Die Funktion \texttt{arb} soll ein beliebiges Element einer Menge liefern.
+In Python (\texttt{x, *\_ = M}) ist das tatsächlich beliebig: Es ist das erste Element der Iterationsreihenfolge der Hash-Menge, die bei Zeichenketten-Zuständen vom Hash-Seed des Prozesses abhängt.
+OCaml (\texttt{FSet.choose}) und F\# (\texttt{Set.minElement}) liefern dagegen stets das kleinste Element: \texttt{FSet} ist als sortierte Liste ohne Duplikate implementiert, \texttt{Set} in F\# als balancierter Suchbaum.
+Beide melden eine leere Menge mit einem eigenen Fehler, F\# bereits in \texttt{arb}, OCaml in \texttt{FSet.choose}.
+Auch wenn der Automat in allen Fällen korrekt minimiert wird, sind die Ausgaben der funktionalen Fassungen damit über Programmläufe hinweg reproduzierbar.
+
+\paragraph{Behandlung unvollständiger Automaten.}
+Alle drei Fassungen setzen einen vollständigen Automaten voraus.
+Python und OCaml brechen bei einem fehlenden Übergang mit einem \texttt{KeyError} bzw. \texttt{Not\_found} tief in \texttt{separate} ab.
+Die F\#-Fassung prüft die Voraussetzung vorab in einer Funktion \texttt{requireComplete} und meldet, dass ein ablehnender Senkenzustand ergänzt werden muss.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Unterschiede der Interpretationen in den drei Fallstudien.}
+  \label{tab:case_study_interpretations}
+  \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash\hspace{0pt}}p{3.2cm}>{\raggedright\arraybackslash\hspace{0pt}}X>{\raggedright\arraybackslash\hspace{0pt}}X>{\raggedright\arraybackslash\hspace{0pt}}X}
+    \toprule
+    \textbf{Aspekt} & \textbf{Python} & \textbf{OCaml} & \textbf{F\#} \\
+    \midrule
+    Darstellung regulärer Ausdrücke & Eingebaute Werte (\texttt{0}, Zeichenketten, Tupel) & Varianten & Discriminated Unions \\
+    \addlinespace[3pt]
+    Fehlerhafte Eingaben & Auffangfall zur Laufzeit & Ausgeschlossen durch Typen & Ausgeschlossen durch Typen; zusätzliche Invariantenprüfungen \\
+    \addlinespace[3pt]
+    Definitionsreihenfolge im Notebook & Methoden nachträglich an Klasse angehängt & Vorwärtsreferenzen (\texttt{ref}) & Hilfsfunktionen zuerst, keine Vorwärtsreferenzen \\
+    \addlinespace[3pt]
+    Zustandszähler & Feld des Konverterobjekts & Veränderliches Record-Feld & Lokale Variable, reine Schnittstelle \\
+    \addlinespace[3pt]
+    Auswertungsreihenfolge & Links nach rechts & Unbestimmt, durch \texttt{let \dots{} in} erzwungen & Links nach rechts \\
+    \addlinespace[3pt]
+    Übergangsfunktion & Veränderliches Wörterbuch, manuelle Kopie & Persistente Abbildung & Persistente Abbildung, Kopierausdruck \texttt{with} \\
+    \addlinespace[3pt]
+    Vereinfachung & Flache Normalform mit Mengen & Flache Normalform mit Mengen & Termersetzung mit deklarativen Regeln \\
+    \addlinespace[3pt]
+    Memoisierung & Dekorator \texttt{@cache} & Eigener Kombinator \texttt{cache} & Nicht benötigt \\
+    \addlinespace[3pt]
+    Mengenbildung & Mengenabstraktion & Bindungsoperatoren \texttt{let*} & Sequenzausdruck \texttt{seq \{ \dots{} \}} \\
+    \addlinespace[3pt]
+    Mengen\-darstellung & Hash-Menge & Sortierte Liste (\texttt{FSet}) & Balancierter Suchbaum (\texttt{Set}) \\
+    \addlinespace[3pt]
+    Repräsentant \texttt{arb} & Abhängig von der Hash-Reihenfolge & Kleinstes Element (\texttt{choose}) & Kleinstes Element (\texttt{minElement}) \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{finding}[\textbf{Gemeinsame Algorithmen, verschiedene Interpretationen}]
+Die drei Fassungen setzen dieselben Algorithmen um, interpretieren sie aber im Sinne ihrer Sprache (\Cref{tab:case_study_interpretations}).
+Python bleibt am nächsten an der mathematischen Notation und ist am knappsten, verlagert aber Invarianten in Laufzeitprüfungen und erfordert Sorgfalt bei veränderlichen Daten.
+OCaml liefert statische Vollständigkeit und Persistenz, muss aber fehlende Sprachmittel wie Mengenabstraktion, Memoisierung und Vorwärtsdeklarationen im Notebook nachbilden.
+F\# verbindet Persistenz mit lokal gekapseltem Zustand, prüft fachliche Invarianten ausdrücklich und erlaubt mit der Termersetzung eine besonders deklarative, aber schwächere Form der Vereinfachung.
+\end{finding}
 
 % ------------------------------------------------------------------------------
 \section{Quantitative Auswertung und Codekorpus-Metriken}

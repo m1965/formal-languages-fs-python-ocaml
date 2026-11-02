@@ -49,7 +49,7 @@ Generische strukturelle Vergleiche und Gleichheitstests können allerdings weite
     \addlinespace[3pt]
     \textbf{Statische Korrektheit} & Nicht durch den Interpreter; optional per mypy oder Pyright & Typsicher (außer unsicheren Primitiven wie \texttt{Obj.magic}) & Typsicher im funktionalen Kern \\
     \addlinespace[3pt]
-    \textbf{Algebraische Typen} & Nachbildung über Datenklassen & Native getaggte Varianten & Native nominale Unions \\
+    \textbf{Algebraische Typen} & Nachbildung über Tupel, Zeichenketten und Typ-Aliase & Native getaggte Varianten & Native nominale Unions \\
     \addlinespace[3pt]
     \textbf{Generics-Architektur} & Reine Dokumentationshüllen & Einheitliche Zeiger-Repräsentation & Vollwertige reifizierte CLR-Generics \\
     \addlinespace[3pt]
@@ -59,7 +59,7 @@ Generische strukturelle Vergleiche und Gleichheitstests können allerdings weite
 \end{table}
 
 % ------------------------------------------------------------------------------
-\section{Algebraische Datentypen im Vergleich zu Klassenhierarchien}
+\section{Algebraische Datentypen im Vergleich zu Pythons Werte-Kodierung}
 \label{sec:adts_vs_classes}
 % ------------------------------------------------------------------------------
 
@@ -68,74 +68,50 @@ Die Güte einer Programmiersprache bemisst sich daran, wie direkt und elegant si
 
 In OCaml und F\# werden diese Strukturen als echte Summentypen deklariert, in OCaml als Varianten und in F\# als Discriminated Unions (\Cref{fig:adt_definitions}).
 Beide Systeme erlauben die Aufzählung aller möglichen Konstruktoren in einer kompakten, wenigen Zeilen langen Deklaration.
-In Python hingegen müssen Summentypen über eine Hierarchie separater Klassen mit Datenklassen-Dekoratoren und einem abschließenden Union-Typ mühsam nachgebildet werden:
+Python besitzt keine Summentypen.
+Die Python-Fassung des Curriculums bildet sie auch nicht über Klassen nach, sondern kodiert reguläre Ausdrücke als Werte eingebauter Typen: die Zahl \texttt{0} für die leere Sprache, Zeichenketten für Zeichen und das leere Wort sowie Tupel mit einem Operatorzeichen für zusammengesetzte Ausdrücke.
+Ein Typ-Alias beschreibt diese Kodierung für externe Typprüfer.
+Alle Listings in \Cref{fig:adt_definitions} sind wörtlich aus den Notebooks bzw. der gemeinsam geladenen Typdatei übernommen.
 
 \begin{figure}[htbp]
-\begin{subfigure}[b]{\textwidth}
-\begin{lstlisting}[language=Caml,caption={OCaml: Kompakte Definition regulärer Ausdrücke über Varianten.}]
+\begin{lstlisting}[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-04-05/Types.ipynb}, Zelle 3}]
 type regexp =
-  | Empty
-  | Epsilon
-  | Char    of char
-  | Alt     of regexp * regexp
-  | Cat     of regexp * regexp
-  | Star    of regexp
+  | Empty                         (* ∅       *)
+  | Epsilon                       (* 𝜀       *)
+  | Char    of char               (* c       *)
+  | Star    of regexp             (* r*      *)
+  | Product of regexp * regexp    (* r1 ⋅ r2 *)
+  | Sum     of regexp * regexp    (* r1 + r2 *)
 \end{lstlisting}
-\end{subfigure}
-
-\begin{subfigure}[b]{\textwidth}
-\begin{lstlisting}[language=FSharp,caption={F\#: Streng typisierte nominale Discriminated Union.}]
+\begin{lstlisting}[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-04-05/AutomataTypes.fsx}}]
 type RegExp =
     | Empty
     | Epsilon
-    | Char of char
+    | Literal of char
+    | Concat of RegExp * RegExp
     | Alt of RegExp * RegExp
-    | Cat of RegExp * RegExp
     | Star of RegExp
 \end{lstlisting}
-\end{subfigure}
+\begin{lstlisting}[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-04-05/03-Regexp-2-NFA.ipynb}, Zellen 3 und 5}]
+type BinaryOp  = Literal['⋅', '+']
+type UnaryOp   = Literal['*']
+type NullaryOP = Literal[0]
 
-\begin{subfigure}[b]{\textwidth}
-\begin{lstlisting}[language=Python,caption={Python: Objektorientierte Nachbildung mittels Datenklassen.}]
-@dataclass(frozen=True)
-class Empty: pass
-
-@dataclass(frozen=True)
-class Epsilon: pass
-
-@dataclass(frozen=True)
-class Char:
-    char: str
-
-@dataclass(frozen=True)
-class Alt:
-    left: 'RegExp'
-    right: 'RegExp'
-
-@dataclass(frozen=True)
-class Cat:
-    left: 'RegExp'
-    right: 'RegExp'
-
-@dataclass(frozen=True)
-class Star:
-    inner: 'RegExp'
-
-RegExp = Empty | Epsilon | Char | Alt | Cat | Star  # PEP 604
+Char = str
+type RegExp = NullaryOP | Char | tuple[RegExp, UnaryOp] | tuple[RegExp, BinaryOp, RegExp]
 \end{lstlisting}
-\end{subfigure}
 \caption{Repräsentation regulärer Ausdrücke in OCaml, F\# und Python.}
 \label{fig:adt_definitions}
 \end{figure}
 
 Die softwaretechnischen Unterschiede zwischen diesen Darstellungen sind grundlegend:
 In den funktionalen Sprachen sind algebraische Typen \textbf{abgeschlossen}.
-Alle gültigen Varianten sind in der Typdeklaration ein für alle Mal vollständig fixiert.
-Dadurch ist der Compiler in der Lage, jede Funktion, die diesen Typ verarbeitet, formal auf Vollständigkeit zu prüfen. 
-Im objektorientierten Modell von Python sind Klassenhierarchien hingegen prinzipiell \textbf{offen}.
-Jedes Modul kann jederzeit eine weitere Klasse deklarieren, und der Interpreter prüft nicht, ob alle Fälle abgedeckt sind.
-Wird der Summentyp wie oben als geschlossener Union-Alias deklariert, können externe Typprüfer wie mypy oder Pyright die Vollständigkeit eines \texttt{match} immerhin über \texttt{assert\_never} bzw. \texttt{reportMatchNotExhaustive} prüfen; diese Prüfung ist jedoch optional und nicht Teil der Sprache.
-Hinzu kommt die syntaktische Dichte: Während OCaml und F\# für die vollständige Definition lediglich sieben Zeilen benötigen, erfordert Python rund zwanzig Zeilen an Klassen-Boilerplate, Dekorator-Aufrufen und Vorwärtsreferenzen in Anführungszeichen.
+Alle gültigen Varianten sind in der Typdeklaration ein für alle Mal vollständig fixiert, und jeder Fall trägt einen eigenen Konstruktornamen.
+Dadurch ist der Compiler in der Lage, jede Funktion, die diesen Typ verarbeitet, formal auf Vollständigkeit zu prüfen.
+In der Python-Kodierung gibt es dagegen keine Konstruktoren, sondern nur Werte eingebauter Typen, die der Interpreter nicht von anderen Zahlen, Zeichenketten oder Tupeln unterscheidet.
+Der Typ \texttt{Char = str} lässt beliebig lange Zeichenketten zu, und das leere Wort \texttt{'𝜀'} ist für einen Typprüfer ebenfalls nur eine Zeichenkette; Verarbeitungsfunktionen brauchen deshalb Wächter wie \texttt{isinstance(r, str) and len(r) == 1} und einen Auffangfall, der ungültige Werte erst zur Laufzeit abweist (\cref{sec:case_thompson}).
+Externe Typprüfer wie mypy oder Pyright können die Struktur der Tupel anhand des Alias immerhin teilweise prüfen; diese Prüfung ist jedoch optional und nicht Teil der Sprache.
+Bei der syntaktischen Dichte liegt Python dagegen vorn: Die gesamte Kodierung kommt mit fünf Zeilen aus, gegenüber sieben Zeilen in OCaml und F\#, und Ausdrücke wie \texttt{(('a', '+', 'b'), '*')} lassen sich ohne Konstruktoren direkt hinschreiben.
 
 Auch bezüglich der physischen Speicherorganisation zeigen sich deutliche Diskrepanzen:
 OCaml repräsentiert Variantenkonstruktoren mit chirurgischer Präzision.
@@ -143,7 +119,8 @@ Konstruktoren ohne Parameter wie \texttt{Empty} oder \texttt{Epsilon} werden als
 Konstruktoren mit Nutzlast werden als flache Blöcke im extrem schnellen Minor Heap angelegt.
 F\# erzeugt für jeden Fall mit Nutzlast eine abgeleitete Unterklasse unterhalb einer abstrakten Basisklasse; Fälle ohne Nutzlast werden als einmalig angelegte Singleton-Instanzen geteilt.
 Jedes Objekt im Heap trägt die 16-Byte-Objektkopfzeile der 64-Bit-.NET-Laufzeitumgebung; das Fall-Tag wird je nach Zahl der Fälle als zusätzliches Feld gespeichert oder über eine Typprüfung ermittelt.
-In Python trägt jedes Datenklassen-Objekt einen \texttt{PyObject}-Kopf mit Referenzzähler und Typzeiger und besitzt ohne \texttt{slots=True} zusätzlich ein Instanzwörterbuch, sodass selbst triviale Knoten ein Mehrfaches eines OCaml-Blocks belegen und die Prozessor-Caches stärker belasten.
+In Python ist jeder zusammengesetzte Ausdruck ein Tupel mit einem \texttt{PyObject}-Kopf aus Referenzzähler, Typzeiger und Länge sowie je einem Zeiger pro Element; die Operatorzeichen sind als gemeinsam genutzte Zeichenketten-Objekte nur einmal vorhanden.
+Unter CPython~3.13 belegt ein Tupel wie \texttt{(r1, '+', r2)} 64~Byte und \texttt{(r, '*')} 56~Byte, während ein OCaml-Block mit zwei Feldern 24~Byte belegt; die Python-Darstellung belastet die Prozessor-Caches entsprechend stärker.
 
 % ------------------------------------------------------------------------------
 \section{Vollständigkeitsprüfung und totale Funktionen}
@@ -182,12 +159,17 @@ Ein Nachteil für die Lehre ist die fehlende Ordnung: Die Iterationsreihenfolge 
 Um Angriffe über Hashkollisionen abzuwehren, randomisiert Python zudem bei jedem Prozessstart den Hash-Seed für Zeichenketten und Byte-Folgen; ganze Zahlen sind davon nicht betroffen.
 Sind Zustände als Zeichenketten benannt, wechselt die Reihenfolge daher zwischen Prozessstarts, und reproduzierbare Darstellungen von Automaten erfordern ein explizites Sortieren.
 
-OCaml realisiert Mengen als rein funktionale, persistente AVL-Suchbäume über den Funktor \texttt{Set.Make}~\cite{okasaki1999purely}.
-Da diese Bäume vollkommen unveränderlich sind, erzeugt das Hinzufügen oder Entfernen eines Elements eine neue Wurzel, die unveränderte Teilbäume mit der vorherigen Version teilt.
-Dies garantiert absolute Nebenwirkungsfreiheit und eine streng deterministische Traversierung in aufsteigender Sortierreihenfolge.
+Die OCaml-Standardbibliothek realisiert Mengen als rein funktionale, persistente AVL-Suchbäume über den Funktor \texttt{Set.Make}~\cite{okasaki1999purely}.
+Da diese Bäume unveränderlich sind, erzeugt das Hinzufügen oder Entfernen eines Elements eine neue Wurzel, die unveränderte Teilbäume mit der vorherigen Version teilt.
+\texttt{Set.Make} verlangt jedoch für jeden Elementtyp eine eigene Funktoranwendung, etwa ein eigenes Modul für Zustandsmengen und ein weiteres für Mengen von Zustandsmengen.
+Die OCaml-Notizbücher verwenden deshalb nicht \texttt{Set.Make}, sondern eigene polymorphe Module (\texttt{ocaml/lib/fset.ml}); ihr Kommentar begründet dies damit, dass die Funktoranwendungen sonst jeden Algorithmus in eine einzige Zelle zwingen würden.
+\texttt{FSet} stellt eine unveränderliche Menge als streng aufsteigend sortierte Liste ohne Duplikate dar, \texttt{Dict} eine unveränderliche Abbildung als AVL-Baum.
+Weil jede Menge genau eine Darstellung besitzt, funktionieren die polymorphen Operationen \texttt{compare} und \texttt{(=)} auch für Mengen von Mengen, und die Traversierung erfolgt streng deterministisch in aufsteigender Reihenfolge.
+Der Preis sind Elementtest und Einfügen in linearer statt logarithmischer Zeit; für die kleinen Automaten der Vorlesung ist das unerheblich.
+Die isolierten Mikrobenchmarks in \cref{chap:performance} verwenden dagegen \texttt{Set.Make}.
 
-F\# implementiert Mengen ebenfalls als unveränderliche AVL-Bäume, bindet diese jedoch an die generische Vergleichsschnittstelle von .NET an.
-Dadurch entfällt der syntaktische Aufwand funktorieller Moduldeklarationen, wie sie in OCaml erforderlich sind.
+F\# implementiert Mengen als unveränderliche, höhenbalancierte Suchbäume (\texttt{Set<'T>}) und bindet diese an die generische Vergleichsschnittstelle von .NET an.
+Dadurch entfällt der Aufwand funktorieller Moduldeklarationen, den die OCaml-Fassung mit einem eigenen Mengenmodul umgeht, ohne auf logarithmische Operationen zu verzichten.
 Allerdings führt der rekursive Vergleich tief verschachtelter Mengenstrukturen (wie Mengen von Zustandsmengen bei der Potenzmengenkonstruktion) zu wiederholten dynamischen Schnittstellenaufrufen, was sich bei großen Automaten in messbaren Laufzeitverzögerungen niederschlägt.
 
 % ------------------------------------------------------------------------------
@@ -214,7 +196,7 @@ In \Cref{tab:soundness_matrix} sind die zentralen Eigenschaften der drei Sprachs
     \addlinespace[3pt]
     \textbf{Unveränderlichkeit} & Veränderlich per Default (\texttt{set}); manuell & Persistent und unveränderlich per Default & Persistent und unveränderlich per Default \\
     \addlinespace[3pt]
-    \textbf{Deterministische Zustände} & Ungeordnet; bei Zeichenketten-Zuständen prozessabhängig & Streng geordnet durch AVL-Bäume & Streng geordnet durch AVL-Bäume \\
+    \textbf{Deterministische Zustände} & Ungeordnet; bei Zeichenketten-Zuständen prozessabhängig & Streng geordnet (sortierte Listen in \texttt{FSet}) & Streng geordnet (balancierte Suchbäume) \\
     \bottomrule
   \end{tabularx}
 \end{table}

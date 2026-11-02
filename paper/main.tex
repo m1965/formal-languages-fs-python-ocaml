@@ -53,7 +53,7 @@
     };
     \node[box, fill=OCamlOrange!10, draw=OCamlOrange] (ml) at (5.2,0) {
       \textbf{\color{OCamlOrange}OCaml 5.4}\\
-      Hindley--Milner $\cdot$ Funktoren\\
+      Hindley--Milner $\cdot$ Varianten\\
       Menhir \& \texttt{ocamllex} $\cdot$ Toplevel
     };
     \node[box, fill=FSharpPurple!10, draw=FSharpPurple] (fs) at (10.4,0) {
@@ -87,7 +87,7 @@ Diese Monographie präsentiert eine empirisch gestützte vergleichende Evaluatio
 Die drei Fassungen decken dieselben Themen ab, sind aber nicht deckungsgleich: Sie umfassen 49 (Python), 50 (OCaml) und 56 (F\#) Notizbücher.
 \begin{enumerate}
   \item \textbf{Python 3.13 (CPython)}, als Repräsentant dynamischer Duck-Typisierung mit optionalen Typhilfen nach PEP~484, hashbasierten unveränderlichen Mengensammlungen (\texttt{frozenset}) und laufzeitbasierten Parsergeneratoren (vorwiegend \texttt{Lark}, vereinzelt \texttt{PLY});
-  \item \textbf{OCaml 5.4}, als klassischer Vertreter des Hindley--Milner-Typsystems mit statischer Typinferenz, algebraischen Summentypen, funktoriellen Mengenmodulen (\texttt{Set.Make}) und Ahead-of-Time-Parsergenerierung (\texttt{ocamllex}, \texttt{Menhir}); sowie
+  \item \textbf{OCaml 5.4}, als klassischer Vertreter des Hindley--Milner-Typsystems mit statischer Typinferenz, algebraischen Summentypen, eigenen polymorphen und unveränderlichen Mengen (\texttt{FSet}) und Ahead-of-Time-Parsergenerierung (\texttt{ocamllex}, \texttt{Menhir}); sowie
   \item \textbf{F\# 9.0 unter .NET 9 CoreCLR}, als moderne, pragmatische funktionale Sprache mit nominalen discriminated unions, erweiterbaren aktiven Mustern (Active Patterns), vorab kompilierten \texttt{FsLexYacc}-Bibliotheken und nativer RyuJIT-Codeerzeugung.
 \end{enumerate}
 

@@ -37,7 +37,7 @@ Die Gegenüberstellung veranschaulicht das Spannungsfeld zwischen den drei Parad
     \multicolumn{4}{l}{\textit{\textbf{1. Typsystem und statische Garantien (\Cref{chap:type_systems})}}} \\
     \addlinespace[2pt]
     Typinferenz & Dynamische Typisierung mit optionalen Hinweisen & Globale Damas--Hindley--Milner-Inferenz & HM-basierte Inferenz von links nach rechts \\
-    Algebraische Typen & Nachbildung via Datenklassen und Union-Typen & Erstklassige Summentypen mit Varianten & Erstklassige nominale Discriminated Unions \\
+    Algebraische Typen & Nachbildung über Tupel, Zeichenketten und Typ-Aliase & Erstklassige Summentypen mit Varianten & Erstklassige nominale Discriminated Unions \\
     Vollständigkeit & Keine im Interpreter; optional per mypy oder Pyright & Warnung mit konkretem Gegenbeispiel & Warnung mit konkretem Gegenbeispiel \\
     Null-Sicherheit & Fehlerträchtige optionale Werte zur Laufzeit & Erzwingung über den Option-Typ & Erzwingung über den Option-Typ \\
     \midrule
@@ -174,7 +174,7 @@ Auch die Visualisierung von Automaten und Syntaxbäumen ist in der F\#-Fassung a
 Als Kompromiss müssen Lehrende die längere Initialisierungsphase des Kernels in Kauf nehmen: Der Start benötigt knapp zwei Sekunden und belegt rund 530 Megabyte Arbeitsspeicher, da das System einen vollständigen Compilerprozess im Hintergrund bereitstellt.
 In allen 16 gemessenen Notizbüchern war F\# am langsamsten, beim SLR-Tabellengenerator rund zehnmal langsamer als Python.
 Zudem treten bei wiederholt ausgeführten Typdefinitionen dieselben Typinkompatibilitäten auf wie in OCaml.
-Bei tief verschachtelten Mengenkonstruktionen empfiehlt es sich zudem, Studierenden den Einsatz von Hash-Consing oder Zustandskodierungen zu vermitteln, um Verlangsamungen bei AVL-Baumvergleichen zu vermeiden.
+Bei tief verschachtelten Mengenkonstruktionen empfiehlt es sich zudem, Studierenden den Einsatz von Hash-Consing oder Zustandskodierungen zu vermitteln, um Verlangsamungen beim Vergleich verschachtelter Suchbäume zu vermeiden.
 
 % ------------------------------------------------------------------------------
 \section{Fazit und Ausblick für die akademische Lehre}

@@ -116,6 +116,30 @@
 
 \lstset{style=academiccode}
 
+% Allows extra inter-word space where long inline code would otherwise overflow.
+\setlength{\emergencystretch}{2em}
+
+% Unicode symbols of the notebooks that also occur in running text.
+\DeclareUnicodeCharacter{22C5}{\ensuremath{\cdot}}
+\DeclareUnicodeCharacter{2205}{\ensuremath{\emptyset}}
+\DeclareUnicodeCharacter{1D700}{\ensuremath{\varepsilon}}
+\DeclareUnicodeCharacter{1D6FF}{\ensuremath{\delta}}
+\DeclareUnicodeCharacter{03A3}{\ensuremath{\Sigma}}
+
+% Code taken verbatim from the notebooks: smaller font so that three editions fit
+% into one figure, and the Unicode symbols the notebooks use.
+\lstdefinestyle{notebook}{
+  style=academiccode,
+  basicstyle=\ttfamily\fontsize{7.2}{8.2}\selectfont,
+  captionpos=t,
+  aboveskip=2pt,
+  belowskip=4pt,
+  extendedchars=true,
+  inputencoding=utf8,
+  literate={𝜀}{{$\varepsilon$}}1 {⋅}{{$\cdot$}}1 {∅}{{$\emptyset$}}1
+           {Σ}{{$\Sigma$}}1 {𝛿}{{$\delta$}}1
+}
+
 % Theorem & Analysis Environments
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}[chapter]
@@ -141,4 +165,4 @@
   pdfauthor={Forschungsgruppe Formale Sprachen},
   pdftitle={Sprachparadigmen, Typsysteme und Ausfuehrungsdynamik: Python, OCaml und F-Sharp in der formalen Sprachverarbeitung}
 ]{hyperref}
-\usepackage[nameinlink,noabbrev]{cleveref}
+\usepackage[ngerman,nameinlink,noabbrev]{cleveref}
