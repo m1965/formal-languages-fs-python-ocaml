@@ -4,7 +4,9 @@
 \chapter{Integration von Lexer- und Parser-Werkzeugen}
 \label{chap:toolchains}
 
-Die syntaktische Analyse transformiert unstrukturierte Zeichenfolgen in wohlgeformte, hierarchische Syntaxbäume. In der Informatik vereint das Parsing zwei fundamentale Facetten: Einerseits ist es eine mathematisch strenge Disziplin, die auf der Chomsky-Hierarchie, kontextfreien Grammatiken, deterministischen Kellerautomaten und allgemeinen Chart-Parsing-Verfahren aufbaut~\cite{chomsky1956three,knuth1965translation,earley1970efficient}. Andererseits ist es eine anspruchsvolle Ingenieursdisziplin, die hohe Anforderungen an Entwickler-Ergonomie, verständliche Fehlerdiagnosen und maximalen Rechendurchsatz stellt.
+Die syntaktische Analyse transformiert unstrukturierte Zeichenfolgen in wohlgeformte, hierarchische Syntaxbäume.
+In der Informatik vereint das Parsing zwei fundamentale Facetten: Einerseits ist es eine mathematisch strenge Disziplin, die auf der Chomsky-Hierarchie, kontextfreien Grammatiken, deterministischen Kellerautomaten und allgemeinen Chart-Parsing-Verfahren aufbaut~\cite{chomsky1956three,knuth1965translation,earley1970efficient}.
+Andererseits ist es eine anspruchsvolle Ingenieursdisziplin, die hohe Anforderungen an Entwickler-Ergonomie, verständliche Fehlerdiagnosen und maximalen Rechendurchsatz stellt.
 
 Das vorliegende Curriculum beleuchtet diesen Dualismus auf zwei komplementären Ebenen:
 \begin{enumerate}
@@ -82,25 +84,39 @@ Die drei Programmiersprachen verkörpern drei grundlegend verschiedene Philosoph
   \label{fig:toolchain_pipelines}
 \end{figure}
 
-In Python dominiert maximale Flexibilität. Die Grammatik wird als EBNF-Zeichenkette direkt in eine Notizbuch-Zelle geschrieben und von der Bibliothek Lark zur Laufzeit analysiert. Es existieren keine externen Übersetzungsschritte, und Änderungen an der Grammatik werden sofort beim nächsten Zellendurchlauf wirksam. Der Preis dafür ist jedoch das Fehlen statischer Typprüfungen für semantische Aktionen: Entstehen bei der Reduktion fehlerhafte Werte, wird dieser Defekt erst spät bei der semantischen Weiterverarbeitung bemerkt.
+In Python dominiert maximale Flexibilität.
+Die Grammatik wird als EBNF-Zeichenkette direkt in eine Notizbuch-Zelle geschrieben und von der Bibliothek Lark zur Laufzeit analysiert.
+Es existieren keine externen Übersetzungsschritte, und Änderungen an der Grammatik werden sofort beim nächsten Zellendurchlauf wirksam.
+Der Preis dafür ist jedoch das Fehlen statischer Typprüfungen für semantische Aktionen: Entstehen bei der Reduktion fehlerhafte Werte, wird dieser Defekt erst spät bei der semantischen Weiterverarbeitung bemerkt.
 
-In OCaml wird ein hybrider Weg gewählt: Grammatik und Lexer werden ebenfalls im Notizbuch definiert, jedoch über ein spezielles Steuerskript (\texttt{parser\_generator.ml}) an die externen Werkzeuge \texttt{ocamllex} und \texttt{Menhir} übergeben. Diese Werkzeuge erzeugen vollwertigen OCaml-Quelltext, der anschließend in Bytecode übersetzt und dynamisch in die Toplevel-Laufzeitumgebung geladen wird. Dadurch vereint OCaml die Schnelligkeit interaktiver Anpassungen mit der unerbittlichen statischen Typprüfung semantischer Aktionen.
+In OCaml wird ein hybrider Weg gewählt: Grammatik und Lexer werden ebenfalls im Notizbuch definiert, jedoch über ein spezielles Steuerskript (\texttt{parser\_generator.ml}) an die externen Werkzeuge \texttt{ocamllex} und \texttt{Menhir} übergeben.
+Diese Werkzeuge erzeugen vollwertigen OCaml-Quelltext, der anschließend in Bytecode übersetzt und dynamisch in die Toplevel-Laufzeitumgebung geladen wird.
+Dadurch vereint OCaml die Schnelligkeit interaktiver Anpassungen mit der unerbittlichen statischen Typprüfung semantischer Aktionen.
 
-In F\# ist die Werkzeugkette am stärksten an industrielle Software-Engineering-Standards angelehnt. Die Lexer- und Parser-Spezifikationen liegen als eigenständige Dateien im Projektverzeichnis und werden während des normalen Build-Vorgangs über MSBuild durch FsLex und FsYacc in stark typisierten F\#-Quelltext übersetzt. Die erzeugte Klassenbibliothek wird als DLL im Notizbuch referenziert. Dieser Ansatz gewährleistet maximale Robustheit und Geschwindigkeit, erschwert jedoch das spontane Experimentieren mit neuen Grammatikregeln im interaktiven Unterricht.
+In F\# ist die Werkzeugkette am stärksten an industrielle Software-Engineering-Standards angelehnt.
+Die Lexer- und Parser-Spezifikationen liegen als eigenständige Dateien im Projektverzeichnis und werden während des normalen Build-Vorgangs über MSBuild durch FsLex und FsYacc in stark typisierten F\#-Quelltext übersetzt.
+Die erzeugte Klassenbibliothek wird als DLL im Notizbuch referenziert.
+Dieser Ansatz gewährleistet maximale Robustheit und Geschwindigkeit, erschwert jedoch das spontane Experimentieren mit neuen Grammatikregeln im interaktiven Unterricht.
 
 % ------------------------------------------------------------------------------
 \section{Konfliktdiagnose und LALR-Zustandsverschmelzung}
 \label{sec:conflict_diagnostics}
 % ------------------------------------------------------------------------------
 
-Beim Entwurf deterministischer Grammatiken stoßen Lernende unausweichlich auf Schiebe-Reduziere- und Reduziere-Reduziere-Konflikte. Die Qualität der didaktischen Unterstützung entscheidet darüber, ob Studierende die zugrunde liegende grammatikalische Mehrdeutigkeit verstehen oder frustriert aufgeben.
+Beim Entwurf deterministischer Grammatiken stoßen Lernende unausweichlich auf Schiebe-Reduziere- und Reduziere-Reduziere-Konflikte.
+Die Qualität der didaktischen Unterstützung entscheidet darüber, ob Studierende die zugrunde liegende grammatikalische Mehrdeutigkeit verstehen oder frustriert aufgeben.
 
 In Menhir für OCaml ist die Konfliktanalyse meisterhaft gelöst: Wenn die Grammatik einen Konflikt aufweist, erzeugt Menhir nicht lediglich eine abstrakte Liste betroffener Zustände, sondern konstruiert konkrete Ableitungspfade und minimale Satzfragmente, die demonstrieren, wie zwei konkurrierende Interpretationen desselben Textes entstehen können.
 
-In FsLexYacc für F\# wird eine detaillierte textuelle Protokolldatei erzeugt, die alle Zustände, Item-Mengen und Übergänge auflistet. Ein didaktisch hochinteressantes Lehrbeispiel im Curriculum (Kapitel~10) ist der sogenannte mysteriöse LALR-Konflikt:
-Hierbei handelt es sich um eine Grammatik, die in einem kanonischen LR(1)-Parser absolut deterministisch und konfliktfrei arbeitet, weil der Vorausschau-Horizont in den getrennten Zuständen die anstehende Reduktion eindeutig festlegt. Da LALR(1) zur Vermeidung von Zustandsexplosionen jedoch Zustände mit identischem LR(0)-Kern miteinander verschmilzt, werden auch deren Vorausschaumengen vereinigt. 
+In FsLexYacc für F\# wird eine detaillierte textuelle Protokolldatei erzeugt, die alle Zustände, Item-Mengen und Übergänge auflistet.
+Ein didaktisch hochinteressantes Lehrbeispiel im Curriculum (Kapitel~10) ist der sogenannte mysteriöse LALR-Konflikt:
+Hierbei handelt es sich um eine Grammatik, die in einem kanonischen LR(1)-Parser absolut deterministisch und konfliktfrei arbeitet, weil der Vorausschau-Horizont in den getrennten Zuständen die anstehende Reduktion eindeutig festlegt.
+Da LALR(1) zur Vermeidung von Zustandsexplosionen jedoch Zustände mit identischem LR(0)-Kern miteinander verschmilzt, werden auch deren Vorausschaumengen vereinigt. 
 
-In dem verschmolzenen Zustand fallen die zuvor getrennten Vorausschauzeichen zusammen: Beim Lesen desselben Zeichens kann der LALR-Automat nicht mehr entscheiden, nach welcher der beiden Regeln reduziert werden soll. Es entsteht ein klassischer Reduziere-Reduziere-Konflikt, der im LR(1)-Verfahren gar nicht existierte. FsYacc löst dieses Dilemma stillschweigend zugunsten der im Quelltext zuerst genannten Regel, wodurch alternative Ableitungszweige der Grammatik unbemerkt dauerhaft deaktiviert werden. Dieser curriculare Beispielfall führt Studierenden die mathematischen Grenzen von LALR-Tabellen drastisch vor Augen.
+In dem verschmolzenen Zustand fallen die zuvor getrennten Vorausschauzeichen zusammen: Beim Lesen desselben Zeichens kann der LALR-Automat nicht mehr entscheiden, nach welcher der beiden Regeln reduziert werden soll.
+Es entsteht ein klassischer Reduziere-Reduziere-Konflikt, der im LR(1)-Verfahren gar nicht existierte.
+FsYacc löst dieses Dilemma stillschweigend zugunsten der im Quelltext zuerst genannten Regel, wodurch alternative Ableitungszweige der Grammatik unbemerkt dauerhaft deaktiviert werden.
+Dieser curriculare Beispielfall führt Studierenden die mathematischen Grenzen von LALR-Tabellen drastisch vor Augen.
 
 Zur sauberen Behebung legitimer Mehrdeutigkeiten unterstützen alle drei Umgebungen Präzedenz- und Assoziativitätsregeln (wie linksassoziative Punkt- und Strichrechnung), womit Standardkonflikte bei arithmetischen Ausdrücken ohne künstliche Grammatikaufspaltungen gelöst werden.
 
@@ -112,15 +128,20 @@ Zur sauberen Behebung legitimer Mehrdeutigkeiten unterstützen alle drei Umgebun
 Neben der Nutzung vorgefertigter Generatoren implementieren die Studierenden im Verlauf der Vorlesung drei eigenständige Parsing-Engines:
 
 \subsection{1. Rekursiver Abstieg und LL(1)-Bedingungen}
-In Kapitel~06 wird der klassische rekursive Abstieg behandelt. Die Studierenden analysieren die formale Bedingung für deterministische LL(1)-Grammatiken: Für jedes Nichtterminal mit alternativen Produktionen dürfen sich die First-Mengen der Alternativen nicht überschneiden. Ist eine Alternative in der Lage, das leere Wort abzuleiten, muss deren First-Menge zudem disjunkt zur Follow-Menge des Nichtterminals sein.
-Zudem wird die Beseitigung direkter Linksrekursionen demonstriert, da linksrekursive Regeln beim rekursiven Abstieg zu Endlosschleifen im Aufrufstapel führen. In OCaml und F\# wird der Parser als System gegenseitig rekursiver Funktionen formuliert, während Python auf methodenbasierte Klassenstrukturen mit veränderlichen Token-Iteratoren setzt.
+In Kapitel~06 wird der klassische rekursive Abstieg behandelt.
+Die Studierenden analysieren die formale Bedingung für deterministische LL(1)-Grammatiken: Für jedes Nichtterminal mit alternativen Produktionen dürfen sich die First-Mengen der Alternativen nicht überschneiden.
+Ist eine Alternative in der Lage, das leere Wort abzuleiten, muss deren First-Menge zudem disjunkt zur Follow-Menge des Nichtterminals sein.
+Zudem wird die Beseitigung direkter Linksrekursionen demonstriert, da linksrekursive Regeln beim rekursiven Abstieg zu Endlosschleifen im Aufrufstapel führen.
+In OCaml und F\# wird der Parser als System gegenseitig rekursiver Funktionen formuliert, während Python auf methodenbasierte Klassenstrukturen mit veränderlichen Token-Iteratoren setzt.
 
 \subsection{2. Allgemeines kontextfreies Parsing nach Earley}
 Um beliebige kontextfreie Grammatiken---auch mehrdeutige, linksrekursive oder solche mit Epsilon-Regeln---verarbeiten zu können, implementieren die Kapitel~08 und~09 den Earley-Algorithmus~\cite{earley1970efficient}.
-Ein Earley-Zustand ist ein Tripel aus einer Grammatikproduktion mit Markierungspunkt für die aktuelle Leseposition und einem Index für die Startposition der Regel im Eingabetext. Der Algorithmus verwaltet eine Chart-Tabelle von Zustandsmengen über drei fundamentale Operationen: Prädiktor (Vorhersage möglicher Folgeproduktionen), Scanner (Einlesen passender Terminalzeichen) und Komplettierer (Fortführen übergeordneter Regeln nach Abschluss einer Unterregel).
+Ein Earley-Zustand ist ein Tripel aus einer Grammatikproduktion mit Markierungspunkt für die aktuelle Leseposition und einem Index für die Startposition der Regel im Eingabetext.
+Der Algorithmus verwaltet eine Chart-Tabelle von Zustandsmengen über drei fundamentale Operationen: Prädiktor (Vorhersage möglicher Folgeproduktionen), Scanner (Einlesen passender Terminalzeichen) und Komplettierer (Fortführen übergeordneter Regeln nach Abschluss einer Unterregel).
 
 \subsection{3. Generatoren für SLR(1)- und LR(1)-Tabellen}
-In den Kapiteln~09 und~10 konstruieren die Studierenden eigenständige Tabellengeneratoren: Sie berechnen die Hülle von Item-Mengen, synthetisieren First- und Follow-Mengen über Fixpunktalgorithmen und füllen die Aktions- und Sprungtabellen. Als abschließender Härtetest dient die vollständige ANSI-C-Grammatik mit über 65 Nichtterminalen und mehr als 220 Regeln, an der reale Mehrdeutigkeiten wie das Dangling-Else-Problem im Detail analysiert werden.
+In den Kapiteln~09 und~10 konstruieren die Studierenden eigenständige Tabellengeneratoren: Sie berechnen die Hülle von Item-Mengen, synthetisieren First- und Follow-Mengen über Fixpunktalgorithmen und füllen die Aktions- und Sprungtabellen.
+Als abschließender Härtetest dient die vollständige ANSI-C-Grammatik mit über 65 Nichtterminalen und mehr als 220 Regeln, an der reale Mehrdeutigkeiten wie das Dangling-Else-Problem im Detail analysiert werden.
 
 % ------------------------------------------------------------------------------
 \section{Empirische Performanz der Parser-Werkzeuge}
@@ -207,9 +228,13 @@ Um die Rechenleistung der drei industriellen Parser-Werkzeuge exakt zu vergleich
 \end{figure}
 
 Die empirischen Resultate gliedern sich in drei eindeutige Leistungsklassen:
-OCaml mit Menhir führt das Feld mit phänomenalen 27 bis 33 Millionen Token pro Sekunde an. Das Parsen von 10.000 Token dauert lediglich 0,36 Millisekunden---das ist ein 72-facher Geschwindigkeitsvorteil gegenüber Python Lark und ein 7-facher Vorsprung gegenüber F\#. Menhir kodiert Tabellenzustände als extrem dichte Ganzzahl-Sprungtabellen ohne jeglichen Speicherallokations-Overhead.
-F\# unter .NET 9 CoreCLR erreicht sehr respektable 3,5 Millionen Token pro Sekunde und übertrifft Python damit um fast das Zehnfache. Die schnelle Objekterzeugung in Generation 0 der .NET-Speicherverwaltung ermöglicht auch hier hohen industriellen Durchsatz.
-Python Lark stößt durch die interpretative Bytecode-Abarbeitung und dynamische Zustandswörterbücher bei rund 400.000 Token pro Sekunde an eine harte Obergrenze. Für typische kurze Vorlesungsbeispiele ist dies vollkommen ausreichend, für umfangreiche Übersetzungsaufgaben jedoch ein deutlicher Engpass.
+OCaml mit Menhir führt das Feld mit phänomenalen 27 bis 33 Millionen Token pro Sekunde an.
+Das Parsen von 10.000 Token dauert lediglich 0,36 Millisekunden---das ist ein 72-facher Geschwindigkeitsvorteil gegenüber Python Lark und ein 7-facher Vorsprung gegenüber F\#.
+Menhir kodiert Tabellenzustände als extrem dichte Ganzzahl-Sprungtabellen ohne jeglichen Speicherallokations-Overhead.
+F\# unter .NET 9 CoreCLR erreicht sehr respektable 3,5 Millionen Token pro Sekunde und übertrifft Python damit um fast das Zehnfache.
+Die schnelle Objekterzeugung in Generation 0 der .NET-Speicherverwaltung ermöglicht auch hier hohen industriellen Durchsatz.
+Python Lark stößt durch die interpretative Bytecode-Abarbeitung und dynamische Zustandswörterbücher bei rund 400.000 Token pro Sekunde an eine harte Obergrenze.
+Für typische kurze Vorlesungsbeispiele ist dies vollkommen ausreichend, für umfangreiche Übersetzungsaufgaben jedoch ein deutlicher Engpass.
 
 % ------------------------------------------------------------------------------
 \section{Synthese: Der Zielkonflikt bei Parser-Werkzeugen}
@@ -217,6 +242,7 @@ Python Lark stößt durch die interpretative Bytecode-Abarbeitung und dynamische
 % ------------------------------------------------------------------------------
 
 Die Analyse verdeutlicht das klassische Spannungsfeld bei der Wahl von Parser-Werkzeugen in der Lehre:
-Python mit Lark bietet maximale interaktive Leichtigkeit bei vollkommenem Verzicht auf statische Typsicherheit. Grammatiken können in Sekunden modifiziert werden, Laufzeitfehler bei semantischen Aktionen fallen jedoch erst spät auf.
+Python mit Lark bietet maximale interaktive Leichtigkeit bei vollkommenem Verzicht auf statische Typsicherheit.
+Grammatiken können in Sekunden modifiziert werden, Laufzeitfehler bei semantischen Aktionen fallen jedoch erst spät auf.
 OCaml mit Menhir bietet das theoretische Optimum: herausragende Konfliktdiagnostik, kompromisslose Typsicherheit und unschlagbare Rechenleistung, verlangt im Notizbuch jedoch ein ausgefeiltes Zusammenspiel mit externen Compiler-Prozessen.
 F\# mit FsLexYacc erzwingt professionelle Software-Engineering-Disziplin mit voller statischer Typsicherheit und hohem JIT-Durchsatz, erschwert durch die Entkopplung in externe Projektdateien jedoch das schnelle, spielerische Ausprobieren im Seminarraum.

@@ -5,9 +5,14 @@
 \label{chap:interactive_kernels}
 \selectlanguage{ngerman}
 
-Interaktive Rechenhefte, sogenannte Computational Notebooks, wie sie durch das Jupyter-Projekt weltweit in Forschung und akademischer Lehre etabliert wurden~\cite{kluyver2016jupyter,perez2007ipython}, haben den Unterricht in der theoretischen und angewandten Informatik grundlegend verändert. Im Kontext der formalen Sprachen, der Automatentheorie und des Compilerbaus ersetzen sie statische Tafelbilder und isolierte Pseudocode-Beispiele durch unmittelbar ausführbare mathematische Modelle. Studierende können nichtdeterministische endliche Automaten definieren, Potenzmengenkonstruktionen zur Determinierung anstoßen, Zustandsminimierungen über Äquivalenzklassenzerlegungen durchführen und die resultierenden Übergangsgraphen sowie Syntaxbäume direkt im Webbrowser als Vektorgrafiken betrachten.
+Interaktive Rechenhefte, sogenannte Computational Notebooks, wie sie durch das Jupyter-Projekt weltweit in Forschung und akademischer Lehre etabliert wurden~\cite{kluyver2016jupyter,perez2007ipython}, haben den Unterricht in der theoretischen und angewandten Informatik grundlegend verändert.
+Im Kontext der formalen Sprachen, der Automatentheorie und des Compilerbaus ersetzen sie statische Tafelbilder und isolierte Pseudocode-Beispiele durch unmittelbar ausführbare mathematische Modelle.
+Studierende können nichtdeterministische endliche Automaten definieren, Potenzmengenkonstruktionen zur Determinierung anstoßen, Zustandsminimierungen über Äquivalenzklassenzerlegungen durchführen und die resultierenden Übergangsgraphen sowie Syntaxbäume direkt im Webbrowser als Vektorgrafiken betrachten.
 
-Aus softwarearchitektonischer Sicht stellt der Betrieb komplexer symbolischer Algorithmen in einer interaktiven Notebook-Umgebung jedoch erhebliche Anforderungen an die zugrunde liegende Sprachlaufzeit. Der Programmcode wird nicht mehr als in sich geschlossenes Batch-Skript von Anfang bis Ende in einem flüchtigen Einzelprozess ausgeführt. Stattdessen operiert im Hintergrund ein langlebiger Kernel-Prozess, der über Netzwerk- und IPC-Sockets mit der Benutzeroberfläche kommuniziert~\cite{hintjens2013zeromq}. Dieser Kernel nimmt beliebig angeordnete Codezellen entgegen, führt sie in unvorhersehbarer Reihenfolge aus und muss dabei den internen Speicherzustand, geladene Typdefinitionen und Dateideskriptoren über Stunden hinweg konsistent halten.
+Aus softwarearchitektonischer Sicht stellt der Betrieb komplexer symbolischer Algorithmen in einer interaktiven Notebook-Umgebung jedoch erhebliche Anforderungen an die zugrunde liegende Sprachlaufzeit.
+Der Programmcode wird nicht mehr als in sich geschlossenes Batch-Skript von Anfang bis Ende in einem flüchtigen Einzelprozess ausgeführt.
+Stattdessen operiert im Hintergrund ein langlebiger Kernel-Prozess, der über Netzwerk- und IPC-Sockets mit der Benutzeroberfläche kommuniziert~\cite{hintjens2013zeromq}.
+Dieser Kernel nimmt beliebig angeordnete Codezellen entgegen, führt sie in unvorhersehbarer Reihenfolge aus und muss dabei den internen Speicherzustand, geladene Typdefinitionen und Dateideskriptoren über Stunden hinweg konsistent halten.
 
 In diesem Kapitel untersuchen wir die interaktive Infrastruktur der drei untersuchten Sprachplattformen:
 \begin{enumerate}
@@ -22,15 +27,22 @@ Wir analysieren die nachrichtenbasierten Kommunikationsprotokolle, die Toplevel"
 \label{sec:kernels_protocol}
 % ------------------------------------------------------------------------------
 
-Die Jupyter-Architektur entkoppelt die Benutzerschnittstelle im Webbrowser vollständig von der eigentlichen Programmausführung. Diese Trennung basiert auf einem sprachunabhängigen Netzwerkprotokoll, das über die nachrichtenbasierte Socket-Bibliothek ZeroMQ und standardisierte JSON-Datenstrukturen realisiert ist~\cite{hintjens2013zeromq,kluyver2016jupyter}. Zwischen dem Jupyter-Server und dem Sprach-Kernel existieren fünf eigenständige Kommunikationskanäle, die jeweils spezifische Aufgaben im interaktiven Arbeitsablauf erfüllen (\Cref{fig:jupyter_zeromq_architecture}):
+Die Jupyter-Architektur entkoppelt die Benutzerschnittstelle im Webbrowser vollständig von der eigentlichen Programmausführung.
+Diese Trennung basiert auf einem sprachunabhängigen Netzwerkprotokoll, das über die nachrichtenbasierte Socket-Bibliothek ZeroMQ und standardisierte JSON-Datenstrukturen realisiert ist~\cite{hintjens2013zeromq,kluyver2016jupyter}.
+Zwischen dem Jupyter-Server und dem Sprach-Kernel existieren fünf eigenständige Kommunikationskanäle, die jeweils spezifische Aufgaben im interaktiven Arbeitsablauf erfüllen (\Cref{fig:jupyter_zeromq_architecture}):
 
-Der \textbf{Shell-Kanal} ist als synchrones Anfrage-Antwort-Muster aufgebaut. Über diesen Kanal sendet die Benutzeroberfläche den Inhalt einer Codezelle an den Kernel, fordert automatische Codevervollständigungen an oder ruft typbezogene Dokumentationshilfen ab. Der Kernel antwortet mit detaillierten Ausführungsstatusmeldungen und inkrementiert den zellulären Ausführungszähler.
+Der \textbf{Shell-Kanal} ist als synchrones Anfrage-Antwort-Muster aufgebaut.
+Über diesen Kanal sendet die Benutzeroberfläche den Inhalt einer Codezelle an den Kernel, fordert automatische Codevervollständigungen an oder ruft typbezogene Dokumentationshilfen ab.
+Der Kernel antwortet mit detaillierten Ausführungsstatusmeldungen und inkrementiert den zellulären Ausführungszähler.
 
-Der \textbf{IOPub-Kanal} arbeitet nach dem Publish-Subscribe-Prinzip und dient als unidirektionaler Hochgeschwindigkeitskanal. Über diesen Kanal überträgt der Kernel fortlaufend Textausgaben der Standard- und Fehlerausgabe, visualisierbare Multimediadaten in Formaten wie SVG oder HTML sowie Benachrichtigungen über den aktuellen Arbeitszustand, beispielsweise ob der Kernel beschäftigt oder bereit für neue Eingaben ist.
+Der \textbf{IOPub-Kanal} arbeitet nach dem Publish-Subscribe-Prinzip und dient als unidirektionaler Hochgeschwindigkeitskanal.
+Über diesen Kanal überträgt der Kernel fortlaufend Textausgaben der Standard- und Fehlerausgabe, visualisierbare Multimediadaten in Formaten wie SVG oder HTML sowie Benachrichtigungen über den aktuellen Arbeitszustand, beispielsweise ob der Kernel beschäftigt oder bereit für neue Eingaben ist.
 
-Der \textbf{Control-Kanal} besitzt die gleiche technische Struktur wie der Shell-Kanal, ist jedoch für administrative Steuerbefehle reserviert. Da reguläre Codeausführungen den Shell-Kanal für längere Zeit blockieren können, werden Notstopps, Programmabbrüche und Beendigungsanforderungen über diesen priorisierten Kanal geleitet, sodass der Kernel auch bei Endlosschleifen reaktionsfähig bleibt.
+Der \textbf{Control-Kanal} besitzt die gleiche technische Struktur wie der Shell-Kanal, ist jedoch für administrative Steuerbefehle reserviert.
+Da reguläre Codeausführungen den Shell-Kanal für längere Zeit blockieren können, werden Notstopps, Programmabbrüche und Beendigungsanforderungen über diesen priorisierten Kanal geleitet, sodass der Kernel auch bei Endlosschleifen reaktionsfähig bleibt.
 
-Der \textbf{Stdin-Kanal} ermöglicht es dem Kernel, interaktive Tastatureingaben vom Benutzer anzufordern, indem er eine Rückfrage an das Frontend stellt und auf die Bestätigung wartet. Der \textbf{Heartbeat-Kanal} fungiert schließlich als kontinuierliche Lebenszeichen-Überwachung über einfache Echo-Anfragen, um einen Absturz des Kernel-Prozesses sofort an das Benutzerinterface zu melden.
+Der \textbf{Stdin-Kanal} ermöglicht es dem Kernel, interaktive Tastatureingaben vom Benutzer anzufordern, indem er eine Rückfrage an das Frontend stellt und auf die Bestätigung wartet.
+Der \textbf{Heartbeat-Kanal} fungiert schließlich als kontinuierliche Lebenszeichen-Überwachung über einfache Echo-Anfragen, um einen Absturz des Kernel-Prozesses sofort an das Benutzerinterface zu melden.
 
 \begin{figure}[htbp]
   \centering
@@ -77,11 +89,24 @@ Der \textbf{Stdin-Kanal} ermöglicht es dem Kernel, interaktive Tastatureingaben
 
 Obwohl alle drei Sprachsysteme die gleiche äußere Protokollspezifikation bedienen, unterscheidet sich ihre interne Ausführungsmaschinerie grundlegend:
 
-In Python läuft der Referenzkernel \texttt{ipykernel} direkt innerhalb eines CPython"=Interpreterprozesses. Dieser stützt sich auf eine asynchrone Ereignisschleife und führt übermittelte Codezeilen unmittelbar im globalen Modulwörterbuch des Hauptprogramms aus. Durch diese interpretierte Struktur können Variablen, Funktionen und Klassen ohne jegliche Vorabkompilierung dynamisch überschrieben werden. Neue Bibliotheken lassen sich zur Laufzeit über einfache Importanweisungen oder Paketmanager-Befehle einbinden. Der gravierende Nachteil dieser Leichtigkeit besteht jedoch im vollständigen Fehlen von Speichertrennungen: Alle während einer Zellenausführung allokierten Objekte verbleiben dauerhaft im Heap, und fehlerhafte Programmläufe hinterlassen einen partiell veränderten globalen Systemzustand.
+In Python läuft der Referenzkernel \texttt{ipykernel} direkt innerhalb eines CPython"=Interpreterprozesses.
+Dieser stützt sich auf eine asynchrone Ereignisschleife und führt übermittelte Codezeilen unmittelbar im globalen Modulwörterbuch des Hauptprogramms aus.
+Durch diese interpretierte Struktur können Variablen, Funktionen und Klassen ohne jegliche Vorabkompilierung dynamisch überschrieben werden.
+Neue Bibliotheken lassen sich zur Laufzeit über einfache Importanweisungen oder Paketmanager-Befehle einbinden.
+Der gravierende Nachteil dieser Leichtigkeit besteht jedoch im vollständigen Fehlen von Speichertrennungen: Alle während einer Zellenausführung allokierten Objekte verbleiben dauerhaft im Heap, und fehlerhafte Programmläufe hinterlassen einen partiell veränderten globalen Systemzustand.
 
-Der OCaml-Kernel \texttt{ocaml-jupyter} verfolgt einen völlig anderen Ansatz, indem er die internen Compiler-Bibliotheken der Sprache direkt als Toplevel-Schleife einbindet. Jedes Mal, wenn eine Zelle über den Shell-Kanal eintrifft, durchläuft der Programmtext eine vollständige Vorab-Kompilierung. Zunächst wird der Text in einen abstrakten Syntaxbaum für Toplevel-Ausdrücke zerlegt. Unmittelbar danach erfolgt eine vollständige statische Typanalyse nach dem Hindley--Milner-Verfahren gegen die bisher aufgebaute Umgebung. Erst wenn dieser Typcheck ohne jeden Fehler bestanden ist, erzeugt das System Zwischencode, führt diesen im Toplevel aus und formatiert das Ergebnis über registrierte Ausgabefunktionen. Enthält eine Zelle einen Typfehler, wird die Ausführung sofort vor Beginn jeglicher Seiteneffekte gestoppt, wodurch der Speicherzustand vor Beschädigungen geschützt bleibt.
+Der OCaml-Kernel \texttt{ocaml-jupyter} verfolgt einen völlig anderen Ansatz, indem er die internen Compiler-Bibliotheken der Sprache direkt als Toplevel-Schleife einbindet.
+Jedes Mal, wenn eine Zelle über den Shell-Kanal eintrifft, durchläuft der Programmtext eine vollständige Vorab-Kompilierung.
+Zunächst wird der Text in einen abstrakten Syntaxbaum für Toplevel-Ausdrücke zerlegt.
+Unmittelbar danach erfolgt eine vollständige statische Typanalyse nach dem Hindley--Milner-Verfahren gegen die bisher aufgebaute Umgebung.
+Erst wenn dieser Typcheck ohne jeden Fehler bestanden ist, erzeugt das System Zwischencode, führt diesen im Toplevel aus und formatiert das Ergebnis über registrierte Ausgabefunktionen.
+Enthält eine Zelle einen Typfehler, wird die Ausführung sofort vor Beginn jeglicher Seiteneffekte gestoppt, wodurch der Speicherzustand vor Beschädigungen geschützt bleibt.
 
-In F\# stützt sich die Laufzeitumgebung \texttt{dotnet-interactive} auf den Microsoft F\# Compiler Service innerhalb der modernen .NET 9 CoreCLR. Anstatt den Programmcode interpretativ abzuarbeiten, behandelt das System jede Zelle als eine eigenständige, inkrementelle Kompiliereinheit. Der Text wird analysiert, typgeprüft und als synthetische Klassenstruktur in eine vollwertige Zwischencode-Assembly im Arbeitsspeicher übersetzt. Diese Assembly referenziert alle vorangegangenen Zellausführungen, wird dynamisch in den laufenden .NET-Prozess geladen und dort vom RyuJIT-Just-in-Time-Compiler in echten, hochoptimierten Maschinencode transformiert. Dieses Vorgehen garantiert höchste Rechenleistung bei rechenintensiven Automatenschleifen, erklärt jedoch auch den substanziellen Speicherbedarf und die längere Initialisierungszeit, da ein kompletter Optimierungscompiler im Kernel-Speicher resident gehalten werden muss.
+In F\# stützt sich die Laufzeitumgebung \texttt{dotnet-interactive} auf den Microsoft F\# Compiler Service innerhalb der modernen .NET 9 CoreCLR.
+Anstatt den Programmcode interpretativ abzuarbeiten, behandelt das System jede Zelle als eine eigenständige, inkrementelle Kompiliereinheit.
+Der Text wird analysiert, typgeprüft und als synthetische Klassenstruktur in eine vollwertige Zwischencode-Assembly im Arbeitsspeicher übersetzt.
+Diese Assembly referenziert alle vorangegangenen Zellausführungen, wird dynamisch in den laufenden .NET-Prozess geladen und dort vom RyuJIT-Just-in-Time-Compiler in echten, hochoptimierten Maschinencode transformiert.
+Dieses Vorgehen garantiert höchste Rechenleistung bei rechenintensiven Automatenschleifen, erklärt jedoch auch den substanziellen Speicherbedarf und die längere Initialisierungszeit, da ein kompletter Optimierungscompiler im Kernel-Speicher resident gehalten werden muss.
 
 \begin{table}[htbp]
   \centering
@@ -130,19 +155,30 @@ In F\# stützt sich die Laufzeitumgebung \texttt{dotnet-interactive} auf den Mic
 \label{sec:kernels_state_hazards}
 % ------------------------------------------------------------------------------
 
-Ein charakteristisches Merkmal interaktiver Notizbücher besteht darin, dass Zellen im Lernprozess selten streng linear von oben nach unten abgearbeitet werden. Studierende experimentieren, springen zwischen Beispielen hin und her, modifizieren Funktionen in früheren Zellen und führen diese wiederholt aus. Dieses nichtlineare Vorgehen legt fundamentale Unterschiede in der Zustandsverwaltung der drei Sprachen offen.
+Ein charakteristisches Merkmal interaktiver Notizbücher besteht darin, dass Zellen im Lernprozess selten streng linear von oben nach unten abgearbeitet werden.
+Studierende experimentieren, springen zwischen Beispielen hin und her, modifizieren Funktionen in früheren Zellen und führen diese wiederholt aus.
+Dieses nichtlineare Vorgehen legt fundamentale Unterschiede in der Zustandsverwaltung der drei Sprachen offen.
 
-In Python führt die erneute Ausführung einer Zelle schlicht dazu, dass Bezeichner im globalen Namensraum überschrieben werden. Wird beispielsweise eine Klasse für Syntaxbaumknoten definiert, instanziiert und später um ein zusätzliches Attribut erweitert und erneut ausgeführt, verweist der Klassenname auf das neue Klassenobjekt. Bereits erzeugte Baumstrukturen verbleiben jedoch mit ihrer alten Klassenzugehörigkeit im Speicher. Während generischer Code, der lediglich Attributnamen abfragt, scheinbar weiterfunktioniert, schlagen Typprüfungen mittels \texttt{isinstance} unbemerkt fehl, weil das alte Objekt nicht als Instanz der gleichnamigen neuen Klasse erkannt wird. Dies führt zu schwer durchschaubaren Fehlern, die Programmieranfänger vor erhebliche Rätsel stellen.
+In Python führt die erneute Ausführung einer Zelle schlicht dazu, dass Bezeichner im globalen Namensraum überschrieben werden.
+Wird beispielsweise eine Klasse für Syntaxbaumknoten definiert, instanziiert und später um ein zusätzliches Attribut erweitert und erneut ausgeführt, verweist der Klassenname auf das neue Klassenobjekt.
+Bereits erzeugte Baumstrukturen verbleiben jedoch mit ihrer alten Klassenzugehörigkeit im Speicher.
+Während generischer Code, der lediglich Attributnamen abfragt, scheinbar weiterfunktioniert, schlagen Typprüfungen mittels \texttt{isinstance} unbemerkt fehl, weil das alte Objekt nicht als Instanz der gleichnamigen neuen Klasse erkannt wird.
+Dies führt zu schwer durchschaubaren Fehlern, die Programmieranfänger vor erhebliche Rätsel stellen.
 
-In OCaml tritt durch die Kombination aus statischem Typsystem und interaktiver Toplevel-Umgebung ein noch gravierenderes Phänomen auf: das Problem der \textbf{Typgenerativität}. Jede im Toplevel deklarierte Typdefinition erzeugt intern einen neuen, eindeutigen Typstempel. Wird beispielsweise in einer ersten Zelle ein Datentyp für arithmetische Ausdrücke definiert und eine Instanz erzeugt, und in einer zweiten Zelle eine Auswertungsfunktion deklariert, führt eine nachträgliche Modifikation der ersten Zelle zu einer fatalen Inkompatibilität. 
+In OCaml tritt durch die Kombination aus statischem Typsystem und interaktiver Toplevel-Umgebung ein noch gravierenderes Phänomen auf: das Problem der \textbf{Typgenerativität}.
+Jede im Toplevel deklarierte Typdefinition erzeugt intern einen neuen, eindeutigen Typstempel.
+Wird beispielsweise in einer ersten Zelle ein Datentyp für arithmetische Ausdrücke definiert und eine Instanz erzeugt, und in einer zweiten Zelle eine Auswertungsfunktion deklariert, führt eine nachträgliche Modifikation der ersten Zelle zu einer fatalen Inkompatibilität. 
 
-Sobald die erste Zelle erneut ausgeführt wird, erzeugt OCaml eine völlig neue Typidentität. Versucht die zuvor kompilierte Auswertungsfunktion nun, einen neu erzeugten Ausdruck zu verarbeiten, bricht der Typchecker mit einer Fehlermeldung ab, die besagt, dass der Ausdruck vom Typ des alten Stempels erwartet wurde, aber der Typ des neuen Stempels übergeben wurde, obwohl beide im Quelltext identisch heißen. Da das Hindley--Milner-System kompromisslose Korrektheit erzwingt, können diese beiden nominell verschiedenen Typen niemals vereinheitlicht werden.
+Sobald die erste Zelle erneut ausgeführt wird, erzeugt OCaml eine völlig neue Typidentität.
+Versucht die zuvor kompilierte Auswertungsfunktion nun, einen neu erzeugten Ausdruck zu verarbeiten, bricht der Typchecker mit einer Fehlermeldung ab, die besagt, dass der Ausdruck vom Typ des alten Stempels erwartet wurde, aber der Typ des neuen Stempels übergeben wurde, obwohl beide im Quelltext identisch heißen.
+Da das Hindley--Milner-System kompromisslose Korrektheit erzwingt, können diese beiden nominell verschiedenen Typen niemals vereinheitlicht werden.
 
 \begin{observation}[\textbf{Das Antipattern generativer Toplevel-Typen}]
 Werden zentrale Domänentypen für Automaten oder Syntaxbäume direkt in gewöhnlichen Notebook-Zellen definiert, entwertet jede wiederholte Ausführung dieser Zellen sämtliche nachfolgend deklarierten Funktionen und bestehenden Datenstrukturen im Speicher.
 \end{observation}
 
-Um dieses Problem im Vorlesungsbetrieb elegant zu beherrschen, nutzt die OCaml-Fassung des Curriculums ein zentrales Architekturmuster in der Hilfsdatei \texttt{ocaml/\allowbreak lib/\allowbreak nb.ml}. Sämtliche grundlegenden Typdefinitionen werden aus den Notizbüchern in separate Bibliotheksdateien ausgelagert und über einen abgesicherten, idempotenten Lademechanismus eingebunden:
+Um dieses Problem im Vorlesungsbetrieb elegant zu beherrschen, nutzt die OCaml-Fassung des Curriculums ein zentrales Architekturmuster in der Hilfsdatei \texttt{ocaml/\allowbreak lib/\allowbreak nb.ml}.
+Sämtliche grundlegenden Typdefinitionen werden aus den Notizbüchern in separate Bibliotheksdateien ausgelagert und über einen abgesicherten, idempotenten Lademechanismus eingebunden:
 
 \begin{lstlisting}[language=Caml,caption={Idempotentes Laden von Typbibliotheken in OCaml.}]
 let loaded_libs : (string, unit) Hashtbl.t = Hashtbl.create 8
@@ -156,16 +192,22 @@ let load_lib (file : string) : unit =
   end
 \end{lstlisting}
 
-Durch die Protokollierung in einer globalen Hashtabelle und die Ausführung über die interne Compilerfunktion \texttt{Toploop.use\_silently} wird sichergestellt, dass jede Typbibliothek während der gesamten Lebensdauer des Kernels exakt ein einziges Mal kompiliert wird. Ein versehentliches erneutes Ausführen einer Ladeanweisung bleibt damit ein vollkommen unschädlicher Leerschritt, und bestehende Baumstrukturen behalten ihre gültige Typidentität.
+Durch die Protokollierung in einer globalen Hashtabelle und die Ausführung über die interne Compilerfunktion \texttt{Toploop.use\_silently} wird sichergestellt, dass jede Typbibliothek während der gesamten Lebensdauer des Kernels exakt ein einziges Mal kompiliert wird.
+Ein versehentliches erneutes Ausführen einer Ladeanweisung bleibt damit ein vollkommen unschädlicher Leerschritt, und bestehende Baumstrukturen behalten ihre gültige Typidentität.
 
-In F\# löst die Laufzeitumgebung \texttt{dotnet-interactive} diese Herausforderung über eine inkrementelle lexikalische Abschattung. Jede Zellausführung erzeugt eine neue Assembly"=Ebene, die frühere Definitionen gleichen Namens im aktuellen Geltungsbereich überdeckt, ohne die Typkonsistenz innerhalb der neuen Ebene zu verletzen. Zudem sind wiederverwendbare Algorithmen und Automatentypen in externe F\#-Skriptdateien ausgelagert, die über Ladebefehle modular eingebunden werden. Dies gewährleistet eine saubere Trennung zwischen interaktivem Experimentiercode und stabilen Kernbibliotheken.
+In F\# löst die Laufzeitumgebung \texttt{dotnet-interactive} diese Herausforderung über eine inkrementelle lexikalische Abschattung.
+Jede Zellausführung erzeugt eine neue Assembly"=Ebene, die frühere Definitionen gleichen Namens im aktuellen Geltungsbereich überdeckt, ohne die Typkonsistenz innerhalb der neuen Ebene zu verletzen.
+Zudem sind wiederverwendbare Algorithmen und Automatentypen in externe F\#-Skriptdateien ausgelagert, die über Ladebefehle modular eingebunden werden.
+Dies gewährleistet eine saubere Trennung zwischen interaktivem Experimentiercode und stabilen Kernbibliotheken.
 
 % ------------------------------------------------------------------------------
 \section{Pipelines zur visuellen Darstellung: Automaten und Syntaxbäume}
 \label{sec:kernels_visualization}
 % ------------------------------------------------------------------------------
 
-In der universitären Lehre der formalen Sprachen sind visuelle Repräsentationen unverzichtbar. Ein komplexer Übergangsgraph eines Automaten mit Dutzenden Zuständen oder ein tiefer Ableitungsbaum eines LR-Parsers ist in reiner Textform oder als verschachtelte Tupelstruktur für das menschliche Auge kaum erfassbar. Die unmittelbare Generierung von Vektorgrafiken mittels Graphviz und deren direkte Einbettung im Notebook gehören daher zu den didaktischen Kernfunktionen des Curriculums.
+In der universitären Lehre der formalen Sprachen sind visuelle Repräsentationen unverzichtbar.
+Ein komplexer Übergangsgraph eines Automaten mit Dutzenden Zuständen oder ein tiefer Ableitungsbaum eines LR-Parsers ist in reiner Textform oder als verschachtelte Tupelstruktur für das menschliche Auge kaum erfassbar.
+Die unmittelbare Generierung von Vektorgrafiken mittels Graphviz und deren direkte Einbettung im Notebook gehören daher zu den didaktischen Kernfunktionen des Curriculums.
 
 Die drei Sprachwelten nutzen grundlegend verschiedene Ansätze, um interne Datenstrukturen in Graphviz-DOT-Grafiken zu überführen und über den Jupyter-IOPub-Kanal an den Browser zu übermitteln (\Cref{fig:visualization_pipelines}):
 
@@ -219,9 +261,14 @@ Die drei Sprachwelten nutzen grundlegend verschiedene Ansätze, um interne Daten
   \label{fig:visualization_pipelines}
 \end{figure}
 
-In Python greift die Implementierung auf das externe Paket \texttt{graphviz} zurück. Ein Objekt erzeugt die DOT-Grafikbeschreibung und ruft über das Betriebssystem den Graphviz-Befehl auf. Über eine spezielle Anzeigemethode erkennt IPython, dass eine Vektorgrafik vorliegt, und überträgt das fertige Bild als SVG-Datenpaket über den IOPub-Kanal direkt an das Webinterface. Dieser Ablauf ist unkompliziert, erfordert jedoch eine manuelle Verwaltung eindeutiger Knotennamen, um Namenskollisionen bei gleichnamigen Zuständen oder Grammatikelementen zu verhindern.
+In Python greift die Implementierung auf das externe Paket \texttt{graphviz} zurück.
+Ein Objekt erzeugt die DOT-Grafikbeschreibung und ruft über das Betriebssystem den Graphviz-Befehl auf.
+Über eine spezielle Anzeigemethode erkennt IPython, dass eine Vektorgrafik vorliegt, und überträgt das fertige Bild als SVG-Datenpaket über den IOPub-Kanal direkt an das Webinterface.
+Dieser Ablauf ist unkompliziert, erfordert jedoch eine manuelle Verwaltung eindeutiger Knotennamen, um Namenskollisionen bei gleichnamigen Zuständen oder Grammatikelementen zu verhindern.
 
-In OCaml existiert keine vergleichbare Standardbibliothek für interaktive Notizbücher. Die Autoren des Curriculums entwickelten daher eine eigenständige, funktionale Graphviz-Abstraktion in den Modulen \texttt{graphviz.ml} und \texttt{notebook.ml}. Das Modul erlaubt den schrittweisen Aufbau gerichteter Graphen und übergibt die fertige Beschreibung an eine Ausführungsfunktion:
+In OCaml existiert keine vergleichbare Standardbibliothek für interaktive Notizbücher.
+Die Autoren des Curriculums entwickelten daher eine eigenständige, funktionale Graphviz-Abstraktion in den Modulen \texttt{graphviz.ml} und \texttt{notebook.ml}.
+Das Modul erlaubt den schrittweisen Aufbau gerichteter Graphen und übergibt die fertige Beschreibung an eine Ausführungsfunktion:
 
 \begin{lstlisting}[language=Caml,caption={Subprozess-Ausführung und IOPub-Pufferung in OCaml.}]
 let display mime s =
@@ -243,8 +290,12 @@ let display_svg s = display "image/svg+xml" s
 \end{lstlisting}
 
 Bei dieser Implementierung fallen zwei bemerkenswerte Details auf:
-Erstens erfolgt der Aufruf des externen Graphviz-Werkzeugs dateibasiert über temporäre Dateien im Dateisystem. Der DOT-Quelltext wird auf die Festplatte geschrieben, der Prozess \texttt{dot} über den Systembefehl aufgerufen, das erzeugte Vektorbild eingelesen und beide Zwischendateien anschließend wieder gelöscht.
-Zweitens enthält die Anzeigefunktion eine bewusste Pause von 50 Millisekunden nach dem Absenden der Grafik an den IOPub-Kanal. Da Ausgaben und Ausführungsbestätigungen über getrennte ZeroMQ-Sockets laufen, könnte ein automatisches Testwerkzeug das Zellenende bereits registrieren, bevor das Bild vollständig im Frontend angekommen ist. Die kurze Wartezeit stellt sicher, dass die Grafikpuffer zuverlässig geleert werden. Zudem bietet die OCaml-Umgebung über eine direkte JSON-Paketkonstruktion die Möglichkeit, auch statistische Diagramme im Vega-Lite-Format ohne externe Grafiktreiber direkt darzustellen.
+Erstens erfolgt der Aufruf des externen Graphviz-Werkzeugs dateibasiert über temporäre Dateien im Dateisystem.
+Der DOT-Quelltext wird auf die Festplatte geschrieben, der Prozess \texttt{dot} über den Systembefehl aufgerufen, das erzeugte Vektorbild eingelesen und beide Zwischendateien anschließend wieder gelöscht.
+Zweitens enthält die Anzeigefunktion eine bewusste Pause von 50 Millisekunden nach dem Absenden der Grafik an den IOPub-Kanal.
+Da Ausgaben und Ausführungsbestätigungen über getrennte ZeroMQ-Sockets laufen, könnte ein automatisches Testwerkzeug das Zellenende bereits registrieren, bevor das Bild vollständig im Frontend angekommen ist.
+Die kurze Wartezeit stellt sicher, dass die Grafikpuffer zuverlässig geleert werden.
+Zudem bietet die OCaml-Umgebung über eine direkte JSON-Paketkonstruktion die Möglichkeit, auch statistische Diagramme im Vega-Lite-Format ohne externe Grafiktreiber direkt darzustellen.
 
 Die F\#-Implementierung in der Datei \texttt{Visualization.fsx} zeichnet sich durch eine architektonisch besonders saubere Trennung und Prozessbehandlung aus:
 
@@ -280,8 +331,12 @@ let renderDot (dot: string) =
 \end{lstlisting}
 
 Dieser Entwurf bietet zwei entscheidende Vorteile:
-Erstens löst die Funktion \texttt{assignNumbers} das Problem wiederkehrender Bezeichner im Syntaxbaum auf rein mathematisch-strukturelle Weise. In Parse-Bäumen treten identische Nichtterminale und Operatoren wie Pluszeichen naturgemäß mehrfach auf. Statt auf veränderliche globale Zähler oder Objektreferenzen im Speicher zurückzugreifen, nummeriert F\# jeden Knoten anhand seiner eindeutigen Pfadkoordinate in der Pre-Order-Traversierung des Baumes.
-Zweitens verzichtet F\# vollständig auf temporäre Dateien auf der Festplatte. Über die asynchronen Standard-Eingabe- und Ausgabe-Streams der .NET-Prozessverwaltung wird der Quelltext direkt in den laufenden Graphviz-Prozess gestreamt und das fertige Vektorbild unmittelbar aus dem Ausgabestrom im Hauptspeicher empfangen. Dies vermeidet Festplattenzugriffe, Zugriffsrechteprobleme und Dateikollisionen vollständig.
+Erstens löst die Funktion \texttt{assignNumbers} das Problem wiederkehrender Bezeichner im Syntaxbaum auf rein mathematisch-strukturelle Weise.
+In Parse-Bäumen treten identische Nichtterminale und Operatoren wie Pluszeichen naturgemäß mehrfach auf.
+Statt auf veränderliche globale Zähler oder Objektreferenzen im Speicher zurückzugreifen, nummeriert F\# jeden Knoten anhand seiner eindeutigen Pfadkoordinate in der Pre-Order-Traversierung des Baumes.
+Zweitens verzichtet F\# vollständig auf temporäre Dateien auf der Festplatte.
+Über die asynchronen Standard-Eingabe- und Ausgabe-Streams der .NET-Prozessverwaltung wird der Quelltext direkt in den laufenden Graphviz-Prozess gestreamt und das fertige Vektorbild unmittelbar aus dem Ausgabestrom im Hauptspeicher empfangen.
+Dies vermeidet Festplattenzugriffe, Zugriffsrechteprobleme und Dateikollisionen vollständig.
 
 \begin{table}[htbp]
   \centering
@@ -328,15 +383,24 @@ Zweitens verzichtet F\# vollständig auf temporäre Dateien auf der Festplatte. 
 Für den erfolgreichen Einsatz in Lehrveranstaltungen ist die Qualität und Verständlichkeit von Fehlermeldungen von herausragender Bedeutung, wenn Studierende fehlerhafte Grammatiken oder unvollständige Automaten programmieren.
 
 Beim Auftreten syntaktischer oder logischer Fehler zeigen sich deutliche Unterschiede zwischen den Laufzeitumgebungen:
-In Python werden Fehler erst während der tatsächlichen Ausführung als Laufzeitausnahmen mit oft unübersichtlich langen Aufrufstapeln gemeldet. Übergibt ein Studierender beispielsweise versehentlich eine Zeichenkette statt einer Zustandsmenge an eine Übergangsfunktion, bricht das Programm tief im Inneren einer Bibliotheksfunktion mit einer unspezifischen Ausnahmemeldung ab. Der eigentliche konzeptionelle Denkfehler bleibt für den Lernenden unsichtbar.
+In Python werden Fehler erst während der tatsächlichen Ausführung als Laufzeitausnahmen mit oft unübersichtlich langen Aufrufstapeln gemeldet.
+Übergibt ein Studierender beispielsweise versehentlich eine Zeichenkette statt einer Zustandsmenge an eine Übergangsfunktion, bricht das Programm tief im Inneren einer Bibliotheksfunktion mit einer unspezifischen Ausnahmemeldung ab.
+Der eigentliche konzeptionelle Denkfehler bleibt für den Lernenden unsichtbar.
 
-In OCaml greift der Compiler bereits vor der Ausführung ein. Typfehler werden im Programmtext exakt lokalisiert und mit visuellen Unterstreichungen versehen. Versucht man, einer Funktion, die eine Menge erwartet, eine einfache Ganzzahl zu übergeben, erklärt der Typchecker unmissverständlich, welcher Typ erwartet und welcher tatsächlich vorgefunden wurde. Die einzige didaktische Hürde bleibt die zuvor beschriebene Meldung bei inkonsistenten Typstempeln nach Zellausführungen außerhalb der Reihe.
+In OCaml greift der Compiler bereits vor der Ausführung ein.
+Typfehler werden im Programmtext exakt lokalisiert und mit visuellen Unterstreichungen versehen.
+Versucht man, einer Funktion, die eine Menge erwartet, eine einfache Ganzzahl zu übergeben, erklärt der Typchecker unmissverständlich, welcher Typ erwartet und welcher tatsächlich vorgefunden wurde.
+Die einzige didaktische Hürde bleibt die zuvor beschriebene Meldung bei inkonsistenten Typstempeln nach Zellausführungen außerhalb der Reihe.
 
-In F\# liefert der Compiler-Dienst strukturierte Diagnosen inklusive offizieller Fehlernummern. Von unschätzbarem didaktischem Wert ist dabei die statische Vollständigkeitsprüfung bei Musterabgleichen: Vergisst ein Studierender bei der Implementierung eines AST-Interpreters einen Sprachoperator, bricht die Kompilierung nicht nur ab, sondern der Compiler gibt ein konkretes Gegenbeispiel aus, welcher Fall nicht abgedeckt wurde. Auf diese Weise fungiert das Typsystem als ein kontinuierlicher, automatisierter Tutor.
+In F\# liefert der Compiler-Dienst strukturierte Diagnosen inklusive offizieller Fehlernummern.
+Von unschätzbarem didaktischem Wert ist dabei die statische Vollständigkeitsprüfung bei Musterabgleichen: Vergisst ein Studierender bei der Implementierung eines AST-Interpreters einen Sprachoperator, bricht die Kompilierung nicht nur ab, sondern der Compiler gibt ein konkretes Gegenbeispiel aus, welcher Fall nicht abgedeckt wurde.
+Auf diese Weise fungiert das Typsystem als ein kontinuierlicher, automatisierter Tutor.
 
 Für den universitären Großbetrieb ist zudem die vollautomatische Überprüfung aller Lehrmaterialien in Continuous-Integration-Pipelines essenziell:
 In Python wird dies über Testframeworks und automatisierte Notebook-Clients gelöst, die alle Notizbücher sequenziell durchrechnen und auf ungefangene Ausnahmen prüfen.
 In OCaml stellt das Curriculum ein eigenständiges Prüfwerkzeug bereit, das kopf- und browserlose Kernel-Instanzen startet und verifiziert, dass alle 50 Vorlesungs-Notebooks die strenge statische Typprüfung fehlerfrei durchlaufen.
 In F\# ist die Qualitätssicherung mehrstufig aufgebaut: Ein zentrales Prüfskript erlaubt die formale Prüfung von Zell-Metadaten, eine schnelle Gesamtkompilierung über den kantenlosen F\#-Interactive-Compiler sowie einen vollständigen End-to-End-Test im echten Jupyter-Kernel inklusive der Validierung aller gerenderten Vektorgrafiken.
 
-Zusammenfassend lässt sich festhalten: Während Python den leichtesten Einstieg bietet, birgt seine dynamische Zustandsverwaltung erhebliche Risiken für unbemerkt verschleppte Fehlerzustände. OCaml überzeugt durch kompromisslose statische Korrektheit und einen minimalen Speicherbedarf, verlangt jedoch durch seine Typgenerativität eine disziplinierte Modulkapselung. F\# bietet eine mustergültige, moderne Plattform mit strukturierter Vektorbild-Erzeugung, speicherbasiertem Prozess-Streaming und exzellenten didaktischen Compilerwarnungen, erkauft dies jedoch mit einem höheren Speicherbedarf der Entwicklungsumgebung.
+Zusammenfassend lässt sich festhalten: Während Python den leichtesten Einstieg bietet, birgt seine dynamische Zustandsverwaltung erhebliche Risiken für unbemerkt verschleppte Fehlerzustände.
+OCaml überzeugt durch kompromisslose statische Korrektheit und einen minimalen Speicherbedarf, verlangt jedoch durch seine Typgenerativität eine disziplinierte Modulkapselung.
+F\# bietet eine mustergültige, moderne Plattform mit strukturierter Vektorbild-Erzeugung, speicherbasiertem Prozess-Streaming und exzellenten didaktischen Compilerwarnungen, erkauft dies jedoch mit einem höheren Speicherbedarf der Entwicklungsumgebung.

@@ -4,9 +4,11 @@
 \chapter{Syntaktische Ausdrucksstärke und Programmieridiome}
 \label{chap:expressiveness}
 
-In der formalen Sprachverarbeitung und im Compilerbau prägt die Wahl der Programmiersprache unmittelbar die Art und Weise, wie theoretische Algorithmen konzipiert, implementiert und im Lehrbetrieb vermittelt werden. Mathematische Konzepte der Automatentheorie und der formalen Semantik sind von Natur aus induktiv: Reguläre Ausdrücke, kontextfreie Grammatiken und abstrakte Syntaxbäume werden durch formale Ableitungsregeln spezifiziert, während Automatentransformationen wie die Potenzmengenkonstruktion, Produktautomaten und Fixpunktberechnungen am elegantesten als relationale Verknüpfungen höherer Ordnung formuliert werden.
+In der formalen Sprachverarbeitung und im Compilerbau prägt die Wahl der Programmiersprache unmittelbar die Art und Weise, wie theoretische Algorithmen konzipiert, implementiert und im Lehrbetrieb vermittelt werden.
+Mathematische Konzepte der Automatentheorie und der formalen Semantik sind von Natur aus induktiv: Reguläre Ausdrücke, kontextfreie Grammatiken und abstrakte Syntaxbäume werden durch formale Ableitungsregeln spezifiziert, während Automatentransformationen wie die Potenzmengenkonstruktion, Produktautomaten und Fixpunktberechnungen am elegantesten als relationale Verknüpfungen höherer Ordnung formuliert werden.
 
-In diesem Kapitel untersuchen wir die syntaktische und semantische Ausdrucksstärke von Python~3.13, OCaml~5.4 und F\#~9.0 über das gesamte Vorlesungscurriculum hinweg. Wir analysieren, wie grundlegende Sprachidiome---ausdrucksbasierter Kontrollfluss, Funktions-Pipelining, automatisches Currying und erweiterte Musterabgleiche---die Lesbarkeit, das Codevolumen und die mathematische Treue der Implementierungen beeinflussen.
+In diesem Kapitel untersuchen wir die syntaktische und semantische Ausdrucksstärke von Python~3.13, OCaml~5.4 und F\#~9.0 über das gesamte Vorlesungscurriculum hinweg.
+Wir analysieren, wie grundlegende Sprachidiome---ausdrucksbasierter Kontrollfluss, Funktions-Pipelining, automatisches Currying und erweiterte Musterabgleiche---die Lesbarkeit, das Codevolumen und die mathematische Treue der Implementierungen beeinflussen.
 
 % ------------------------------------------------------------------------------
 \section{Ausdrucksbasierte Semantik im Vergleich zu anweisungsorientiertem Kontrollfluss}
@@ -15,11 +17,18 @@ In diesem Kapitel untersuchen wir die syntaktische und semantische Ausdrucksstä
 
 Eine fundamentale Trennlinie zwischen modernen funktionalen Sprachen wie OCaml und F\# auf der einen Seite und traditionell imperativen Sprachen wie Python auf der anderen Seite bildet der Unterschied zwischen \textbf{ausdrucksbasierter} und \textbf{anweisungsorientierter} Ausführungssemantik.
 
-In OCaml und F\# ist jedes syntaktische Konstrukt ein Ausdruck, der bei seiner Auswertung einen konkreten Wert liefert. Eine bedingte Verzweigung über Wenn-Dann-Sonst wertet unmittelbar zum Ergebnis des gewählten Zweigs aus, wobei das statische Typsystem garantiert, dass beide Zweige denselben Typ besitzen. Musterabgleiche sind vollwertige Ausdrücke, die beliebig tief verschachtelt, als Funktionsargumente übergeben oder unveränderlichen Variablen zugewiesen werden können. Selbst die sequentielle Bindung von Zwischenergebnissen über Let-Ausdrücke erzeugt streng abgegrenzte lexikalische Gültigkeitsbereiche, ohne globale Zustände zu kontaminieren.
+In OCaml und F\# ist jedes syntaktische Konstrukt ein Ausdruck, der bei seiner Auswertung einen konkreten Wert liefert.
+Eine bedingte Verzweigung über Wenn-Dann-Sonst wertet unmittelbar zum Ergebnis des gewählten Zweigs aus, wobei das statische Typsystem garantiert, dass beide Zweige denselben Typ besitzen.
+Musterabgleiche sind vollwertige Ausdrücke, die beliebig tief verschachtelt, als Funktionsargumente übergeben oder unveränderlichen Variablen zugewiesen werden können.
+Selbst die sequentielle Bindung von Zwischenergebnissen über Let-Ausdrücke erzeugt streng abgegrenzte lexikalische Gültigkeitsbereiche, ohne globale Zustände zu kontaminieren.
 
-Im Gegensatz dazu ist Python historisch anweisungsorientiert geprägt. Zentrale Kontrollstrukturen wie Schleifen, bedingte Anweisungen, Funktionsdefinitionen und Musterabgleiche sind Anweisungen, die per se keinen Wert zurückgeben, sondern ausschließlich über Nebeneffekte durch Variablenzuweisungen wirken. Zwar bietet Python ternäre Kurzschreibweisen und Listenabstraktionen (List Comprehensions), doch komplexe mehrarmige Fallunterscheidungen lassen sich nicht direkt an Ausdrücke binden. 
+Im Gegensatz dazu ist Python historisch anweisungsorientiert geprägt.
+Zentrale Kontrollstrukturen wie Schleifen, bedingte Anweisungen, Funktionsdefinitionen und Musterabgleiche sind Anweisungen, die per se keinen Wert zurückgeben, sondern ausschließlich über Nebeneffekte durch Variablenzuweisungen wirken.
+Zwar bietet Python ternäre Kurzschreibweisen und Listenabstraktionen (List Comprehensions), doch komplexe mehrarmige Fallunterscheidungen lassen sich nicht direkt an Ausdrücke binden. 
 
-Dies führt in Python regelmäßig zum sogenannten Akkumulator-Muster: Vor einem Anweisungsblock wird eine leere Sammelstruktur oder ein Platzhalterwert allokiert, innerhalb bedingter Verzweigungen schrittweise befüllt und abschließend zurückgegeben. Dieser imperative Stil birgt erhebliche kognitive Risiken: Wird eine Zuweisung in einem Verzweigungsast versehentlich ausgelassen, liest der nachfolgende Code veraltete Werte oder stürzt mit einem Zugriffsfehler ab. Zudem bleiben Variablen, die innerhalb von Schleifen oder Verzweigungsblöcken angelegt werden, über den gesamten Gültigkeitsbereich der umgebenden Funktion hinweg sichtbar, was das Risiko unbeabsichtigter Variablenüberdeckungen drastisch erhöht.
+Dies führt in Python regelmäßig zum sogenannten Akkumulator-Muster: Vor einem Anweisungsblock wird eine leere Sammelstruktur oder ein Platzhalterwert allokiert, innerhalb bedingter Verzweigungen schrittweise befüllt und abschließend zurückgegeben.
+Dieser imperative Stil birgt erhebliche kognitive Risiken: Wird eine Zuweisung in einem Verzweigungsast versehentlich ausgelassen, liest der nachfolgende Code veraltete Werte oder stürzt mit einem Zugriffsfehler ab.
+Zudem bleiben Variablen, die innerhalb von Schleifen oder Verzweigungsblöcken angelegt werden, über den gesamten Gültigkeitsbereich der umgebenden Funktion hinweg sichtbar, was das Risiko unbeabsichtigter Variablenüberdeckungen drastisch erhöht.
 
 % ------------------------------------------------------------------------------
 \section{Pipelining, Currying und kompositioneller Datenfluss}
@@ -29,7 +38,9 @@ Dies führt in Python regelmäßig zum sogenannten Akkumulator-Muster: Vor einem
 Algorithmen der Automatentheorie bestehen typischerweise aus Ketten relationaler Transformationen: Ein regulärer Ausdruck wird in einen Automaten mit Epsilon-Übergängen überführt, dieser wird von Epsilon-Schritten befreit, anschließend über eine Potenzmengenkonstruktion determiniert und schließlich über eine Äquivalenzklassenzerlegung minimiert.
 
 \subsection{Der funktionale Pipeline-Operator}
-OCaml und F\# stellen für solche Verarbeitungsketten den Vorwärts-Pipeline-Operator bereit. Dieser Operator kehrt die funktionale Notation um, sodass das Argument links und die auszuführende Funktion rechts steht. Dadurch entspricht die Anordnung des Quelltextes exakt der logischen Flussrichtung der Datenverarbeitung:
+OCaml und F\# stellen für solche Verarbeitungsketten den Vorwärts-Pipeline-Operator bereit.
+Dieser Operator kehrt die funktionale Notation um, sodass das Argument links und die auszuführende Funktion rechts steht.
+Dadurch entspricht die Anordnung des Quelltextes exakt der logischen Flussrichtung der Datenverarbeitung:
 
 \begin{lstlisting}[language=FSharp,caption={Mehrstufige Automatenpipeline in F\#.}]
 let minimizeRegExp (alphabet: Set<char>) (r: RegExp) : Dfa<Set<int>> =
@@ -40,21 +51,27 @@ let minimizeRegExp (alphabet: Set<char>) (r: RegExp) : Dfa<Set<int>> =
     |> hopcroftMinimize
 \end{lstlisting}
 
-In Python fehlt ein vergleichbarer nativer Operator. Entwickler stehen vor dem Dilemma, entweder tief verschachtelte Funktionsaufrufe zu notieren, die von innen nach außen gelesen werden müssen, oder zahlreiche temporäre Zwischenvariablen einzuführen, die den Code aufblähen und fehleranfällig für Verwechslungen machen.
+In Python fehlt ein vergleichbarer nativer Operator.
+Entwickler stehen vor dem Dilemma, entweder tief verschachtelte Funktionsaufrufe zu notieren, die von innen nach außen gelesen werden müssen, oder zahlreiche temporäre Zwischenvariablen einzuführen, die den Code aufblähen und fehleranfällig für Verwechslungen machen.
 
 \subsection{Currying und funktionale Komposition}
-In ML und F\# sind Funktionen standardmäßig curried: Eine Funktion mit mehreren Parametern ist formal eine einstellige Funktion, die eine weitere Funktion für den nächsten Parameter zurückgibt. Dies erlaubt eine elegante partielle Anwendung. Wenn beispielsweise Übergangsrelationen über Alphabete gefaltet werden, kann die Zielzustandsabfrage partiell gebunden und als Argument an Standardbibliotheksfunktionen übergeben werden, ohne dass zusätzliche Lambda-Hüllen erforderlich sind.
+In ML und F\# sind Funktionen standardmäßig curried: Eine Funktion mit mehreren Parametern ist formal eine einstellige Funktion, die eine weitere Funktion für den nächsten Parameter zurückgibt.
+Dies erlaubt eine elegante partielle Anwendung.
+Wenn beispielsweise Übergangsrelationen über Alphabete gefaltet werden, kann die Zielzustandsabfrage partiell gebunden und als Argument an Standardbibliotheksfunktionen übergeben werden, ohne dass zusätzliche Lambda-Hüllen erforderlich sind.
 
-In Python hingegen erwarten Funktionen feste Tupellisten von Argumenten. Eine partielle Anwendung erfordert den Import von Hilfswerkzeugen wie \texttt{functools.partial} oder explizite Lambda-Ausdrücke, was den Programmtext visuell überfrachtet.
+In Python hingegen erwarten Funktionen feste Tupellisten von Argumenten.
+Eine partielle Anwendung erfordert den Import von Hilfswerkzeugen wie \texttt{functools.partial} oder explizite Lambda-Ausdrücke, was den Programmtext visuell überfrachtet.
 
 % ------------------------------------------------------------------------------
 \section{Fortgeschrittene Musterabgleichs-Idiome und aktive Muster}
 \label{sec:pattern_matching}
 % ------------------------------------------------------------------------------
 
-Der Musterabgleich ist das zentrale softwaretechnische Werkzeug im modernen Compilerbau. Ein abstrakter Syntaxbaum ist ein rekursiver Verbund heterogener Knoten; Analysephasen müssen gezielt nach bestimmten Baumkonfigurationen suchen, Operanden zerlegen, semantische Randbedingungen prüfen und transformierte Bäume erzeugen.
+Der Musterabgleich ist das zentrale softwaretechnische Werkzeug im modernen Compilerbau.
+Ein abstrakter Syntaxbaum ist ein rekursiver Verbund heterogener Knoten; Analysephasen müssen gezielt nach bestimmten Baumkonfigurationen suchen, Operanden zerlegen, semantische Randbedingungen prüfen und transformierte Bäume erzeugen.
 
-Während OCaml reinen strukturellen Musterabgleich über Varianten mit Oder-Mustern und Bedingungswächtern (Guards) unterstützt, bietet F\# mit den sogenannten \textbf{Active Patterns} eine herausragende Abstraktionserweiterung~\cite{syme2007extensible}. Aktive Muster erlauben es, benutzerdefinierte Erkennungsregeln zu deklarieren, die Daten dynamisch zerlegen und als semantisch strukturierte Sichten präsentieren, ohne die internen Repräsentationsdetails der Datenstruktur offenzulegen:
+Während OCaml reinen strukturellen Musterabgleich über Varianten mit Oder-Mustern und Bedingungswächtern (Guards) unterstützt, bietet F\# mit den sogenannten \textbf{Active Patterns} eine herausragende Abstraktionserweiterung~\cite{syme2007extensible}.
+Aktive Muster erlauben es, benutzerdefinierte Erkennungsregeln zu deklarieren, die Daten dynamisch zerlegen und als semantisch strukturierte Sichten präsentieren, ohne die internen Repräsentationsdetails der Datenstruktur offenzulegen:
 
 \begin{lstlisting}[language=FSharp,caption={Aktive Muster zur algebraischen Baumvereinfachung in F\#.}]
 // Partielles aktives Muster fuer ganzzahlige Konstanten
@@ -77,7 +94,8 @@ let rec simplify (expr: Expression) : Expression =
 
 Durch dieses Konzept wird eine perfekte Entkopplung erreicht: Die interne Darstellung eines Syntaxbaums kann grundlegend refaktoriert werden, während alle externen Compiler-Phasen, die auf aktiven Mustern basieren, unverändert und statisch typsicher weiterfunktionieren.
 
-Python führte mit Version 3.10 über PEP~634 ebenfalls einen strukturellen Musterabgleich über \texttt{match/case} ein. Obwohl dies eine deutliche Verbesserung gegenüber historischen Typabfrage-Kaskaden darstellt, unterscheidet sich Pythons Mechanismus grundlegend von funktionalen Sprachen: Die Auswertung erfolgt interpretativ über dynamische Bytecode-Befehle mit spürbarem Laufzeit-Overhead, Variablenbindungen lecken in den umgebenden Funktionsbereich durch, und der Interpreter bietet keinerlei Prüfung auf Vollständigkeit der Muster.
+Python führte mit Version 3.10 über PEP~634 ebenfalls einen strukturellen Musterabgleich über \texttt{match/case} ein.
+Obwohl dies eine deutliche Verbesserung gegenüber historischen Typabfrage-Kaskaden darstellt, unterscheidet sich Pythons Mechanismus grundlegend von funktionalen Sprachen: Die Auswertung erfolgt interpretativ über dynamische Bytecode-Befehle mit spürbarem Laufzeit-Overhead, Variablenbindungen lecken in den umgebenden Funktionsbereich durch, und der Interpreter bietet keinerlei Prüfung auf Vollständigkeit der Muster.
 
 % ------------------------------------------------------------------------------
 \section{Vergleichende Fallstudien aus dem Curriculum}
@@ -87,15 +105,24 @@ Python führte mit Version 3.10 über PEP~634 ebenfalls einen strukturellen Must
 Anhand dreier repräsentativer Kernalgorithmen des Curriculums lässt sich der Einfluss dieser Paradigmen auf den praktischen Code demonstrieren:
 
 \subsection{1. Thompson-Konstruktion für nichtdeterministische Automaten}
-Die Thompson-Konstruktion überführt einen regulären Ausdruck induktiv in einen äquivalenten Automaten mit Epsilon-Schritten. Für jeden Teilausdruck müssen frische Zustände generiert und Teilautomaten parallel oder seriell verknüpft werden.
+Die Thompson-Konstruktion überführt einen regulären Ausdruck induktiv in einen äquivalenten Automaten mit Epsilon-Schritten.
+Für jeden Teilausdruck müssen frische Zustände generiert und Teilautomaten parallel oder seriell verknüpft werden.
 In Python wird dieser Algorithmus typischerweise über eine zustandsbehaftete Klasse mit internem Zähler realisiert, die Zwischenergebnisse mutiert.
-In F\# hingegen präsentiert die Funktion nach außen eine rein funktionale, seiteneffektfreie Schnittstelle: Aus einem Alphabet und einem regulären Ausdruck entsteht ein unveränderlicher Automat. Intern wird die Erzeugung neuer Zustandsnummern durch eine streng lokal gekapselte veränderliche Zählervariable gelöst, die außerhalb der Funktion nicht existiert und Nebenläufigkeitskonflikte ausschließt.
+In F\# hingegen präsentiert die Funktion nach außen eine rein funktionale, seiteneffektfreie Schnittstelle: Aus einem Alphabet und einem regulären Ausdruck entsteht ein unveränderlicher Automat.
+Intern wird die Erzeugung neuer Zustandsnummern durch eine streng lokal gekapselte veränderliche Zählervariable gelöst, die außerhalb der Funktion nicht existiert und Nebenläufigkeitskonflikte ausschließt.
 
 \subsection{2. Reguläre Ausdrücke und Brzozowski-Ableitungen}
-Die Brzozowski-Ableitung eines regulären Ausdrucks nach einem Eingabezeichen beschreibt die Restsprache aller Wörter, die nach dem Einlesen dieses Zeichens noch akzeptiert werden~\cite{brzozowski1964derivatives,owens2009regular}. Die mathematische Definition stützt sich auf eine Epsilon-Prüfung, die feststellt, ob ein Ausdruck das leere Wort akzeptiert, sowie auf induktive Regeln für Basisfälle, Alternativen, Verkettungen und den Kleene-Stern:
-Die Ableitung der leeren Menge oder des leeren Wortes ergibt stets die leere Menge. Die Ableitung eines Zeichens nach sich selbst ergibt das leere Wort, nach einem abweichenden Zeichen die leere Menge. Bei einer Alternative werden beide Zweige abgeleitet. Bei einer Verkettung zweier Ausdrücke wird die Ableitung des ersten Teils mit dem zweiten Teil verkettet; akzeptiert der erste Teil das leere Wort, kommt die Ableitung des zweiten Teils als Alternative hinzu. Beim Kleene-Stern wird die Ableitung des inneren Ausdrucks mit dem wiederholten Gesamtausdruck verkettet.
+Die Brzozowski-Ableitung eines regulären Ausdrucks nach einem Eingabezeichen beschreibt die Restsprache aller Wörter, die nach dem Einlesen dieses Zeichens noch akzeptiert werden~\cite{brzozowski1964derivatives,owens2009regular}.
+Die mathematische Definition stützt sich auf eine Epsilon-Prüfung, die feststellt, ob ein Ausdruck das leere Wort akzeptiert, sowie auf induktive Regeln für Basisfälle, Alternativen, Verkettungen und den Kleene-Stern:
+Die Ableitung der leeren Menge oder des leeren Wortes ergibt stets die leere Menge.
+Die Ableitung eines Zeichens nach sich selbst ergibt das leere Wort, nach einem abweichenden Zeichen die leere Menge.
+Bei einer Alternative werden beide Zweige abgeleitet.
+Bei einer Verkettung zweier Ausdrücke wird die Ableitung des ersten Teils mit dem zweiten Teil verkettet; akzeptiert der erste Teil das leere Wort, kommt die Ableitung des zweiten Teils als Alternative hinzu.
+Beim Kleene-Stern wird die Ableitung des inneren Ausdrucks mit dem wiederholten Gesamtausdruck verkettet.
 
-In OCaml lässt sich dieses Regelwerk buchstäblich eins-zu-eins als strukturierter Musterabgleich niederschreiben. Jede mathematische Regel entspricht exakt einem einzigen Funktionszweig. Sollte jemals ein neuer Sprachoperator zum regulären Ausdruck hinzugefügt werden, verweigert der OCaml-Compiler die Übersetzung so lange, bis sowohl die Epsilon-Prüfung als auch die Ableitungsfunktion um den entsprechenden Fall ergänzt wurden.
+In OCaml lässt sich dieses Regelwerk buchstäblich eins-zu-eins als strukturierter Musterabgleich niederschreiben.
+Jede mathematische Regel entspricht exakt einem einzigen Funktionszweig.
+Sollte jemals ein neuer Sprachoperator zum regulären Ausdruck hinzugefügt werden, verweigert der OCaml-Compiler die Übersetzung so lange, bis sowohl die Epsilon-Prüfung als auch die Ableitungsfunktion um den entsprechenden Fall ergänzt wurden.
 
 \subsection{3. Hopcroft-Zustandsminimierung}
 Die Minimierung deterministischer Automaten nach Hopcroft zerlegt die Zustandsmenge iterativ in Myhill--Nerode-Äquivalenzklassen~\cite{hopcroft1971nlogn}.

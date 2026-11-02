@@ -4,9 +4,11 @@
 \chapter{Einleitung und methodischer Rahmen}
 \label{chap:introduction}
 
-Die Theorie der formalen Sprachen, die Automatentheorie und der Compilerbau bilden seit den Anfängen der theoretischen und praktischen Informatik ein unverzichtbares Fundament der Softwarewissenschaft~\cite{aho2006compilers,hopcroft2006automata,sipser2012introduction}. Seit der Etablierung der Chomsky-Hierarchie~\cite{chomsky1956three}, der mathematischen Formalisierung endlicher Zustandsautomaten und der Entwicklung deterministischer Verfahren für die kontextfreie Syntaxanalyse~\cite{knuth1965translation,earley1970efficient} dient dieses Fachgebiet als Prüfstein für das Design und die Leistungsfähigkeit von Programmiersprachen.
+Die Theorie der formalen Sprachen, die Automatentheorie und der Compilerbau bilden seit den Anfängen der theoretischen und praktischen Informatik ein unverzichtbares Fundament der Softwarewissenschaft~\cite{aho2006compilers,hopcroft2006automata,sipser2012introduction}.
+Seit der Etablierung der Chomsky-Hierarchie~\cite{chomsky1956three}, der mathematischen Formalisierung endlicher Zustandsautomaten und der Entwicklung deterministischer Verfahren für die kontextfreie Syntaxanalyse~\cite{knuth1965translation,earley1970efficient} dient dieses Fachgebiet als Prüfstein für das Design und die Leistungsfähigkeit von Programmiersprachen.
 
-Im Unterschied zur rein numerischen Datenverarbeitung oder klassischen Webanwendungen operiert die formale Sprachverarbeitung auf tief verschachtelten, rekursiven symbolischen Datenstrukturen: induktiv definierten regulären Ausdrücken, abstrakten Syntaxbäumen, gerichteten Übergangsgraphen mit Nichtdeterminismus sowie tabellenbasierten Fixpunktiterationen. Die Eleganz, funktionale Korrektheit und Rechenleistung, mit der eine Programmiersprache diese Algorithmen beschreiben kann, offenbaren die fundamentalen Stärken und Grenzen ihres Typsystems, ihrer semantischen Ausdruckskraft und ihrer Ausführungsumgebung.
+Im Unterschied zur rein numerischen Datenverarbeitung oder klassischen Webanwendungen operiert die formale Sprachverarbeitung auf tief verschachtelten, rekursiven symbolischen Datenstrukturen: induktiv definierten regulären Ausdrücken, abstrakten Syntaxbäumen, gerichteten Übergangsgraphen mit Nichtdeterminismus sowie tabellenbasierten Fixpunktiterationen.
+Die Eleganz, funktionale Korrektheit und Rechenleistung, mit der eine Programmiersprache diese Algorithmen beschreiben kann, offenbaren die fundamentalen Stärken und Grenzen ihres Typsystems, ihrer semantischen Ausdruckskraft und ihrer Ausführungsumgebung.
 
 % ------------------------------------------------------------------------------
 \section{Der Gegenstandsbereich: Symbolische Komplexität und mathematische Strenge}
@@ -15,13 +17,16 @@ Im Unterschied zur rein numerischen Datenverarbeitung oder klassischen Webanwend
 
 Die Algorithmen eines modernen Curriculums der formalen Sprachen und des Compilerbaus lassen sich vier grundlegenden rechnerischen Mustern zuordnen:
 \begin{enumerate}
-  \item \textbf{Induktive symbolische Transformationen:} Abstrakte Syntaxbäume und reguläre Ausdrücke sind mathematisch als induktiv definierte Strukturen aufgebaut. Operationen wie algebraische Vereinfachungen, symbolische Ableitungen nach Brzozowski~\cite{brzozowski1964derivatives} und semantische Syntaxbaumoptimierungen verlangen strukturierten Musterabgleich über heterogene Baumknoten und tiefgreifende rekursive Baumtraversierungen.
+  \item \textbf{Induktive symbolische Transformationen:} Abstrakte Syntaxbäume und reguläre Ausdrücke sind mathematisch als induktiv definierte Strukturen aufgebaut.
+  Operationen wie algebraische Vereinfachungen, symbolische Ableitungen nach Brzozowski~\cite{brzozowski1964derivatives} und semantische Syntaxbaumoptimierungen verlangen strukturierten Musterabgleich über heterogene Baumknoten und tiefgreifende rekursive Baumtraversierungen.
   \item \textbf{Automaten und Graphen:} Algorithmen wie die Thompson-Konstruktion zur Erzeugung von Nichtdeterminismus, die Potenzmengenkonstruktion zur Determinierung von Automaten, die Berechnung von Epsilon-Hüllen sowie die Zustandsminimierung nach Hopcroft über sukzessive Partitionsverfeinerungen manipulieren komplexe, mengentheoretische Graphenstrukturen.
   \item \textbf{Fixpunktbasierte Tabellensynthesen:} Die Analyse kontextfreier Grammatiken erfordert die Berechnung relationaler Fixpunkte über Mengen, darunter die Synthese von First- und Follow-Mengen, die Konstruktion kanonischer LR-, SLR- und LALR-Zustandssammlungen sowie die Erkennung und Behebung von Schiebe-Reduziere-Konflikten auf realistischen Sprachgrammatiken wie der ANSI-C-Spezifikation.
   \item \textbf{Mehrstufige Compiler-Pipelines:} Die Übersetzung höherer Programmiersprachen in ausführbaren Bytecode, die statische Typanalyse sowie die zielgerichtete Codegenerierung für virtuelle Maschinen wie die Java Virtual Machine.
 \end{enumerate}
 
-Historisch wurden diese Lehrinhalte vorrangig in hardwarenahen imperativen Sprachen wie C und C++ oder in funktionalen Forschungssprachen wie Standard ML vermittelt. In der modernen universitären Praxis hat sich die Lehre jedoch zunehmend in Richtung interaktiver Notizbuch-Umgebungen---namentlich Computational Notebooks auf Basis von Project Jupyter~\cite{perez2007ipython}---verschoben. Hier verschmelzen erklärender Fließtext, ausführbarer Programmcode und eingebettete Vektorgrafiken zur Visualisierung von Automaten und Ableitungsbäumen zu einem geschlossenen didaktischen Ganzen.
+Historisch wurden diese Lehrinhalte vorrangig in hardwarenahen imperativen Sprachen wie C und C++ oder in funktionalen Forschungssprachen wie Standard ML vermittelt.
+In der modernen universitären Praxis hat sich die Lehre jedoch zunehmend in Richtung interaktiver Notizbuch-Umgebungen---namentlich Computational Notebooks auf Basis von Project Jupyter~\cite{perez2007ipython}---verschoben.
+Hier verschmelzen erklärender Fließtext, ausführbarer Programmcode und eingebettete Vektorgrafiken zur Visualisierung von Automaten und Ableitungsbäumen zu einem geschlossenen didaktischen Ganzen.
 
 % ------------------------------------------------------------------------------
 \section{Motivation: Ein kontrolliertes natürliches Experiment über drei Sprachen}
@@ -30,12 +35,15 @@ Historisch wurden diese Lehrinhalte vorrangig in hardwarenahen imperativen Sprac
 
 Die vorliegende Untersuchung stützt sich auf ein seltenes, didaktisch wie technisch hochgradig kontrolliertes natürliches Experiment: Ein vollständiges, anspruchsvolles Curriculum aus 13 Kapiteln zu formalen Sprachen und Compilerbau liegt in drei vollständigen, semantisch deckungsgleichen Implementierungen vor, die für den interaktiven Betrieb in Jupyter-Notebooks optimiert wurden:
 \begin{enumerate}
-  \item \textbf{Python 3.13 (\texttt{ipykernel}):} Der weltweite De-facto-Standard in der Datenverarbeitung und Lehre. Python verkörpert den Archetyp einer dynamisch typisierten, interpretierten und anweisungsorientierten Skriptsprache mit optionalen Typ-Annotationen nach PEP~484, C-optimierten offenen Hash-Mengen und strukturellem Musterabgleich nach PEP~634.
-  \item \textbf{OCaml 5.4 (\texttt{ocaml-jupyter}):} Die klassische Referenzsprache im akademischen Compilerbau. OCaml vertritt das Paradigma einer statisch typisierten, rein funktionalen ML-Sprache mit globaler Damas--Hindley--Milner-Typinferenz, unveränderlichen persistenten AVL-Suchbäumen und optimierender Übersetzung in nativen Maschinencode~\cite{leroy2023ocaml,sivaramakrishnan2020retrofitting}.
+  \item \textbf{Python 3.13 (\texttt{ipykernel}):} Der weltweite De-facto-Standard in der Datenverarbeitung und Lehre.
+  Python verkörpert den Archetyp einer dynamisch typisierten, interpretierten und anweisungsorientierten Skriptsprache mit optionalen Typ-Annotationen nach PEP~484, C-optimierten offenen Hash-Mengen und strukturellem Musterabgleich nach PEP~634.
+  \item \textbf{OCaml 5.4 (\texttt{ocaml-jupyter}):} Die klassische Referenzsprache im akademischen Compilerbau.
+  OCaml vertritt das Paradigma einer statisch typisierten, rein funktionalen ML-Sprache mit globaler Damas--Hindley--Milner-Typinferenz, unveränderlichen persistenten AVL-Suchbäumen und optimierender Übersetzung in nativen Maschinencode~\cite{leroy2023ocaml,sivaramakrishnan2020retrofitting}.
   \item \textbf{F\# 9.0 unter .NET 9 (\texttt{dotnet-interactive}):} Eine moderne, multiparadigmatische und primär funktionale Sprache, die ML-Typinferenz und algebraische Datentypen mit der leistungsstarken Infrastruktur der Microsoft .NET 9 CoreCLR, mehrstufiger RyuJIT-Kompilierung und einer modernen Paketverwaltung verbindet~\cite{syme2020early}.
 \end{enumerate}
 
-Der untersuchte Gesamtkorpus umfasst 56 aufeinander abgestimmte Notizbücher, die von den Grundlagen der regulären Ausdrücke über Parsing-Verfahren bis hin zu vollständigen Codegeneratoren reichen. Statt subjektive Eindrücke abzufragen, widmet sich unsere Untersuchung den tiefgreifenden technischen und architektonischen Wechselwirkungen zwischen formaler Sprachtheorie, Typsicherheit, syntaktischer Dichte und realer Laufzeitperformanz.
+Der untersuchte Gesamtkorpus umfasst 56 aufeinander abgestimmte Notizbücher, die von den Grundlagen der regulären Ausdrücke über Parsing-Verfahren bis hin zu vollständigen Codegeneratoren reichen.
+Statt subjektive Eindrücke abzufragen, widmet sich unsere Untersuchung den tiefgreifenden technischen und architektonischen Wechselwirkungen zwischen formaler Sprachtheorie, Typsicherheit, syntaktischer Dichte und realer Laufzeitperformanz.
 
 % ------------------------------------------------------------------------------
 \section{Forschungsfragen und Evaluierungsdimensionen}
@@ -46,16 +54,19 @@ Die Monographie gliedert sich entlang fünf zentraler softwaretechnischer Forsch
 
 \begin{description}[style=nextline,leftmargin=1.2em,itemsep=8pt]
   \item[\textbf{Forschungsfrage 1: Typsystem-Architektur und statische Garantien (\cref{chap:type_systems})}]
-  Wie zuverlässig erzwingen die jeweiligen Typsysteme strukturelle Invarianten bei Automaten"= und Compiler-Transformationen? Wie verhalten sich polymorphe Typinferenz und nominale algebraische Datentypen im Vergleich zu dynamischer Duck-Typisierung und optionalen Typhilfen bei der Vermeidung von Laufzeitfehlern?
+  Wie zuverlässig erzwingen die jeweiligen Typsysteme strukturelle Invarianten bei Automaten"= und Compiler-Transformationen?
+  Wie verhalten sich polymorphe Typinferenz und nominale algebraische Datentypen im Vergleich zu dynamischer Duck-Typisierung und optionalen Typhilfen bei der Vermeidung von Laufzeitfehlern?
 
   \item[\textbf{Forschungsfrage 2: Syntaktische Ausdruckskraft und Programmieridiome (\cref{chap:expressiveness})}]
-  Welche Sprachmittel minimieren die kognitive Belastung bei relationalen Fixpunktiterationen, regulären Baumableitungen und semantischen AST-Transformationen? Wie schneiden der funktionale Pipeline-Operator, automatisches Currying und Active Patterns im Vergleich zum anweisungsorientierten Kontrollfluss von Python ab?
+  Welche Sprachmittel minimieren die kognitive Belastung bei relationalen Fixpunktiterationen, regulären Baumableitungen und semantischen AST-Transformationen?
+  Wie schneiden der funktionale Pipeline-Operator, automatisches Currying und Active Patterns im Vergleich zum anweisungsorientierten Kontrollfluss von Python ab?
 
   \item[\textbf{Forschungsfrage 3: Integration von Lexer- und Parser-Werkzeugen (\cref{chap:toolchains})}]
   Wie verhalten sich dynamische, speicherbasierte Parsergeneratoren wie Lark im Vergleich zu vorab kompilierenden Werkzeugen wie Menhir in OCaml und FsLexYacc in F\# hinsichtlich Spezifikationsergonomie, Durchsatz und der Klarheit bei der Diagnose von Grammatikkonflikten?
 
   \item[\textbf{Forschungsfrage 4: Empirische Rechenleistung und Speicherbelegung (\cref{chap:performance})}]
-  Wie verhalten sich CPU-Durchsatz, Kaltstartverzögerungen des Kernels, Speicherbedarf im RAM und die Dynamik der Speicherbereinigung in isolierten Mikrobenchmarks sowie in vollständigen Notebook-Abläufen? Warum sind Hash-Mengen bei Mengenkonstruktionen im Vorteil, während sie bei rekursiven Baumtransformationen dramatisch zurückfallen?
+  Wie verhalten sich CPU-Durchsatz, Kaltstartverzögerungen des Kernels, Speicherbedarf im RAM und die Dynamik der Speicherbereinigung in isolierten Mikrobenchmarks sowie in vollständigen Notebook-Abläufen?
+  Warum sind Hash-Mengen bei Mengenkonstruktionen im Vorteil, während sie bei rekursiven Baumtransformationen dramatisch zurückfallen?
 
   \item[\textbf{Forschungsfrage 5: Interaktive Notebook-Infrastruktur und Kernel-Kommunikation (\cref{chap:interactive_kernels})}]
   Wie bewältigen die unterschiedlichen Kernel-Architekturen die Herausforderungen nichtlinearer Zellenausführungen, der internen Zustandsisolation, der ZeroMQ"=Protokollserialisierung und der dynamischen Einbettung von Vektorgrafiken?
@@ -69,18 +80,22 @@ Die Monographie gliedert sich entlang fünf zentraler softwaretechnischer Forsch
 Um höchste wissenschaftliche Validität und Reproduzierbarkeit zu gewährleisten, folgt unsere Untersuchung methodisch strengen Kriterien:
 
 \subsection{1. Saubere architektonische Trennung}
-In Übereinstimmung mit klaren Modularitätsprinzipien sind sämtliche Messskripte, Testtreiber und Rohdatensätze in einem vollständig isolierten Verzeichnis untergebracht. Der kanonische Vorlesungscode in den Verzeichnissen für Python, OCaml und F\# bleibt dadurch absolut unberührt. Das Dokument und die Auswertungsskripte sind eigenständig buildfähig.
+In Übereinstimmung mit klaren Modularitätsprinzipien sind sämtliche Messskripte, Testtreiber und Rohdatensätze in einem vollständig isolierten Verzeichnis untergebracht.
+Der kanonische Vorlesungscode in den Verzeichnissen für Python, OCaml und F\# bleibt dadurch absolut unberührt.
+Das Dokument und die Auswertungsskripte sind eigenständig buildfähig.
 
 \subsection{2. Statistische Signifikanz bei Laufzeitmessungen}
 Alle Zeit- und Speichermessungen folgen der anerkannten Methodik für empirische Performanzanalysen nach Georges et al.~\cite{georges2007statistically}:
 \begin{itemize}
-  \item \textbf{Mikrobenchmarks:} Rechnerische Kernalgorithmen wie Lexing, Potenzmengenkonstruktionen, DFA-Minimierungen und symbolische Ableitungen werden in isolierten Subprozessen über mehrere unabhängige Durchläufe gemessen. Hochauflösende Monotoniemonitore erfassen die reine CPU- und Wandzeit, während Betriebssystemaufrufe den maximalen Speicherbedarf im RAM exakt bestimmen.
+  \item \textbf{Mikrobenchmarks:} Rechnerische Kernalgorithmen wie Lexing, Potenzmengenkonstruktionen, DFA-Minimierungen und symbolische Ableitungen werden in isolierten Subprozessen über mehrere unabhängige Durchläufe gemessen.
+  Hochauflösende Monotoniemonitore erfassen die reine CPU- und Wandzeit, während Betriebssystemaufrufe den maximalen Speicherbedarf im RAM exakt bestimmen.
   \item \textbf{Kaltstartanalysen:} Die Gesamtzeit bis zur interaktiven Einsatzbereitschaft wird präzise in die Prozessstartzeit, die Initialisierung der ZeroMQ-Sockets und die Ausführungszeit der ersten Testzelle zerlegt.
   \item \textbf{Makrobenchmarks vollständiger Notizbücher:} Komplette Vorlesungskapitel werden in temporären Arbeitsverzeichnissen automatisiert ausgeführt, um zelluläre Rechenzeiten und den Speicherbedarf des gesamten Prozessbaums realistisch zu erfassen.
 \end{itemize}
 
 \subsection{3. Vereinheitlichte Hardwarebasis}
-Sämtliche Messungen wurden auf einem identischen Arbeitsplatzrechner unter kontrollierten thermischen Bedingungen auf macOS durchgeführt. Die eingesetzten Compiler und Laufzeitumgebungen entsprechen den aktuellen stabilen Hauptversionen CPython~3.13, OCaml~5.4 und Microsoft .NET~9.
+Sämtliche Messungen wurden auf einem identischen Arbeitsplatzrechner unter kontrollierten thermischen Bedingungen auf macOS durchgeführt.
+Die eingesetzten Compiler und Laufzeitumgebungen entsprechen den aktuellen stabilen Hauptversionen CPython~3.13, OCaml~5.4 und Microsoft .NET~9.
 
 % ------------------------------------------------------------------------------
 \section{Aufbau und Gliederung der Monographie}
