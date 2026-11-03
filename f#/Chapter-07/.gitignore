@@ -3,3 +3,4 @@ Differentiator.fsx
 Interpreter.fsx
 InterpreterFrame.fsx
 .validation-*.fsx
+*.out

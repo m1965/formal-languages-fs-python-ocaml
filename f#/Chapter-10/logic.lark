@@ -1,0 +1,25 @@
+// Propositional formulas.  Equivalence is non-associative: its two operands are implications.
+// Implication associates to the right, disjunction and conjunction to the left, and negation
+// binds most tightly.
+formula: implication "↔" implication
+       | implication
+
+implication: disjunction "→" implication
+           | disjunction
+
+disjunction: disjunction "∨" conjunction
+           | conjunction
+
+conjunction: conjunction "∧" negation
+           | negation
+
+negation: "¬" negation
+        | "⊤"
+        | "⊥"
+        | ID
+        | "(" formula ")"      %ignore "(", ")"
+
+ID: /[a-zA-Z][a-zA-Z0-9_]*/
+
+%import common.WS
+%ignore WS

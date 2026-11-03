@@ -10,3 +10,4 @@ Examples/*.jas
 Examples/*.class
 Examples/*.dot
 Examples/*.svg
+*.out
