@@ -1,2 +1,3 @@
 _build/
 Examples/*.class
+*.out

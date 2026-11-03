@@ -185,3 +185,17 @@ let () =
 let pp_larkita_ast ppf (t : ast) = Format.pp_print_string ppf (Larkita.to_string t);;
 
 #install_printer pp_larkita_ast;;
+
+(* A parser is shown like Python shows it: Larkita(open('calc.lark'), start='stmnt') *)
+let pp_larkita_parser ppf (p : Larkita.t) =
+  Format.fprintf ppf "Larkita(open(%s), start=%s)"
+    (Larkita.py_repr (Option.value p.source_path ~default:"<string>")) (Larkita.py_repr p.start);;
+
+#install_printer pp_larkita_parser;;
+
+(* An uncaught syntax error shows the message of Python's exception, e.g.
+   Exception: Larkita_base.Unexpected_input
+   Unexpected token Token('ID', 'f') at line 1, column 10. ... *)
+let pp_larkita_unexpected ppf (e : Larkita.unexpected_input) = Format.fprintf ppf "@\n%s" e.message;;
+
+#install_printer pp_larkita_unexpected;;
