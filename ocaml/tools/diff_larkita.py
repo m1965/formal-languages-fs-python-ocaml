@@ -1,6 +1,6 @@
 """Compares the OCaml port of Larkita with the Python package Larkita.
 
-    python3 tools/diff_larkita.py PYTHON SOURCE...
+    python3 tools/diff_larkita.py [--impl ocaml|fsharp] PYTHON SOURCE...
 
 PYTHON is a Python 3.12+ interpreter with Larkita installed; every SOURCE is passed to
 larkita_record.py (Larkita's test directory, scripts, or notebooks).  The script records the
@@ -36,14 +36,22 @@ def normalize(error, mine, theirs):
 
 
 def main():
-    python, *sources = sys.argv[1:]
+    args = sys.argv[1:]
+    impl = 'ocaml'
+    if args[:1] == ['--impl']:
+        impl, args = args[1], args[2:]
+    python, *sources = args
     tools = os.path.dirname(os.path.abspath(__file__))
     with tempfile.TemporaryDirectory() as tmp:
         cases_file = os.path.join(tmp, 'cases.json')
         results_file = os.path.join(tmp, 'results.json')
         subprocess.run([python, os.path.join(tools, 'larkita_record.py'), cases_file, *sources], check=True)
-        subprocess.run(['ocaml', os.path.join(tools, 'larkita_replay.ml'), cases_file, results_file, tmp], check=True,
-                       cwd=os.path.dirname(tools))
+        if impl == 'fsharp':
+            replay = os.path.join(os.path.dirname(os.path.dirname(tools)), 'f#', 'Support', 'Larkita', 'tests', 'larkita_replay.fsx')
+            subprocess.run(['dotnet', 'fsi', replay, cases_file, results_file, tmp], check=True)
+        else:
+            subprocess.run(['ocaml', os.path.join(tools, 'larkita_replay.ml'), cases_file, results_file, tmp], check=True,
+                           cwd=os.path.dirname(tools))
         with open(cases_file, encoding='utf8') as f:
             cases = json.load(f)
         with open(results_file, encoding='utf8') as f:
