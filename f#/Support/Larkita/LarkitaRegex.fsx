@@ -308,7 +308,7 @@ and widthNode (node: RNode) : int64 * int64 =
 /// the minimal and maximal width of a match, like re._parser.parse(r).getwidth()
 let width (pattern: string) : int64 * int64 =
     try widthSeq (parse pattern)
-    with RegexError -> raise (LarkitaBase.GrammarError("Cannot parse the regular expression " + pattern))
+    with RegexError -> raise (LarkitaAst.GrammarError("Cannot parse the regular expression " + pattern))
 
 exception private Unknown
 

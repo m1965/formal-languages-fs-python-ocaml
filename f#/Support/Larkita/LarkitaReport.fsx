@@ -6,6 +6,7 @@ module LarkitaReport
 
 open System
 open System.Collections.Generic
+open LarkitaAst
 open LarkitaBase
 open LarkitaLr
 

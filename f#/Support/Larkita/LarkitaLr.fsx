@@ -10,6 +10,7 @@ module LarkitaLr
 
 open System
 open System.Collections.Generic
+open LarkitaAst
 open LarkitaBase
 
 let cmpStr (a: string) (b: string) = String.CompareOrdinal(a, b)

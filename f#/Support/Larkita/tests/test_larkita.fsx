@@ -11,7 +11,7 @@ open System.IO
 open System.Text.Json.Nodes
 open Larkita
 
-conflictWarnings <- LarkitaBase.Ignore
+conflictWarnings <- LarkitaAst.Ignore
 
 let errorOf (e: exn) =
     match e with
@@ -19,8 +19,8 @@ let errorOf (e: exn) =
     | LexError m -> "LexError", m
     | UnexpectedInput u ->
         (match u.Kind with
-         | LarkitaBase.UnexpectedCharacters _ -> "UnexpectedCharacters"
-         | LarkitaBase.UnexpectedToken _ -> "UnexpectedToken"), u.Message
+         | LarkitaAst.UnexpectedCharacters _ -> "UnexpectedCharacters"
+         | LarkitaAst.UnexpectedToken _ -> "UnexpectedToken"), u.Message
     | e -> "Exception", e.Message
 
 let fixture = Path.Combine(__SOURCE_DIRECTORY__, "..", "..", "..", "..", "ocaml", "tests", "larkita_expected.json")

@@ -11,6 +11,7 @@ open System
 open System.Collections.Generic
 open System.Globalization
 open System.Text
+open LarkitaAst
 open LarkitaBase
 open LarkitaLexer
 open LarkitaLr

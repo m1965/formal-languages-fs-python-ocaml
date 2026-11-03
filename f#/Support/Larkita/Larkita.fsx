@@ -19,7 +19,7 @@
 ///   let ast = Larkita.parse parser "x := 1 + 2;"
 module Larkita
 
-#load "LarkitaBase.fsx" "LarkitaRegex.fsx" "LarkitaLexer.fsx" "LarkitaLr.fsx" "LarkitaReport.fsx" "LarkitaGrammar.fsx"
+#load "LarkitaAst.fsx" "LarkitaBase.fsx" "LarkitaRegex.fsx" "LarkitaLexer.fsx" "LarkitaLr.fsx" "LarkitaReport.fsx" "LarkitaGrammar.fsx"
 
 open System
 open System.Collections.Generic
@@ -27,14 +27,14 @@ open System.Text
 
 LarkitaGrammar.grammarsDir <- IO.Path.Combine(__SOURCE_DIRECTORY__, "grammars")
 
-type Ast = LarkitaBase.Ast
-type Token = LarkitaBase.Token
-type UnexpectedInputInfo = LarkitaBase.UnexpectedInputInfo
-type WarningMode = LarkitaBase.WarningMode
-exception UnexpectedInput = LarkitaBase.UnexpectedInput
-exception GrammarError = LarkitaBase.GrammarError
-exception ConflictWarning = LarkitaBase.ConflictWarning
-exception LexError = LarkitaBase.LexError
+type Ast = LarkitaAst.Ast
+type Token = LarkitaAst.Token
+type UnexpectedInputInfo = LarkitaAst.UnexpectedInputInfo
+type WarningMode = LarkitaAst.WarningMode
+exception UnexpectedInput = LarkitaAst.UnexpectedInput
+exception GrammarError = LarkitaAst.GrammarError
+exception ConflictWarning = LarkitaAst.ConflictWarning
+exception LexError = LarkitaAst.LexError
 
 type LexerKind =
     | Contextual
@@ -75,7 +75,7 @@ let private makeParser (a: LarkitaLr.Analyzer) (conf: LarkitaLexer.LexerConf) (l
         | _ -> failwith "Larkita: the start rule did not return an abstract syntax tree"
 
 /// Treatment of shift/reduce conflict warnings, see withConflictWarnings
-let mutable conflictWarnings = LarkitaBase.Print
+let mutable conflictWarnings = LarkitaAst.Print
 
 /// create: generates a parser for the grammar (a string).
 /// - start: the start symbol, by default the first rule of the grammar.
@@ -162,9 +162,9 @@ type private PyObj =
 
 let rec private pyobjOfAst (t: Ast) =
     match t with
-    | LarkitaBase.Lit s -> PStr s
-    | LarkitaBase.Tok (name, text) -> PTuple [ PStr name; PStr text ]
-    | LarkitaBase.Node (head, children) ->
+    | LarkitaAst.Lit s -> PStr s
+    | LarkitaAst.Tok (name, text) -> PTuple [ PStr name; PStr text ]
+    | LarkitaAst.Node (head, children) ->
         let head = match head with [ h ] -> PStr h | hs -> PTuple(List.map PStr hs)
         PTuple(head :: List.map pyobjOfAst children)
 

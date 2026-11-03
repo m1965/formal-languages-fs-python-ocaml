@@ -25,8 +25,8 @@ let exceptionJson (e: exn) : JsonNode =
     | UnexpectedInput u ->
         let t =
             match u.Kind with
-            | LarkitaBase.UnexpectedCharacters _ -> "UnexpectedCharacters"
-            | LarkitaBase.UnexpectedToken _ -> "UnexpectedToken"
+            | LarkitaAst.UnexpectedCharacters _ -> "UnexpectedCharacters"
+            | LarkitaAst.UnexpectedToken _ -> "UnexpectedToken"
         let o = simple t u.Message
         o.["line"] <- JsonValue.Create u.Line
         o.["column"] <- JsonValue.Create u.Column
@@ -54,9 +54,9 @@ cases
         let outFile = Path.Combine(outDir, sprintf "case-%d.out" i)
         conflictWarnings <-
             (match case.["outcome"] with
-             | null -> LarkitaBase.Ignore
-             | o when (o.["type"] |> str) = "ConflictWarning" -> LarkitaBase.Raise
-             | _ -> LarkitaBase.Ignore)
+             | null -> LarkitaAst.Ignore
+             | o when (o.["type"] |> str) = "ConflictWarning" -> LarkitaAst.Raise
+             | _ -> LarkitaAst.Ignore)
         let construction =
             try
                 Ok(Larkita.Create(
