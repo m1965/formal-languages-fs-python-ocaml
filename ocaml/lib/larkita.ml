@@ -169,6 +169,50 @@ module Larkita = struct
   (* the text of the output file *)
   let report (p : t) : string = In_channel.with_open_bin p.out_file In_channel.input_all
 
+  (* pformat t: the abstract syntax tree formatted like Python's pprint.pformat formats the nested tuple *)
+  type pyobj = PStr of string | PTuple of pyobj list
+
+  let rec pyobj_of_ast (t : ast) : pyobj =
+    match t with
+    | Lit s -> PStr s
+    | Tok (name, text) -> PTuple [ PStr name; PStr text ]
+    | Node (head, children) ->
+        let head = match head with [ h ] -> PStr h | hs -> PTuple (List.map (fun h -> PStr h) hs) in
+        PTuple (head :: List.map pyobj_of_ast children)
+
+  let rec pyobj_repr (o : pyobj) : string =
+    match o with
+    | PStr s -> py_repr s
+    | PTuple [ x ] -> "(" ^ pyobj_repr x ^ ",)"
+    | PTuple xs -> "(" ^ String.concat ", " (List.map pyobj_repr xs) ^ ")"
+
+  let pformat ?(width = 80) (t : ast) : string =
+    let b = Buffer.create 256 in
+    (* PrettyPrinter._format and _pprint_tuple of Python's module pprint *)
+    let rec format (o : pyobj) (indent : int) (allowance : int) : unit =
+      let rep = pyobj_repr o in
+      match o with
+      | PTuple items when utf8_length rep > width - indent - allowance ->
+          Buffer.add_char b '(';
+          let endchar = if List.length items = 1 then ",)" else ")" in
+          format_items items indent (allowance + String.length endchar);
+          Buffer.add_string b endchar
+      | _ -> Buffer.add_string b rep
+    and format_items (items : pyobj list) (indent : int) (allowance : int) : unit =
+      let indent = indent + 1 in
+      let n = List.length items in
+      List.iteri
+        (fun i item ->
+          if i > 0 then Buffer.add_string b (",\n" ^ String.make indent ' ');
+          format item indent (if i = n - 1 then allowance else 1))
+        items
+    in
+    format (pyobj_of_ast t) 0 0;
+    Buffer.contents b
+
+  (* pprint t prints the abstract syntax tree like Python's pprint prints the nested tuple *)
+  let pprint ?width (t : ast) : unit = print_endline (pformat ?width t)
+
   (* the message of an exception like Python's str(e) *)
   let message (e : unexpected_input) : string = e.message
 end
