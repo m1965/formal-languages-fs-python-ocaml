@@ -163,6 +163,21 @@ module Larkita = struct
   let lex (p : t) (text : string) : token list = List.of_seq (lex_all (Lazy.force p.basic) text)
 
   let to_string (t : ast) : string = ast_to_string t
+
+  (* the parse table (parse_table of Python): Array.length (parse_table p).table is the number of states *)
+  let parse_table (p : t) : Larkita_lr.parse_table = Larkita_lr.parse_table p.analyzer
+
+  let conflicts (p : t) : conflict list = p.conflicts
+  let rules (p : t) : rule list = p.rules
+  let terminals (p : t) : terminal_def list = p.terminals
+
+  (* with_conflict_warnings mode f calls f with the given treatment of conflict warnings, like
+     "with warnings.catch_warnings(): warnings.simplefilter('error', ConflictWarning)" in Python
+     for mode = `Raise *)
+  let with_conflict_warnings (mode : [ `Print | `Raise | `Ignore ]) (f : unit -> 'a) : 'a =
+    let saved = !conflict_warnings in
+    conflict_warnings := mode;
+    Fun.protect ~finally:(fun () -> conflict_warnings := saved) f
   let out_file (p : t) = p.out_file
   let start (p : t) = p.start
 
