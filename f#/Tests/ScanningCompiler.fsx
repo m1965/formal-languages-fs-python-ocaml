@@ -1,6 +1,6 @@
 #r "nuget: FsLexYacc.Runtime, 11.3.0"
 #r "../Chapter-03/Scanning/bin/Debug/net9.0/Scanning.dll"
-#r "../Chapter-12/IntegerC/bin/Debug/net9.0/IntegerC.dll"
+#load "../Chapter-12/Compiler.fsx"
 #r "../Legacy-ANTLR/04-Calc/Calculator/bin/Debug/net9.0/Calculator.dll"
 #r "../Exercises/Grammar2HTML-Antlr/GrammarParser/bin/Debug/net9.0/GrammarParser.dll"
 #load "../Chapter-03/ExamEvaluation.fsx"
@@ -38,34 +38,34 @@ check "Unknown HTML entities must survive unchanged" (Scanning.html "<p>Unknown 
 expectFailure (fun () -> Scanning.html "<head>never closed" |> ignore)
 check "LaTeX scanner must distinguish delimiters and exponent tokens" (Scanning.latex "$x^{2}$" = [MathDelimiter "$";Text "x";Hat;Brace '{';Text "2";Brace '}';MathDelimiter "$"])
 
-let parsed = IntegerC.Frontend.parse "/* comment\n */ int main() { if (1) if (0) println(1); else println(2); }"
+let parsed = Compiler.Frontend.parse "/* comment\n */ int main() { if (1) if (0) println(1); else println(2); }"
 match parsed.Head.Body with
-| [IntegerC.If(_,IntegerC.If(_,_,Some _),None)] -> ()
+| [Compiler.If(_,Compiler.If(_,_,Some _),None)] -> ()
 | _ -> failwith "Dangling else associated incorrectly"
-let ternary = IntegerC.Frontend.parse "int main() { println(0 ? 1 : 2 + 3 * 4); }"
+let ternary = Compiler.Frontend.parse "int main() { println(0 ? 1 : 2 + 3 * 4); }"
 match ternary.Head.Body with
-| [IntegerC.Expression(IntegerC.Call("println",[IntegerC.Conditional(_,_,IntegerC.Binary("+",_,IntegerC.Binary("*",_,_)))]))] -> ()
+| [Compiler.Expression(Compiler.Call("println",[Compiler.Conditional(_,_,Compiler.Binary("+",_,Compiler.Binary("*",_,_)))]))] -> ()
 | _ -> failwith "Ternary/arithmetic precedence incorrect"
 
 // The lecture grammar binds comparison operators more tightly than Boolean !.
 let printedExpression source =
-    let functions = IntegerC.Frontend.parse ("int main() { println(" + source + "); }")
+    let functions = Compiler.Frontend.parse ("int main() { println(" + source + "); }")
     match functions.Head.Body with
-    | [IntegerC.Expression(IntegerC.Call("println",[expression]))] -> expression
+    | [Compiler.Expression(Compiler.Call("println",[expression]))] -> expression
     | _ -> failwith "Expected one printed expression"
-let lessThan = IntegerC.Binary("<",IntegerC.Variable "x",IntegerC.Variable "y")
-check "!x < y must negate the complete comparison" (printedExpression "!x < y" = IntegerC.Not lessThan)
-check "Explicit comparison grouping must retain the same AST" (printedExpression "!(x < y)" = IntegerC.Not lessThan)
-check "Double negation must also wrap the complete comparison" (printedExpression "!!x < y" = IntegerC.Not(IntegerC.Not lessThan))
+let lessThan = Compiler.Binary("<",Compiler.Variable "x",Compiler.Variable "y")
+check "!x < y must negate the complete comparison" (printedExpression "!x < y" = Compiler.Not lessThan)
+check "Explicit comparison grouping must retain the same AST" (printedExpression "!(x < y)" = Compiler.Not lessThan)
+check "Double negation must also wrap the complete comparison" (printedExpression "!!x < y" = Compiler.Not(Compiler.Not lessThan))
 check "Boolean ! must bind more tightly than &&"
-    (printedExpression "!x < y && x == 1" = IntegerC.Binary("&&",IntegerC.Not lessThan,IntegerC.Binary("==",IntegerC.Variable "x",IntegerC.Number 1)))
+    (printedExpression "!x < y && x == 1" = Compiler.Binary("&&",Compiler.Not lessThan,Compiler.Binary("==",Compiler.Variable "x",Compiler.Number 1)))
 check "Boolean && must bind more tightly than ||"
     (printedExpression "!x < y || x == 1 && y == 2" =
-        IntegerC.Binary("||",IntegerC.Not lessThan,IntegerC.Binary("&&",IntegerC.Binary("==",IntegerC.Variable "x",IntegerC.Number 1),IntegerC.Binary("==",IntegerC.Variable "y",IntegerC.Number 2))))
+        Compiler.Binary("||",Compiler.Not lessThan,Compiler.Binary("&&",Compiler.Binary("==",Compiler.Variable "x",Compiler.Number 1),Compiler.Binary("==",Compiler.Variable "y",Compiler.Number 2))))
 check "Arithmetic must bind more tightly than comparison and Boolean !"
-    (printedExpression "!x + 1 < y * 2" = IntegerC.Not(IntegerC.Binary("<",IntegerC.Binary("+",IntegerC.Variable "x",IntegerC.Number 1),IntegerC.Binary("*",IntegerC.Variable "y",IntegerC.Number 2))))
-expectFailure (fun () -> IntegerC.Frontend.parse "int main() { 1 < 2 < 3; }" |> ignore)
-expectFailure (fun () -> IntegerC.Frontend.parse "int main() { /* unclosed" |> ignore)
+    (printedExpression "!x + 1 < y * 2" = Compiler.Not(Compiler.Binary("<",Compiler.Binary("+",Compiler.Variable "x",Compiler.Number 1),Compiler.Binary("*",Compiler.Variable "y",Compiler.Number 2))))
+expectFailure (fun () -> Compiler.Frontend.parse "int main() { 1 < 2 < 3; }" |> ignore)
+expectFailure (fun () -> Compiler.Frontend.parse "int main() { /* unclosed" |> ignore)
 
 let large = LectureCalculator.Calculator.parse "x = 100000000000000000000000000000; print(x);"
 match large with

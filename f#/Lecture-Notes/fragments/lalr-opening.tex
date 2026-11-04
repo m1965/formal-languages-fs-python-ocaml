@@ -1,17 +1,16 @@
-\chapter{LALR conflicts and precedence with FsYacc}
+\chapter{LR conflicts and precedence with Larkita}
 \section{Shift-reduce and reduce-reduce conflicts}
 An ambiguous arithmetic grammar has several viable actions after a recognized expression.
-The FsYacc specification below constructs an expression tree and deliberately retains the ambiguous grammar.
+The Larkita grammar below deliberately retains the ambiguous grammar.  Larkita builds the canonical LR(1) automaton, resolves every shift/reduce conflict in favour of shifting, and reports it with a warning; a reduce/reduce conflict is an error.
 @@snippet:lalr-ambiguous@@
 
-The generated report must be read as a report for this specification and this generator version; state numbers from another tool are not evidence about these states.
+Larkita writes all states with their lookahead tokens and all conflicts into an output file; state numbers from another tool are not evidence about these states.
 \href{../../Chapter-10/01-Conflicts.ipynb}{\nolinkurl{Chapter-10/01-Conflicts.ipynb}} shows the actual conflict diagnostics.
-Adding precedence declarations chooses the intended tree without changing the underlying productions.
+Larkita has no precedence declarations.  Instead, the grammar is stratified with one syntactical variable per precedence level.
 
 \section{Operator precedence declarations \label{section:operator-precedence}}
 @@figure:ply-yacc-lalr:fig:grammar-resolved.g@@
 @@snippet:lalr-resolved@@
-The first precedence declaration has the lowest precedence.
-\texttt{\%left} chooses reduction when equal-precedence operators should associate to the left; \texttt{\%right} chooses shifting for right association.
+Left-recursive rules make an operator associate to the left, right-recursive rules make it associate to the right, and a variable closer to the start symbol has lower precedence.
 Thus subtraction parses as $(1-2)-3$, multiplication binds above addition, and exponentiation parses as $2^{(3^4)}$.
-The item-state names in the following mathematical derivation are symbolic names inherited from the original illustration, not a claim about the numbered FsYacc report.
+The item-state names in the following mathematical derivation are symbolic names inherited from the original illustration, not a claim about the numbered states of Larkita's output file.

@@ -1,0 +1,28 @@
+expr: disjunction
+    | disjunction "?" expr ":" expr
+
+disjunction: disjunction "||" conjunction
+           | conjunction
+
+conjunction: conjunction "&&" negation
+           | negation
+
+negation: "!" negation
+        | comparison
+
+comparison: arithmetic ("==" | "!=" | "<=" | ">=" | "<" | ">") arithmetic
+          | arithmetic
+
+arithmetic: arithmetic ("+" | "-") product
+          | product
+
+product: product ("*" | "/" | "%") unary
+       | unary
+
+unary: "-" unary                           -> "neg"
+     | factor
+
+factor: NUMBER
+      | NAME
+      | NAME "(" [expr ("," expr)*] ")"   -> "call"
+      | "(" expr ")"

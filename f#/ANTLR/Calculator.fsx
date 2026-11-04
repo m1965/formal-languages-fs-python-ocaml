@@ -1,7 +1,7 @@
 #load "../Chapter-07/InterpreterFrame.fsx"
 
 open System
-open LanguageSyntax
+open Interpreter
 open InterpreterFrame
 
 // The lecture calculator's FLOAT tokens denote real numbers, even for "3".
@@ -15,10 +15,10 @@ let rec calculatorExpression = function
     | Call ("sqrt", [argument]) -> Call ("sqrt", [calculatorExpression argument])
     | expression -> invalidArg "source" (sprintf "Outside the lecture calculator grammar: %A" expression)
 
-/// Reuse FsLexYacc parsing and the canonical evaluator; only statement presentation differs.
+/// Reuse the Larkita grammar of the interpreter frame and the canonical evaluator; only statement presentation differs.
 let calculate source =
     let statements =
-        match LanguageSyntax.Parse.program source with
+        match InterpreterFrame.Parse.program source with
         | Block (_ :: _ as statements) -> statements
         | _ -> invalidArg "source" "The calculator program needs at least one statement"
     // Calculator expressions are arithmetic and sqrt calls; they never read or print via IO.

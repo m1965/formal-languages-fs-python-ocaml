@@ -1,11 +1,11 @@
 \paragraph{The non-associativity boundary} The intended language can reject a chain such as $a\leftrightarrow b\leftrightarrow c$ unless it is parenthesized.
-The pinned FsYacc 11.3.0 implementation shifts on the equal-precedence non-associative case rather than inserting an error action.
+Larkita has no non-associativity declaration.
 Consequently this edition factors the equivalence production to admit at most one unparenthesized equivalence at each formula level.
 The grammar, rather than an unsupported declaration assumption, enforces the language.
 @@snippet:lalr-logic@@
 
 \href{../../Chapter-10/Propositional-Logic.ipynb}{\nolinkurl{Chapter-10/Propositional-Logic.ipynb}} checks precedence and the rejection of chained equivalence.
-For a lookahead conflict, compare these two actual specifications:
+For a lookahead conflict, compare these two actual grammars:
 @@snippet:lalr-lookahead@@
 @@snippet:lalr-lookahead-solved@@
 The transformation delays reduction until the distinguishing token is available.

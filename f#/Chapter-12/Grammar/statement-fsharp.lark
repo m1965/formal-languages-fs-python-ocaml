@@ -1,0 +1,11 @@
+statement: "{" statements "}"
+         | assign ";"
+         | "if" "(" expr ")" statement
+         | "if" "(" expr ")" statement "else" statement      -> "if-else"
+         | "while" "(" expr ")" statement
+         | "for" "(" assign ";" expr ";" assign ")" statement  -> "for"
+         | "for" "(" NAME "=" expr ".." expr ")" statement     -> "for-range"
+         | "return" expr ";"
+         | expr ";"                                            -> "expr"
+
+assign: NAME "=" expr

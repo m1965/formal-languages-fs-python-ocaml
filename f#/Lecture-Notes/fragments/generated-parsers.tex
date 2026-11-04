@@ -1,23 +1,18 @@
-\chapter{Using FsYacc as a parser generator \label{chapter:ply}}
-FsYacc generates a bottom-up LALR parser from an \texttt{.fsy} grammar.
-Its semantic actions are F\# expressions.
-FsLex supplies tokens with the same generated token type.
-The scanner, generated parser and domain evaluator are separate modules; a small frontend composes them with one lexical buffer.
+\chapter{Using Larkita as a parser generator \label{chapter:ply}}
+Larkita, Karl Stroetmann's light-weight version of Lark, generates a canonical LR(1) parser from a grammar in EBNF notation.
+This edition uses its F\# port \texttt{Support/Larkita}.
+A grammar file contains both the tokens and the rules, but no semantic actions: the abstract syntax tree follows from the grammar.
+The string literals of an alternative form the \emph{head} of the tree, while all other symbols become its children; an alternative consisting of a single symbol passes the tree of this symbol through.
+The F\# port represents these trees by the union \texttt{Ast}: \texttt{Node(head, children)}, \texttt{Tok(name, text)} and \texttt{Lit text}.
 
 \section{A symbolic calculator}
 The original calculator grammar remains the mathematical specification.
 @@figure:ply-yacc-interpreter:fig:calculator.g@@
 
-The syntax tree records numbers, variable names, arithmetic operators and statements with explicit union cases.
-The scanner and parser use that domain representation as follows.
-@@snippet:calculator-types@@
-@@snippet:calculator-lexer@@
-@@snippet:calculator-parser@@
+The grammar file contains the rules and imports the tokens \texttt{CNAME}, \texttt{NUMBER} and \texttt{WS} from Larkita's library.
+@@snippet:calculator-grammar@@
 
-\texttt{\%token <float> NUMBER} declares a token with a floating-point payload.
-\texttt{\%start} selects the entry nonterminal, and \texttt{\%type} fixes its semantic result type.
-In an action, \texttt{\$1} is the first right-hand-side value, \texttt{\$2} the second, and so on.
-The number action constructs \texttt{Number \$1}; no unchecked numeric tuple index is carried into evaluation.
+The alternative \texttt{expr "+" product} yields \texttt{Node(["+"], [l; r])}, the assignment \texttt{IDENTIFIER ":=" expr ";"} yields \texttt{Node([":="; ";"], [Tok("IDENTIFIER", x); e])}, and \texttt{\%ignore "(", ")"} removes the parentheses from the head of a parenthesized expression.
 The grammar's separate product and factor nonterminals encode arithmetic precedence structurally.
 
 The environment is an immutable map from names to values.
@@ -41,9 +36,11 @@ This source language is distinct from the F\# program that interprets it.
 @@figure:ply-yacc-interpreter:fig:Pure.g@@
 @@figure:ply-yacc-interpreter:fig:sum.sl@@
 The example computes $\sum_{i=1}^{n^2} i$ and prints the result.
-Its syntax tree uses \texttt{Block}, \texttt{Assign}, \texttt{If} and \texttt{While} cases; there is no nested tuple whose first string must be interpreted as an instruction name.
+The grammar \texttt{sl.lark} determines the abstract syntax trees; the directive \texttt{\%ignore: "(", ")", "\{", "\}", ";"} removes the punctuation from the heads of all trees.
+@@snippet:interpreter-grammar@@
+The interpreter converts these trees into \texttt{Block}, \texttt{Assign}, \texttt{If} and \texttt{While} cases, so there is no nested tuple whose first string must be interpreted as an instruction name during evaluation.
 @@snippet:interpreter-types@@
-@@snippet:interpreter-parser@@
+@@snippet:interpreter-build@@
 
 Evaluation receives a map of typed values and an explicit I/O record.
 Integer literals, input, addition, subtraction and multiplication retain arbitrary-precision integers.
@@ -58,14 +55,14 @@ A block folds over its statements; a loop recursively threads its current map th
 This makes the loop invariant visible in both the type and the control flow.
 @@snippet:interpreter-execute@@
 @@figure:ply-yacc-interpreter:fig:factorial.sl@@
-\href{../../Chapter-07/03-Interpreter.ipynb}{\nolinkurl{Chapter-07/03-Interpreter.ipynb}} contains the scanner/parser construction and the simple sum program.
+\href{../../Chapter-07/03-Interpreter.ipynb}{\nolinkurl{Chapter-07/03-Interpreter.ipynb}} contains the parser construction and the simple sum program.
 The factorial source example requires the extended language with function definitions.
-The corresponding \href{../../Chapter-07/Interpreter-Frame.ipynb}{\nolinkurl{Chapter-07/Interpreter-Frame.ipynb}} adds function frames and return behavior through explicit types.
+The corresponding \href{../../Chapter-07/Interpreter-Frame.ipynb}{\nolinkurl{Chapter-07/Interpreter-Frame.ipynb}} adds function frames and return behavior through explicit types; its grammar \texttt{sl-solution.lark} extends \texttt{sl-frame.lark}.
 
 \section{Check your understanding}
 \begin{enumerate}
-\item Explain the roles of scanner, generated parser, syntax tree and evaluator.
-\item Why does a typed semantic action reject a malformed AST before the notebook executes it?
+\item Explain how the string literals of an alternative determine the abstract syntax tree.
+\item Why does the conversion into a typed AST need a final case for unexpected trees, while the evaluator of the typed AST does not?
 \item Extend the simple interpreter with a comparison or a statement and update every affected match.
 \item Explain which effects require I/O and which transformations can operate solely on syntax trees.
 \end{enumerate}

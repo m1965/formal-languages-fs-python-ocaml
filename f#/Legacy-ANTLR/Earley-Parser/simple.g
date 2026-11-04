@@ -1,8 +1,8 @@
-expr: expr '+' product;
-expr: product;
+expr: expr "+" product
+    | product
 
-product: product '*' factor;
-product: factor;
+product: product "*" factor
+       | factor
 
-factor: '(' expr ')';
-factor: NUMBER;
+factor: "(" expr ")"
+      | NUMBER

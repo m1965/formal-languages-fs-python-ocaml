@@ -1,6 +1,6 @@
 # Integer C compiler in F#
 
-Build `IntegerC/IntegerC.fsproj`, then execute `Compiler.ipynb` with the F# .NET Interactive kernel. The project generates its scanner and parser from `Lexer.fsl` and `Parser.fsy` using FsLexYacc 11.3.0. The notebook retains the lecture sequence and implements all AST traversals and Jasmin code generation in visible F# cells. The typed AST, generated grammar and source files can be inspected beside the notebook.
+Execute `Compiler.ipynb` with the F# .NET Interactive kernel. The F# port of Larkita generates the scanner and the parser from the grammar files in `Grammar`: the files of the Python course plus `statement-fsharp.lark` and `expr-fsharp.lark`, which add the extensions below. The notebook retains the lecture sequence and implements all AST traversals and Jasmin code generation in visible F# cells. The typed AST, generated grammar and source files can be inspected beside the notebook.
 
 All six original C examples are included. The original Python grammar omitted the two `for` exercise forms and ternary conditionals; the F# grammar completes those extensions. `for` loops desugar to existing assignments and `while` nodes. The parser builds without unresolved conflicts, keeps arithmetic precedence explicit, and attaches `else` to the nearest unmatched `if`.
 

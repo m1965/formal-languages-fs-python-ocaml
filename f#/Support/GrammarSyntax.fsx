@@ -46,19 +46,19 @@ module Parse =
 
     let private symbol (item: Larkita.Ast) =
         match item with
-        | LarkitaBase.Tok ("VARIABLE", name) -> Nonterminal name
-        | LarkitaBase.Tok ("TOKEN", name) -> Terminal name
-        | LarkitaBase.Tok ("LITERAL", text) -> Terminal(text.Substring(1, text.Length - 2))   // strip the double quotes
+        | LarkitaAst.Tok ("VARIABLE", name) -> Nonterminal name
+        | LarkitaAst.Tok ("TOKEN", name) -> Terminal name
+        | LarkitaAst.Tok ("LITERAL", text) -> Terminal(text.Substring(1, text.Length - 2))   // strip the double quotes
         | t -> failwithf "Unexpected item %s" (Larkita.toString t)
 
     /// ('grammar', ('rule', ('RULE_NAME', v), ('body', item, ...), ...), ...) -> the list of rules
     let private rules (ast: Larkita.Ast) =
         match ast with
-        | LarkitaBase.Node (_, rules) ->
+        | LarkitaAst.Node (_, rules) ->
             rules |> List.collect (function
-                | LarkitaBase.Node (_, LarkitaBase.Tok (_, head) :: bodies) ->
+                | LarkitaAst.Node (_, LarkitaAst.Tok (_, head) :: bodies) ->
                     bodies |> List.map (function
-                        | LarkitaBase.Node (_, items) -> { Head = head; Body = List.map symbol items }
+                        | LarkitaAst.Node (_, items) -> { Head = head; Body = List.map symbol items }
                         | t -> failwithf "Unexpected body %s" (Larkita.toString t))
                 | t -> failwithf "Unexpected rule %s" (Larkita.toString t))
         | t -> failwithf "Unexpected grammar %s" (Larkita.toString t)

@@ -8,7 +8,7 @@ Run F# setup from the repository root to build the FsLexYacc projects and export
 dotnet fsi --exec FSharp/ANTLR/Calculator.fsx
 ```
 
-The adapter reuses `Chapter-07/LanguageSyntax` for parsing and the visible `Interpreter-Frame.ipynb` evaluator through its generated `InterpreterFrame.fsx`. It restricts the broader shared AST to the lecture calculator's statements and expressions, converts integer-looking literals to real values as the original `FLOAT` token did, and collects bare-expression values for printing. No second grammar or arithmetic evaluator is introduced.
+The adapter reuses the Larkita grammar `Chapter-07/sl-solution.lark` (through `InterpreterFrame.Parse`) for parsing and the visible `Interpreter-Frame.ipynb` evaluator through its generated `InterpreterFrame.fsx`. It restricts the broader shared AST to the lecture calculator's statements and expressions, converts integer-looking literals to real values as the original `FLOAT` token did, and collects bare-expression values for printing. No second grammar or arithmetic evaluator is introduced.
 
 The original worked program is:
 

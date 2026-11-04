@@ -289,7 +289,7 @@ def build(output: Path, fsharp_roots: list[Path]) -> dict:
                                     'We now derive the intended precedence-based action selection mathematically. The implementation note below explains the generator-specific non-associativity difference.')
             theory = theory.replace('First, \\simtextsc{Ply} assigns', 'First, a precedence declaration assigns')
             theory = theory.replace('Therefore, \\simtextsc{Ply} will resolve this\n            shift-reduce conflict by putting an error entry into the action table.',
-                                    'The intended non-associative language therefore requires an error entry. FsYacc 11.3.0 does not implement this case by its declaration alone; the factored grammar below enforces it structurally.')
+                                    'The intended non-associative language therefore requires an error entry. Larkita has no precedence declarations; the factored grammar below enforces it structurally.')
             theory = theory.replace('and \\simtextsc{Ply} prints a warning message', 'and the generator reports a warning')
             text += theory + fragment('lalr-implementation')
             # Keep formal lookahead transformations and state-merger discussion; discard old reports.
