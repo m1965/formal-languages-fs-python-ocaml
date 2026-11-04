@@ -7,20 +7,31 @@
 Der größte Teil von Stroetmanns Skript, die Kapitel~6 bis~11, ist der Syntaxanalyse kontextfreier Sprachen gewidmet~\cite{stroetmann2026formal}.
 Das Skript verbindet dabei zwei Zugänge: Die Studierenden benutzen einen Parsergenerator als Werkzeug, um einen Taschenrechner, ein Programm zur symbolischen Differentiation, einen Interpreter und schließlich den Integer-C-Compiler zu bauen, und sie implementieren die zugrunde liegenden Parsing-Verfahren selbst~\cite{earley1970efficient,knuth1965translation}.
 
+Als Parsergenerator verwendet der Kurs inzwischen \emph{Larkita}, eine von Stroetmann entwickelte, schlanke Fassung der Bibliothek Lark.
 Die Notizbücher der Vorlesung bilden beide Zugänge ab:
 \begin{enumerate}
-  \item \textbf{Industrielle Werkzeugketten:} Wie binden sich etablierte Parsergeneratoren---Lark in Python, \texttt{ocamllex} und Menhir in OCaml sowie \texttt{FsLex} und \texttt{FsYacc} in F\#---in interaktive Notizbücher ein, wie erzeugen sie Tabellenstrukturen, wie sichern sie semantische Aktionen typstatisch ab und wie unterstützen sie bei Grammatikkonflikten?
+  \item \textbf{Generierte Parser:} Wie binden sich Larkita in Python und seine Portierungen nach OCaml und F\# in interaktive Notizbücher ein, wie entsteht aus einer Grammatik ohne semantische Aktionen ein abstrakter Syntaxbaum, wie wird dieser in den drei Typsystemen dargestellt, und wie unterstützen die Werkzeuge bei Grammatikkonflikten?
   \item \textbf{Didaktische Eigenimplementierungen:} Wie werden Parsing-Verfahren von Grund auf im Quelltext realisiert: vom rekursiven Abstieg über den Earley-Algorithmus für beliebige kontextfreie Grammatiken bis zur Erzeugung von SLR- und kanonischen LR-Tabellen für eine Grammatik der Sprache C?
 \end{enumerate}
 
 In diesem Kapitel vergleichen wir beide Ebenen über alle drei Sprachwelten hinweg.
+Frühere Fassungen der Notizbücher verwendeten Lark in Python, \texttt{ocamllex} und Menhir in OCaml sowie \texttt{FsLex} und \texttt{FsYacc} in F\#; diese Werkzeuge dienen im Folgenden als Vergleichsmaßstab.
 
 % ------------------------------------------------------------------------------
-\section{Architekturparadigmen: Dynamische Interpretation versus AOT-Kompilierung}
-\label{sec:toolchain_architectures}
+\section{Larkita: Grammatiken ohne semantische Aktionen}
+\label{sec:larkita}
 % ------------------------------------------------------------------------------
 
-Die drei Programmiersprachen verkörpern drei grundlegend verschiedene Philosophieansätze für die Einbettung von Lexern und Parsern in interaktive Workflows (\Cref{tab:toolchain_architectures} und \Cref{fig:toolchain_pipelines}).
+Larkita unterscheidet sich in drei Punkten von Lark: Es erzeugt stets einen \emph{kanonischen LR(1)-Parser} (auf Wunsch mit einer sicheren Verschmelzung von Zuständen mit gleichem Kern), der Parser liefert den abstrakten Syntaxbaum als \emph{verschachteltes Tupel}, und jede Erzeugung schreibt eine \emph{Ausgabedatei} mit allen LR(1)-Zuständen samt Vorausschaumengen.
+Eine Grammatik enthält Token und Regeln, aber keine semantischen Aktionen; die Form des Syntaxbaums folgt aus der Grammatik selbst:
+Die Zeichenkettenliterale einer Alternative bilden den \emph{Kopf} des Tupels, alle anderen Symbole seine \emph{Kinder}.
+So liefert \texttt{expr "+" product} das Tupel \texttt{('+', ast(expr), ast(product))}, die Zuweisung \texttt{IDENTIFIER ":=" expr ";"} das Tupel \texttt{((':=', ';'), ('IDENTIFIER', x), ast(expr))} und ein benanntes Token das Paar \texttt{('NUMBER', '42')}.
+Eine Alternative aus genau einem Symbol reicht dessen Baum durch, \texttt{\%ignore "(", ")"} entfernt Literale aus dem Kopf, und ein Alias \texttt{-> name} ersetzt ihn.
+
+Für die OCaml- und die F\#-Fassung des Kurses wurde Larkita vollständig portiert (\texttt{ocaml/lib/larkita*.ml}, \texttt{f\#/Support/Larkita}).
+Beide Portierungen lesen dieselben \texttt{.lark}-Dateien wie die Python-Notizbücher, berechnen denselben kanonischen LR(1)-Automaten und schreiben eine bis aufs Byte identische Ausgabedatei.
+Die Terminale werden mit PCRE2 (OCaml) bzw.\ mit \texttt{System.Text.RegularExpressions} (F\#) erkannt, deren Syntax für reguläre Ausdrücke der von Python weitgehend entspricht.
+Ein Differenztest zeichnet das Verhalten der Python-Bibliothek auf (ihre Einheitstests, die Beispiele des Larkita-Tutorials und alle Kursnotizbücher) und spielt jeden Aufruf mit den Portierungen nach: Ausgabedateien, Syntaxbäume, Token und Fehlermeldungen stimmen für alle 282 Grammatiken überein.
 
 \begin{table}[htbp]
   \centering
@@ -29,21 +40,21 @@ Die drei Programmiersprachen verkörpern drei grundlegend verschiedene Philosoph
   \label{tab:toolchain_architectures}
   \begin{tabularx}{\textwidth}{lXXX}
     \toprule
-    \textbf{Dimension} & \textbf{Python (Lark)} & \textbf{OCaml (ocamllex + Menhir)} & \textbf{F\# (FsLexYacc)} \\
+    \textbf{Dimension} & \textbf{Python (Larkita)} & \textbf{OCaml (Larkita-Portierung)} & \textbf{F\# (Larkita-Portierung)} \\
     \midrule
-    \textbf{Architekturtyp} & Dynamischer Interpreter und Generator & Hybrider Subprozess mit Vorabkompilierung & Vollständige AOT-Kompilierung via MSBuild \\
+    \textbf{Architekturtyp} & Bibliothek, Generierung zur Laufzeit & Bibliothek im Toplevel, Generierung zur Laufzeit & Skriptbibliothek in F\# Interactive, Generierung zur Laufzeit \\
     \addlinespace[3pt]
-    \textbf{Spezifikation} & EBNF-Zeichenkette direkt in der Zelle & Spezifikationsstrings für Lexer und Parser & Eigene Quelldateien im Projektordner \\
+    \textbf{Spezifikation} & \texttt{.lark}-Datei (EBNF) ohne semantische Aktionen & dieselbe \texttt{.lark}-Datei & dieselbe \texttt{.lark}-Datei \\
     \addlinespace[3pt]
-    \textbf{Genutzte Verfahren} & LALR(1) (15 Aufrufe), Earley (2 Aufrufe) & LALR(1), kanonisches LR(1) (\texttt{--canonical}), GLR (\texttt{--GLR}) & LALR(1) \\
+    \textbf{Verfahren} & Kanonisches LR(1), optional sichere Zustandsverschmelzung & identisch & identisch \\
     \addlinespace[3pt]
-    \textbf{Kompilationsziel} & Reine Python-Objekte im Arbeitsspeicher & Standalone-Module, kompiliert zu Bytecode & Typisierter F\#-Quelltext, kompiliert zu DLL \\
+    \textbf{Lexer} & Python \texttt{re}, kontextabhängig & PCRE2, kontextabhängig & .NET \texttt{Regex}, kontextabhängig \\
     \addlinespace[3pt]
-    \textbf{Semantische Typen} & Dynamische Python-Tupel ohne Typcheck & Vollständig statisch typisierte Varianten & Statisch typisierte nominale Unions \\
+    \textbf{Syntaxbaum} & Verschachtelte Tupel ohne Typprüfung & Summentyp \texttt{ast}, Umwandlung in getypte ADTs & Union \texttt{Ast}, Umwandlung in getypte ADTs \\
     \addlinespace[3pt]
-    \textbf{Konfliktdiagnose} & Schiebe-Reduziere still zugunsten von Schieben, Meldungen nur über \texttt{lark.logger}; \texttt{GrammarError} mit \texttt{strict=True} & Ableitungsbeispiele und Automaten (\texttt{--explain}, \texttt{--dump}) & Textuelle Protokolldatei der Zustände (\texttt{.fsyacc.output}) \\
+    \textbf{Konfliktdiagnose} & Ausgabedatei \texttt{.out}; \texttt{ConflictWarning}, \texttt{GrammarError} & identische Ausgabedatei; Warnung bzw.\ \texttt{Conflict\_warning}, \texttt{Grammar\_error} & identische Ausgabedatei; Warnung bzw.\ \texttt{ConflictWarning}, \texttt{GrammarError} \\
     \addlinespace[3pt]
-    \textbf{Interaktivität} & Sofortige Zellauswertung ohne Hilfstools & Transparente Steuerung via Hilfsmodul & Entkoppelte CLI-Kompilierung vorab \\
+    \textbf{Interaktivität} & Sofortige Zellauswertung & Sofortige Zellauswertung & Sofortige Zellauswertung \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -59,82 +70,90 @@ Die drei Programmiersprachen verkörpern drei grundlegend verschiedene Philosoph
     arrow/.style={-{Stealth[scale=0.9]}, draw=black!70, thick}
   ]
     % Python pipeline
-    \node[pybox] (p1) {\textbf{Python-Zelle}\\Grammatikstring (EBNF)};
-    \node[pybox, right=of p1] (p2) {\textbf{Lark-Engine}\\LALR/Earley-Tabelle\\im Arbeitsspeicher};
-    \node[pybox, right=of p2] (p3) {\textbf{Parse-Baum}\\Generische \texttt{Tree}-Knoten\\Ungetypte Tupel};
-    \draw[arrow] (p1) -- node[above, font=\tiny] {\texttt{Lark(...)}} (p2);
-    \draw[arrow] (p2) -- node[above, font=\tiny] {\texttt{parse()}} (p3);
+    \node[pybox] (p1) {\textbf{Grammatikdatei}\\\texttt{calc.lark} (EBNF)};
+    \node[pybox, right=of p1] (p2) {\textbf{Larkita}\\kanonische LR(1)-Tabelle\\und \texttt{calc.out}};
+    \node[pybox, right=of p2] (p3) {\textbf{Syntaxbaum}\\verschachtelte Tupel\\ohne Typprüfung};
+    \draw[arrow] (p1) -- node[above, font=\tiny] {\texttt{Larkita.open}} (p2);
+    \draw[arrow] (p2) -- node[above, font=\tiny] {\texttt{parse}} (p3);
 
     % OCaml pipeline
-    \node[ocbox, below=1.2cm of p1] (o1) {\textbf{OCaml-Zelle}\\Spezifikationsstrings};
-    \node[ocbox, right=of o1] (o2) {\textbf{Subprozess}\\Aufruf: \texttt{ocamllex} +\\\texttt{menhir --lalr}};
-    \node[ocbox, right=of o2] (o3) {\textbf{Toplevel-Lader}\\\texttt{Toploop.mod\_use\_input}\\Statischer Baum};
-    \draw[arrow] (o1) -- node[above, font=\tiny] {Generierung} (o2);
-    \draw[arrow] (o2) -- node[above, font=\tiny] {Kompilierung} (o3);
+    \node[ocbox, below=1.2cm of p1] (o1) {\textbf{Grammatikdatei}\\dieselbe \texttt{calc.lark}};
+    \node[ocbox, right=of o1] (o2) {\textbf{Larkita-Portierung}\\reines OCaml, PCRE2\\identische \texttt{calc.out}};
+    \node[ocbox, right=of o2] (o3) {\textbf{Syntaxbaum}\\Summentyp \texttt{ast}\\$\to$ getypte ADT};
+    \draw[arrow] (o1) -- node[above, font=\tiny] {\texttt{Larkita.open\_}} (o2);
+    \draw[arrow] (o2) -- node[above, font=\tiny] {\texttt{Larkita.parse}} (o3);
 
     % F# pipeline
-    \node[fsbox, below=1.2cm of o1] (f1) {\textbf{Projektquellen}\\\texttt{.fsl}- und \texttt{.fsy}-Dateien\\im Dateisystem};
-    \node[fsbox, right=of f1] (f2) {\textbf{MSBuild-Build}\\\texttt{FsLexYacc}-Tasks\\erzeugt Quellcode};
-    \node[fsbox, right=of f2] (f3) {\textbf{Notebook-Zelle}\\\texttt{\#r "CalculatorSyntax.dll"}\\Native JIT-Ausführung};
-    \draw[arrow] (f1) -- node[above, font=\tiny] {\texttt{dotnet build}} (f2);
-    \draw[arrow] (f2) -- node[above, font=\tiny] {CoreCLR} (f3);
+    \node[fsbox, below=1.2cm of o1] (f1) {\textbf{Grammatikdatei}\\dieselbe \texttt{calc.lark}};
+    \node[fsbox, right=of f1] (f2) {\textbf{Larkita-Portierung}\\F\#, .NET \texttt{Regex}\\identische \texttt{calc.out}};
+    \node[fsbox, right=of f2] (f3) {\textbf{Syntaxbaum}\\Union \texttt{Ast}\\$\to$ getypte ADT};
+    \draw[arrow] (f1) -- node[above, font=\tiny] {\texttt{Larkita.Open}} (f2);
+    \draw[arrow] (f2) -- node[above, font=\tiny] {\texttt{parse}} (f3);
   \end{tikzpicture}
-  \caption{Vergleich der Parser-Erzeugungspipelines in Python, OCaml und F\#.}
+  \caption{Erzeugung und Anwendung der Parser in Python, OCaml und F\#: alle drei Fassungen lesen dieselbe Grammatikdatei.}
   \label{fig:toolchain_pipelines}
 \end{figure}
 
-In Python dominiert maximale Flexibilität.
-Die Grammatik wird als EBNF-Zeichenkette direkt in eine Notizbuch-Zelle geschrieben und von der Bibliothek Lark zur Laufzeit analysiert; Lark wird in 13 Python-Notizbüchern verwendet, PLY nur in einem.
-Es existieren keine externen Übersetzungsschritte, und Änderungen an der Grammatik werden sofort beim nächsten Zellendurchlauf wirksam.
-Der Preis dafür ist jedoch das Fehlen statischer Typprüfungen für semantische Aktionen: Entstehen bei der Reduktion fehlerhafte Werte, wird dieser Defekt erst spät bei der semantischen Weiterverarbeitung bemerkt.
-
-In OCaml wird ein hybrider Weg gewählt: Grammatik und Lexer werden ebenfalls im Notizbuch definiert, jedoch über ein spezielles Steuerskript (\texttt{parser\_generator.ml}) an die externen Werkzeuge \texttt{ocamllex} und \texttt{Menhir} übergeben.
-Diese Werkzeuge erzeugen vollwertigen OCaml-Quelltext, der anschließend in Bytecode übersetzt und dynamisch in die Toplevel-Laufzeitumgebung geladen wird.
-Dadurch vereint OCaml die Schnelligkeit interaktiver Anpassungen mit der unerbittlichen statischen Typprüfung semantischer Aktionen.
-
-In F\# ist die Werkzeugkette am stärksten an industrielle Software-Engineering-Standards angelehnt.
-Die Lexer- und Parser-Spezifikationen liegen als eigenständige Dateien im Projektverzeichnis und werden während des normalen Build-Vorgangs über MSBuild durch FsLex und FsYacc in stark typisierten F\#-Quelltext übersetzt.
-Die erzeugte Klassenbibliothek wird als DLL im Notizbuch referenziert.
-Dieser Ansatz gewährleistet maximale Robustheit und Geschwindigkeit, erschwert jedoch das spontane Experimentieren mit neuen Grammatikregeln im interaktiven Unterricht.
+Mit Larkita verschwinden die architektonischen Unterschiede, die die früheren Werkzeugketten prägten (\Cref{tab:toolchain_architectures} und \Cref{fig:toolchain_pipelines}).
+Lark erzeugte den Parser zur Laufzeit in der Notizbuch-Zelle; OCaml schrieb getrennte Spezifikationen für \texttt{ocamllex} und Menhir in Dateien, rief beide Werkzeuge als Subprozesse auf und lud die erzeugten Module in den Toplevel; in F\# lagen die \texttt{.fsl}- und \texttt{.fsy}-Dateien in eigenen Projekten, die vor dem Start des Notizbuchs mit MSBuild übersetzt werden mussten.
+Nun wird der Parser in allen drei Sprachen in derselben Zelle und aus derselben Grammatikdatei erzeugt, und eine Änderung an der Grammatik wird beim nächsten Zellendurchlauf wirksam.
+Die semantischen Aktionen, die in Menhir und FsYacc den Parse-Baum bzw.\ den getypten Syntaxbaum aufbauten, entfallen ebenso wie die Token-Deklarationen; die Lexer- und Parser-Spezifikationen der Notizbücher schrumpfen auf die Grammatik des Skripts.
 
 % ------------------------------------------------------------------------------
-\section{Konfliktdiagnose und LALR-Zustandsverschmelzung}
+\section{Darstellung der abstrakten Syntaxbäume}
+\label{sec:ast_representation}
+% ------------------------------------------------------------------------------
+
+Die verschachtelten Tupel von Larkita sind \emph{heterogen}: Ihr Kopf ist eine Zeichenkette oder ein Tupel von Zeichenketten, ihre Kinder sind Tupel, Token-Paare oder einzelne Literale, und ihre Länge hängt von der Alternative ab.
+Python verarbeitet sie direkt mit strukturellem Mustervergleich, etwa \texttt{case ((':=', ';'), ('IDENTIFIER', v), e)}.
+OCaml und F\# kennen keine Tupel variabler Länge; beide Portierungen stellen die Bäume deshalb durch einen Summentyp dar:
+\lstinputlisting[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{lib/larkita\_base.ml} (Auszug)}]{listings/04-larkita_ast-ocaml.ml}
+Das Muster der Zuweisung lautet dann \texttt{Node ([":="; ";"], [Tok ("IDENTIFIER", v); e])}; ein Drucker zeigt die Werte in der Python-Notation an, sodass die Ausgaben der Notizbücher übereinstimmen.
+Diese Darstellung ist ebenso ungetypt wie die Python-Tupel: Der Typ \texttt{ast} schränkt die Form eines Baums nicht ein, und eine Auswertungsfunktion braucht wie in Python einen letzten Fall für unbekannte Strukturen.
+Die Taschenrechner und Interpreter der OCaml-Fassung folgen dennoch direkt den Python-Notizbüchern.
+\Cref{lst:calculator_eval} zeigt die Auswertung des Taschenrechners aus \texttt{Chapter-07/01-Calculator.ipynb} in allen drei Sprachen; die Muster entsprechen einander Fall für Fall.
+
+\begin{figure}[htbp]
+  \centering
+\lstinputlisting[style=notebook,language=Python,title={\textbf{Python} -- \texttt{Chapter-07/01-Calculator.ipynb}}]{listings/04-calculator_eval-python.py}
+\lstinputlisting[style=notebook,language=Caml,title={\textbf{OCaml} -- \texttt{Chapter-07/01-Calculator.ipynb}}]{listings/04-calculator_eval-ocaml.ml}
+\lstinputlisting[style=notebook,language=FSharp,title={\textbf{F\#} -- \texttt{Chapter-07/01-Calculator.ipynb}}]{listings/04-calculator_eval-fsharp.fs}
+  \caption{Auswertung der von Larkita gelieferten Syntaxbäume im Taschenrechner.}
+  \label{lst:calculator_eval}
+\end{figure}
+
+Wo sich die statische Typprüfung lohnt -- beim Differenzierer, bei den Interpretern der F\#-Fassung und bei den Compilern --, wird der Baum einmal in getypte algebraische Datentypen umgewandelt; diese Umwandlung ersetzt die semantischen Aktionen der früheren Werkzeugketten, und danach prüft der Compiler die Vollständigkeit jedes Mustervergleichs.
+
+% ------------------------------------------------------------------------------
+\section{Konfliktdiagnose und Zustandsverschmelzung}
 \label{sec:conflict_diagnostics}
 % ------------------------------------------------------------------------------
 
-Stroetmanns Skript widmet den Schiebe-Reduziere- und Reduziere-Reduziere-Konflikten große Teile von Kapitel~10 und~11~\cite{stroetmann2026formal}; die Notizbücher im Verzeichnis \texttt{Chapter-11} führen die Beispiele vor.
-Die drei Fassungen zeigen dabei sehr unterschiedliche Diagnosen.
+Stroetmanns Skript widmet den Schiebe-Reduziere- und Reduziere-Reduziere-Konflikten große Teile von Kapitel~10 und~11~\cite{stroetmann2026formal}; die Notizbücher im Verzeichnis \texttt{Chapter-11} (in F\# \texttt{Chapter-10}) führen die Beispiele vor.
+Da alle drei Fassungen denselben Generator verwenden, ist auch die Diagnose dieselbe.
+Larkita löst jeden Schiebe-Reduziere-Konflikt zugunsten des Schiebens auf und meldet ihn mit einer Warnung; ein Reduziere-Reduziere-Konflikt, den keine Regelpriorität auflöst, ist ein Fehler.
+Die Ausgabedatei listet die Regeln mit dem jeweils erzeugten Syntaxbaum, alle Konflikte samt der verworfenen Alternativen und alle Zustände mit ihren markierten Regeln und Vorausschaumengen.
+Python macht die Warnung mit \texttt{warnings.simplefilter('error', ConflictWarning)} zu einer Ausnahme; die Portierungen bieten dafür die Funktion \texttt{with\_conflict\_warnings} bzw.\ \texttt{withConflictWarnings}.
 
-\paragraph{Python mit Lark.}
-Das Python-Notizbuch \texttt{01-Conflicts.ipynb} beschreibt Lark als \glqq quite tight-lipped\grqq: Ein LALR-Parser für eine mehrdeutige Grammatik wird gebaut, und jeder Schiebe-Reduziere-Konflikt wird stillschweigend zugunsten des Schiebens aufgelöst.
-Die Meldungen landen im Logger \texttt{lark.logger}, dessen Level beim Import auf \texttt{CRITICAL} steht; das Notizbuch senkt es deshalb ab, um sie sichtbar zu machen.
-Erst mit \texttt{strict=True} löst der erste Konflikt einen \texttt{GrammarError} aus.
-
-\paragraph{OCaml mit Menhir.}
-Menhir gibt Konflikte als Warnungen aus und schreibt mit der Option \texttt{--explain} eine Erklärung jedes Konflikts in eine eigene Datei; die Option \texttt{--strict} macht die Warnungen zu Fehlern.
-Das Hilfsmodul \texttt{parser\_generator.ml} ruft Menhir dafür stets mit \texttt{--dump --dump-resolved --explain} auf und legt die Zustände vor und nach der Konfliktauflösung in eigenen Dateien ab.
-
-\paragraph{F\# mit FsLexYacc.}
-FsYacc schreibt die Zustände mit ihren markierten Regeln und Übergängen in eine Textdatei (\texttt{.fsyacc.output}), die das Notizbuch ausgibt.
+Die früheren Werkzeuge unterschieden sich hier deutlich:
+Lark löste die Konflikte seines LALR-Parsers stillschweigend auf und meldete sie nur über den Logger \texttt{lark.logger}; Menhir erklärte jeden Konflikt mit \texttt{--explain} anhand von Ableitungsbeispielen und zeigte in seinen Automaten nur die Kernelemente; FsYacc schrieb die Zustände in eine Protokolldatei.
+Die Nummern der Zustände waren deshalb zwischen den Sprachen nicht vergleichbar; mit Larkita stimmen sie überein.
 
 \paragraph{Der mysteriöse Reduziere-Reduziere-Konflikt.}
-Ein didaktisch besonders interessantes Beispiel aus Stroetmanns Skript (Abschnitt~11.3.2, Python-Notizbuch \texttt{Chapter-11/05-Mysterious-Conflicts.ipynb}) ist der sogenannte mysteriöse Reduziere-Reduziere-Konflikt.
+Ein didaktisch besonders interessantes Beispiel aus Stroetmanns Skript (Abschnitt~11.3.2, Notizbuch \texttt{05-Mysterious-Conflicts.ipynb}) ist der sogenannte mysteriöse Reduziere-Reduziere-Konflikt.
 Die Grammatik ist eine LR(1)-Grammatik: In den beiden LR(1)-Zuständen $\{a \to X\bullet : \texttt{'y'},\ b \to X\bullet : \texttt{'z'}\}$ und $\{b \to X\bullet : \texttt{'y'},\ a \to X\bullet : \texttt{'z'}\}$ sind die Vorausschaumengen disjunkt.
 Beide Zustände haben jedoch denselben Kern und werden bei der Konstruktion der LALR-Tabelle verschmolzen; im verschmolzenen Zustand kann der Parser bei \texttt{'y'} und \texttt{'z'} nicht mehr zwischen den beiden Reduktionen entscheiden.
 Wie das Skript betont, lässt sich ein solcher Konflikt nicht durch Umschreiben der Grammatik beheben, weil der Fehler nicht in der Grammatik, sondern in der Verschmelzung der Zustände liegt.
 
-Die vier Werkzeuge gehen damit verschieden um:
-\begin{itemize}
-  \item \textbf{Larkita (Skript):} Larkita berechnet kanonische LR(1)-Parser und verschmilzt Zustände nur auf Wunsch und nur dann, wenn es gefahrlos möglich ist; der Konflikt tritt deshalb gar nicht auf.
-  \item \textbf{Lark (Python-Notizbuch):} Der LALR-Parser bricht mit einem \texttt{GrammarError} ab; als Ausweg verwendet das Notizbuch den Earley-Parser von Lark, der ohne Parse-Tabelle auskommt.
-  \item \textbf{Menhir (OCaml-Notizbuch):} Mit \texttt{--lalr --strict} wird die Grammatik abgelehnt und der Konflikt erklärt; mit \texttt{--canonical} baut Menhir den kanonischen LR(1)-Parser, und mit \texttt{--GLR} einen GLR-Parser als Gegenstück zum Earley-Parser.
-  \item \textbf{FsYacc (F\#-Notizbuch \texttt{Chapter-10/Mysterious-Conflicts.ipynb}):} FsYacc meldet zwei Reduziere-Reduziere-Konflikte, baut den Parser aber trotzdem; das Notizbuch zeigt, dass er danach \texttt{vxy} und \texttt{wxz} akzeptiert, \texttt{vxz} und \texttt{wxy} aber verliert.
-\end{itemize}
+Larkita berechnet den kanonischen LR(1)-Automaten; der Konflikt tritt deshalb in keiner der drei Fassungen auf.
+Mit \texttt{merge\_states=True} (\texttt{\textasciitilde merge\_states:true}, \texttt{mergeStates = true}) verschmilzt Larkita Zustände mit gleichem Kern nur, wenn dadurch kein neuer Konflikt entsteht und der kontextabhängige Lexer dieselben Token liefert.
+Das neue Notizbuch \texttt{06-Merging-States.ipynb} zeigt beides: Für die geschichtete Ausdrucksgrammatik schrumpft der Automat von 36 auf 19 Zustände, während die beiden kritischen Zustände der mysteriösen Grammatik getrennt bleiben und die Ausgabedatei den Grund dafür angibt.
+Zum Vergleich: Lark brach mit einem \texttt{GrammarError} ab, Menhir lehnte die Grammatik mit \texttt{--lalr --strict} ab und baute sie mit \texttt{--canonical}, und FsYacc meldete zwei Reduziere-Reduziere-Konflikte, baute den Parser trotzdem und verlor die Eingaben \texttt{vxz} und \texttt{wxy}.
 
 \paragraph{Präzedenzen.}
-Lark unterstützt nach Aussage des Python-Notizbuchs \texttt{02-Conflicts-Resolved.ipynb} keine Präzedenzdeklarationen; Präzedenz und Assoziativität werden deshalb wie im Skript durch eine Schichtung der Grammatik mit einer Variablen je Präzedenzstufe kodiert.
-PLY, Menhir und FsYacc besitzen dagegen yacc-artige Präzedenzdeklarationen.
-Das einzige Python-Notizbuch mit PLY, der Integer-C-Compiler \texttt{Chapter-13/Compiler-For.ipynb}, nutzt sie, um unter anderem das Dangling-Else-Problem zugunsten des Schiebens aufzulösen.
+Larkita unterstützt wie Lark keine Präzedenzdeklarationen; Präzedenz und Assoziativität werden deshalb in allen drei Fassungen wie im Skript durch eine Schichtung der Grammatik mit einer Variablen je Präzedenzstufe kodiert.
+Menhir, FsYacc und PLY besitzen dagegen yacc-artige Präzedenzdeklarationen, die die früheren Fassungen der Compiler-Notizbücher nutzten.
+Das Dangling-Else-Problem des Integer-C-Compilers bleibt der einzige Konflikt der Compiler-Grammatik; Larkita löst ihn durch Schieben so auf, dass ein \texttt{else} zum innersten \texttt{if} gehört.
 
 % ------------------------------------------------------------------------------
 \section{Didaktische Eigenimplementierungen von Parsern}
@@ -162,35 +181,40 @@ Laut Skript kommt ein SLR-Parser für diese Grammatik mit 349 Zuständen aus, er
 Für die SLR-Tabelle verwendet Stroetmann deshalb eine angepasste Grammatik ohne Typumwandlungen, Sprungmarken und \texttt{if}-Anweisungen ohne \texttt{else}-Zweig.
 Das Dangling-Else-Problem behandelt das Skript anhand der Grammatik von Integer-C.
 
+
 % ------------------------------------------------------------------------------
 \section{Empirische Performanz der Parser-Werkzeuge}
 \label{sec:toolchain_empirical}
 % ------------------------------------------------------------------------------
 
-Um die Rechenleistung der drei industriellen Parser-Werkzeuge zu vergleichen, wurden mit einer Taschenrechnergrammatik aus 11 Produktionen synthetische Summenausdrücke der Form \texttt{1 + 1 + \dots} mit bis zu 10.000 Token analysiert (\Cref{tab:parser_throughput} und \Cref{fig:parser_throughput_scaling}).
-Jeder Wert ist der Mittelwert über wiederholte Durchläufe nach einem Aufwärmlauf; OCaml wurde dabei nativ kompiliert gemessen, nicht im Bytecode-Toplevel der Notizbücher.
+Um die Rechenleistung zu vergleichen, wurden mit der Taschenrechnergrammatik \texttt{calc.lark} des Kurses (11 Produktionen) synthetische Summenausdrücke der Form \texttt{1 + 1 + \dots;} mit bis zu 10.000 Token analysiert (\Cref{tab:parser_throughput} und \Cref{fig:parser_throughput_scaling}; Skript \texttt{benchmarks/larkita\_benchmarks.py}).
+Gemessen wurden die Erzeugung des kanonischen LR(1)-Parsers einschließlich Ausgabedatei und das Parsen einschließlich Lexer und Aufbau des abstrakten Syntaxbaums.
+Jeder Wert ist der Mittelwert über 20 Durchläufe nach einem Aufwärmlauf.
+Die OCaml-Portierung wurde zweimal gemessen: nativ kompiliert, vergleichbar mit der früheren Menhir-Messung, und im Bytecode-Toplevel, in dem auch die Notizbücher laufen.
+Die F\#-Portierung lief in F\# Interactive wie die F\#-Notizbücher.
+Zum Vergleich enthält die Tabelle die Messungen der früheren Werkzeugketten mit derselben Eingabe.
 
 \begin{table}[htbp]
   \centering
   \footnotesize
-  \setlength{\tabcolsep}{4pt}
-  \caption{Gemessene Durchsatzwerte und Erzeugungszeiten über verschiedene Token-Größen.
-  Die Erzeugungszeit von F\# umfasst einen vollständigen MSBuild-Lauf und ist daher nicht direkt mit den beiden anderen Werten vergleichbar.}
+  \setlength{\tabcolsep}{3pt}
+  \caption{Gemessene Durchsatzwerte (Token pro Sekunde) und Erzeugungszeiten.
+  Oben Larkita und seine Portierungen, unten die früheren Werkzeugketten als Referenz (Python 3.13, OCaml 5.4.1, .NET 9).}
   \label{tab:parser_throughput}
-  \begin{tabularx}{\textwidth}{lrrrrrr}
+  \begin{tabularx}{\textwidth}{Xrrrrrrr}
     \toprule
-    & \multicolumn{2}{c}{\textbf{Python (Lark LALR)}} & \multicolumn{2}{c}{\textbf{OCaml (Menhir nativ)}} & \multicolumn{2}{c}{\textbf{F\# (FsLexYacc RyuJIT)}} \\
-    \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
-    \textbf{Tokens} & \textbf{Zeit (ms)} & \textbf{kTok/s} & \textbf{Zeit (ms)} & \textbf{kTok/s} & \textbf{Zeit (ms)} & \textbf{kTok/s} \\
+    & \multicolumn{6}{c}{\textbf{Durchsatz in kTok/s bei \dots{} Token}} & \textbf{Erzeugung} \\
+    \cmidrule(lr){2-7}
+    \textbf{Werkzeug} & \textbf{100} & \textbf{500} & \textbf{1\,000} & \textbf{2\,500} & \textbf{5\,000} & \textbf{10\,000} & \textbf{ms} \\
     \midrule
-    100        & 0,244  & 409,5 & \textbf{0,003} & \textbf{31\,300,8} & 0,055 & 1\,815,5 \\
-    500        & 1,222  & 409,0 & \textbf{0,016} & \textbf{31\,207,6} & 0,970 & 515,6 \\
-    1\,000     & 2,574  & 388,5 & \textbf{0,033} & \textbf{30\,305,7} & 0,299 & 3\,340,9 \\
-    2\,500     & 6,507  & 384,2 & \textbf{0,091} & \textbf{27\,349,4} & 0,872 & 2\,868,3 \\
-    5\,000     & 12,612 & 396,5 & \textbf{0,149} & \textbf{33\,554,4} & 1,339 & 3\,735,4 \\
-    10\,000    & 26,457 & 378,0 & \textbf{0,364} & \textbf{27\,456,8} & 2,807 & 3\,562,2 \\
+    Larkita (Python)                  & 616,9 & 623,8 & 635,3 & 632,2 & 637,8 & 621,8 & 3,66 \\
+    Larkita-Portierung OCaml, nativ   & \textbf{1\,186,2} & \textbf{1\,217,4} & \textbf{1\,324,5} & \textbf{1\,521,7} & \textbf{1\,675,6} & \textbf{1\,674,5} & \textbf{1,45} \\
+    Larkita-Portierung OCaml, Toplevel & 529,9 & 538,6 & 543,1 & 536,4 & 521,9 & 533,1 & 3,55 \\
+    Larkita-Portierung F\#, F\# Interactive & 492,6 & 517,0 & 514,4 & 539,3 & 476,8 & 627,5 & 2,96 \\
     \midrule
-    \textbf{Erzeugung} & \multicolumn{2}{c}{3,67 ms (Lark)} & \multicolumn{2}{c}{14,63 ms (ocamllex + Menhir)} & \multicolumn{2}{c}{1\,491,81 ms (MSBuild-Lauf)} \\
+    Lark LALR (Python)                & 409,5 & 409,0 & 388,5 & 384,2 & 396,5 & 378,0 & 3,67 \\
+    ocamllex + Menhir, nativ          & 31\,300,8 & 31\,207,6 & 30\,305,7 & 27\,349,4 & 33\,554,4 & 27\,456,8 & 14,63 \\
+    FsLex + FsYacc (CoreCLR)          & 1\,815,5 & 515,6 & 3\,340,9 & 2\,868,3 & 3\,735,4 & 3\,562,2 & 1\,491,81 \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -211,61 +235,67 @@ Jeder Wert ist der Mittelwert über wiederholte Durchläufe nach einem Aufwärml
       ymin=200000, ymax=60000000,
       grid=both,
       grid style={dashed,gray!35},
-      legend style={at={(0.03,0.95)}, anchor=north west, font=\footnotesize},
+      legend style={at={(0.03,0.97)}, anchor=north west, font=\scriptsize},
       thick
     ]
       \addplot+[mark=*, color=OCamlOrange!90!black, line width=1.3pt] coordinates {
-        (100, 31300776)
-        (500, 31207619)
-        (1000, 30305665)
-        (2500, 27349400)
-        (5000, 33554432)
-        (10000, 27456821)
+        (100, 1186240) (500, 1217434) (1000, 1324503) (2500, 1521699) (5000, 1675603) (10000, 1674481)
       };
-      \addlegendentry{OCaml 5.4 (ocamllex + Menhir Nativ)}
+      \addlegendentry{OCaml 5.4 (Larkita-Portierung, nativ)}
+
+      \addplot+[mark=o, color=OCamlOrange!60, line width=1.0pt] coordinates {
+        (100, 529942) (500, 538561) (1000, 543124) (2500, 536354) (5000, 521915) (10000, 533095)
+      };
+      \addlegendentry{OCaml 5.4 (Larkita-Portierung, Toplevel)}
 
       \addplot+[mark=triangle*, color=FSharpPurple, line width=1.3pt] coordinates {
-        (100, 1815541)
-        (500, 515592)
-        (1000, 3340906)
-        (2500, 2868288)
-        (5000, 3735357)
-        (10000, 3562167)
+        (100, 492611) (500, 517010) (1000, 514377) (2500, 539328) (5000, 476799) (10000, 627530)
       };
-      \addlegendentry{F\# 9.0 (FsLex + FsYacc CoreCLR)}
+      \addlegendentry{F\# 9.0 (Larkita-Portierung, F\# Interactive)}
 
       \addplot+[mark=square*, color=PythonBlue, line width=1.3pt] coordinates {
-        (100, 409472)
-        (500, 409046)
-        (1000, 388510)
-        (2500, 384194)
-        (5000, 396454)
-        (10000, 377977)
+        (100, 616903) (500, 623830) (1000, 635324) (2500, 632207) (5000, 637820) (10000, 621798)
       };
-      \addlegendentry{Python 3.13 (Lark LALR)}
+      \addlegendentry{Python 3.13 (Larkita)}
+
+      \addplot+[mark=none, color=OCamlOrange!90!black, dashed, line width=0.9pt] coordinates {
+        (100, 31300776) (500, 31207619) (1000, 30305665) (2500, 27349400) (5000, 33554432) (10000, 27456821)
+      };
+      \addlegendentry{Referenz: ocamllex + Menhir, nativ}
+
+      \addplot+[mark=none, color=FSharpPurple, dashed, line width=0.9pt] coordinates {
+        (100, 1815541) (500, 515592) (1000, 3340906) (2500, 2868288) (5000, 3735357) (10000, 3562167)
+      };
+      \addlegendentry{Referenz: FsLex + FsYacc}
+
+      \addplot+[mark=none, color=PythonBlue, dashed, line width=0.9pt] coordinates {
+        (100, 409472) (500, 409046) (1000, 388510) (2500, 384194) (5000, 396454) (10000, 377977)
+      };
+      \addlegendentry{Referenz: Lark LALR}
     \end{axis}
   \end{tikzpicture}
-  \caption{Skalierungsverhalten des Parsing-Durchsatzes über steigende Eingabegrößen.}
+  \caption{Skalierungsverhalten des Parsing-Durchsatzes über steigende Eingabegrößen; gestrichelt die früheren Werkzeugketten.}
   \label{fig:parser_throughput_scaling}
 \end{figure}
 
-Die empirischen Resultate gliedern sich in drei eindeutige Leistungsklassen:
-Natives OCaml mit Menhir führt das Feld mit 27 bis 33 Millionen Token pro Sekunde an.
-Das Parsen von 10.000 Token dauert lediglich 0,36 Millisekunden---das ist ein 72-facher Geschwindigkeitsvorteil gegenüber Python Lark und ein knapp 8-facher Vorsprung gegenüber F\#.
-Menhir übersetzt den LR-Automaten in kompakte Tabellen bzw. direkten OCaml-Code, der mit geringem Allokationsaufwand arbeitet.
-Im Bytecode-Toplevel der Notizbücher ist mit deutlich geringeren Werten zu rechnen; diese Konfiguration wurde hier nicht gemessen.
-F\# unter .NET 9 CoreCLR erreicht ab 1.000 Token rund 2,9 bis 3,7 Millionen Token pro Sekunde und übertrifft Python damit um fast das Zehnfache.
-Bei 500 Token fällt F\# einmalig auf rund 0,5 Millionen Token pro Sekunde ab; da dieser Ausreißer nicht mit der Eingabegröße skaliert, handelt es sich wahrscheinlich um ein Messartefakt (etwa gestufte JIT-Kompilierung oder eine Speicherbereinigung während der kurzen Messung), das nicht weiter untersucht wurde.
-Python Lark erreicht durch die interpretative Bytecode-Abarbeitung und dynamische Zustandswörterbücher über alle Größen hinweg rund 380.000 bis 410.000 Token pro Sekunde.
-Für typische kurze Vorlesungsbeispiele ist dies vollkommen ausreichend, für umfangreiche Übersetzungsaufgaben jedoch ein deutlicher Engpass.
+Die Ergebnisse zeigen zweierlei.
+Erstens liegen Larkita und seine Portierungen in der Konfiguration der Notizbücher eng beieinander: Python erreicht rund 620.000 Token pro Sekunde, die OCaml-Portierung im Bytecode-Toplevel rund 530.000 und die F\#-Portierung in F\# Interactive 480.000 bis 630.000.
+Larkita ist damit etwa anderthalbmal so schnell wie Lark, dessen LALR-Parser einen generischen Parse-Baum aufbaute.
+Nativ kompiliert erreicht die OCaml-Portierung 1,2 bis 1,7 Millionen Token pro Sekunde, und sie erzeugt den Parser mit 1,45 Millisekunden am schnellsten.
+Zweitens bleibt der Abstand zu den Generatoren, die Quelltext erzeugen, beträchtlich: Menhir übersetzt den Automaten in kompakten OCaml-Code und ist nativ etwa zwanzigmal schneller als die native Larkita-Portierung, und FsYacc ist etwa sechsmal schneller als die F\#-Portierung.
+Die Portierungen wurden auf Übereinstimmung mit Python optimiert, nicht auf Geschwindigkeit; sie interpretieren die Parse-Tabelle zur Laufzeit, die OCaml-Portierung hält ihren Stapel in unveränderlichen Listen, und der Lexer wendet für jedes Token einen regulären Ausdruck an, der alle im aktuellen Zustand erlaubten Terminale als Alternativen enthält.
+Für die kurzen Beispiele der Vorlesung -- selbst die Programme des Integer-C-Compilers umfassen nur einige hundert Token -- ist dieser Abstand ohne Bedeutung, während die Erzeugung des Parsers in allen drei Sprachen in wenigen Millisekunden geschieht statt in anderthalb Sekunden MSBuild-Lauf wie bei FsYacc.
 
 % ------------------------------------------------------------------------------
 \section{Synthese: Der Zielkonflikt bei Parser-Werkzeugen}
 \label{sec:toolchain_synthesis}
 % ------------------------------------------------------------------------------
 
-Die Analyse verdeutlicht das klassische Spannungsfeld bei der Wahl von Parser-Werkzeugen in der Lehre:
-Python mit Lark bietet maximale interaktive Leichtigkeit bei vollkommenem Verzicht auf statische Typsicherheit.
-Grammatiken können in Sekunden modifiziert werden, Laufzeitfehler bei semantischen Aktionen fallen jedoch erst spät auf.
-OCaml mit Menhir bietet das theoretische Optimum: herausragende Konfliktdiagnostik, statische Typsicherheit und (nativ kompiliert) den höchsten gemessenen Durchsatz, verlangt im Notizbuch jedoch ein ausgefeiltes Zusammenspiel mit externen Compiler-Prozessen.
-F\# mit FsLexYacc erzwingt professionelle Software-Engineering-Disziplin mit voller statischer Typsicherheit und hohem JIT-Durchsatz, erschwert durch die Entkopplung in externe Projektdateien jedoch das schnelle, spielerische Ausprobieren im Seminarraum.
+Die Analyse verdeutlicht das klassische Spannungsfeld bei der Wahl von Parser-Werkzeugen in der Lehre und zeigt, wie Larkita es verschiebt.
+Mit den früheren Werkzeugketten unterschieden sich die drei Fassungen nicht nur in der Sprache, sondern auch im Werkzeug: Python mit Lark bot maximale interaktive Leichtigkeit ohne statische Typsicherheit, OCaml mit Menhir herausragende Konfliktdiagnostik, statische Typsicherheit der semantischen Aktionen und den höchsten Durchsatz um den Preis externer Compiler-Prozesse, und F\# mit FsLexYacc professionelle Software-Engineering-Disziplin, die jedoch das spielerische Ausprobieren im Seminarraum erschwerte.
+
+Mit Larkita und seinen Portierungen lesen alle drei Fassungen dieselbe Grammatik, erzeugen denselben Automaten, schreiben dieselbe Ausgabedatei und liefern dieselben Syntaxbäume und Fehlermeldungen.
+Der Vergleich der Sprachen wird dadurch schärfer: Er betrifft nicht mehr die Werkzeuge, sondern nur noch die Darstellung und Verarbeitung der Syntaxbäume.
+Python verarbeitet die heterogenen Tupel direkt; OCaml und F\# benötigen einen Summentyp, der ebenso wenig Struktur garantiert wie die Tupel, gewinnen ihre statische Sicherheit aber dort zurück, wo der Baum in getypte algebraische Datentypen umgewandelt wird.
+Diese Umwandlung ersetzt die semantischen Aktionen von Menhir und FsYacc; sie steht nun im Notizbuch, sichtbar neben dem übrigen Code.
+Den Preis zahlen die Portierungen beim Durchsatz, der für die Lehre ausreicht, aber deutlich unter dem generierter Parser liegt.

@@ -1,0 +1,135 @@
+{
+ "metadata": {
+  "date": "2026-11-04 08:45:37",
+  "token_counts": [
+   100,
+   500,
+   1000,
+   2500,
+   5000,
+   10000
+  ],
+  "repetitions": 20,
+  "grammar": "python/Chapter-07/calc.lark (11 productions)"
+ },
+ "python_larkita": {
+  "parse_throughput": {
+   "100": {
+    "mean_ms": 0.162,
+    "tokens_per_sec": 616903.1
+   },
+   "500": {
+    "mean_ms": 0.801,
+    "tokens_per_sec": 623830.3
+   },
+   "1000": {
+    "mean_ms": 1.574,
+    "tokens_per_sec": 635324.0
+   },
+   "2500": {
+    "mean_ms": 3.954,
+    "tokens_per_sec": 632207.2
+   },
+   "5000": {
+    "mean_ms": 7.839,
+    "tokens_per_sec": 637820.2
+   },
+   "10000": {
+    "mean_ms": 16.082,
+    "tokens_per_sec": 621797.7
+   }
+  },
+  "table_generation_ms": 3.66,
+  "larkita": "0.5.1",
+  "python": "3.13.11"
+ },
+ "ocaml_larkita_native": {
+  "parse_throughput": {
+   "100": {
+    "mean_ms": 0.084,
+    "tokens_per_sec": 1186239.6
+   },
+   "500": {
+    "mean_ms": 0.411,
+    "tokens_per_sec": 1217433.6
+   },
+   "1000": {
+    "mean_ms": 0.755,
+    "tokens_per_sec": 1324503.3
+   },
+   "2500": {
+    "mean_ms": 1.643,
+    "tokens_per_sec": 1521699.4
+   },
+   "5000": {
+    "mean_ms": 2.984,
+    "tokens_per_sec": 1675603.2
+   },
+   "10000": {
+    "mean_ms": 5.972,
+    "tokens_per_sec": 1674480.9
+   }
+  },
+  "table_generation_ms": 1.45,
+  "ocaml": "5.4.1"
+ },
+ "ocaml_larkita_toplevel": {
+  "parse_throughput": {
+   "100": {
+    "mean_ms": 0.189,
+    "tokens_per_sec": 529941.7
+   },
+   "500": {
+    "mean_ms": 0.928,
+    "tokens_per_sec": 538561.0
+   },
+   "1000": {
+    "mean_ms": 1.841,
+    "tokens_per_sec": 543124.0
+   },
+   "2500": {
+    "mean_ms": 4.661,
+    "tokens_per_sec": 536354.1
+   },
+   "5000": {
+    "mean_ms": 9.58,
+    "tokens_per_sec": 521915.2
+   },
+   "10000": {
+    "mean_ms": 18.758,
+    "tokens_per_sec": 533094.5
+   }
+  },
+  "table_generation_ms": 3.55
+ },
+ "fsharp_larkita": {
+  "parse_throughput": {
+   "100": {
+    "mean_ms": 0.203,
+    "tokens_per_sec": 492610.8
+   },
+   "500": {
+    "mean_ms": 0.967,
+    "tokens_per_sec": 517009.6
+   },
+   "1000": {
+    "mean_ms": 1.944,
+    "tokens_per_sec": 514376.8
+   },
+   "2500": {
+    "mean_ms": 4.635,
+    "tokens_per_sec": 539327.8
+   },
+   "5000": {
+    "mean_ms": 10.487,
+    "tokens_per_sec": 476799.0
+   },
+   "10000": {
+    "mean_ms": 15.935,
+    "tokens_per_sec": 627529.7
+   }
+  },
+  "table_generation_ms": 2.96,
+  "dotnet": "9.0.122"
+ }
+}
