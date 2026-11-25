@@ -3,7 +3,7 @@ Larkita, Karl Stroetmann's light-weight version of Lark, generates a canonical L
 This edition uses its F\# port \texttt{Support/Larkita}.
 A grammar file contains both the tokens and the rules, but no semantic actions: the abstract syntax tree follows from the grammar.
 The string literals of an alternative form the \emph{head} of the tree, while all other symbols become its children; an alternative consisting of a single symbol passes the tree of this symbol through.
-The F\# port represents these trees by the union \texttt{Ast}: \texttt{Node(head, children)}, \texttt{Tok(name, text)} and \texttt{Lit text}.
+The F\# port returns these trees as nested tuples of the type \texttt{nested}: a leaf \texttt{Leaf (Str s)} holds a string, and a node \texttt{Node [...]} holds the list of its components.
 
 \section{A symbolic calculator}
 The original calculator grammar remains the mathematical specification.
@@ -12,7 +12,7 @@ The original calculator grammar remains the mathematical specification.
 The grammar file contains the rules and imports the tokens \texttt{CNAME}, \texttt{NUMBER} and \texttt{WS} from Larkita's library.
 @@snippet:calculator-grammar@@
 
-The alternative \texttt{expr "+" product} yields \texttt{Node(["+"], [l; r])}, the assignment \texttt{IDENTIFIER ":=" expr ";"} yields \texttt{Node([":="; ";"], [Tok("IDENTIFIER", x); e])}, and \texttt{\%ignore "(", ")"} removes the parentheses from the head of a parenthesized expression.
+The alternative \texttt{expr "+" product} yields the tuple \texttt{("+", l, r)}, the assignment \texttt{IDENTIFIER ":=" expr ";"} yields \texttt{((":=", ";"), ("IDENTIFIER", x), e)}, and \texttt{\%ignore "(", ")"} removes the parentheses from the head of a parenthesized expression.
 The grammar's separate product and factor nonterminals encode arithmetic precedence structurally.
 
 The environment is an immutable map from names to values.
@@ -38,11 +38,11 @@ This source language is distinct from the F\# program that interprets it.
 The example computes $\sum_{i=1}^{n^2} i$ and prints the result.
 The grammar \texttt{sl.lark} determines the abstract syntax trees; the directive \texttt{\%ignore: "(", ")", "\{", "\}", ";"} removes the punctuation from the heads of all trees.
 @@snippet:interpreter-grammar@@
-The interpreter converts these trees into \texttt{Block}, \texttt{Assign}, \texttt{If} and \texttt{While} cases, so there is no nested tuple whose first string must be interpreted as an instruction name during evaluation.
+The interpreter matches these nested tuples directly: the first component of a tuple names the statement or the operator.
 @@snippet:interpreter-types@@
 @@snippet:interpreter-build@@
 
-Evaluation receives a map of typed values and an explicit I/O record.
+Evaluation receives a map of values and an explicit I/O record.
 Integer literals, input, addition, subtraction and multiplication retain arbitrary-precision integers.
 The simple language uses true division, which returns a floating-point value; modulo follows Python's floor-quotient rule, including negative operands.
 Mixed integer/real comparisons preserve integer precision.
@@ -62,7 +62,7 @@ The corresponding \href{../../Chapter-07/Interpreter-Frame.ipynb}{\nolinkurl{Cha
 \section{Check your understanding}
 \begin{enumerate}
 \item Explain how the string literals of an alternative determine the abstract syntax tree.
-\item Why does the conversion into a typed AST need a final case for unexpected trees, while the evaluator of the typed AST does not?
+\item Why do the functions that match nested tuples need a final case for unexpected trees?
 \item Extend the simple interpreter with a comparison or a statement and update every affected match.
 \item Explain which effects require I/O and which transformations can operate solely on syntax trees.
 \end{enumerate}

@@ -5,18 +5,22 @@
 /// contains nothing but the grammar: no semantic actions, no token declarations, and no separate
 /// scanner specification.  The abstract syntax tree follows from the grammar:
 ///
-///   expr: expr "+" product              Node (["+"], [ast(expr); ast(product)])
-///   stmnt: IDENTIFIER ":=" expr ";"     Node ([":="; ";"], [Tok ("IDENTIFIER", name); ast(expr)])
+///   expr: expr "+" product              ("+", ast(expr), ast(product))
+///   stmnt: IDENTIFIER ":=" expr ";"     ((":=", ";"), ("IDENTIFIER", name), ast(expr))
 ///   factor: "(" expr ")" %ignore "(", ")"   ast(expr)
-///   atom: NUMBER                        Tok ("NUMBER", text)
-///   program: statement*                 Node (["program"], [ast(s1); ...; ast(sn)])
+///   atom: NUMBER                        ("NUMBER", text)
+///   program: statement*                 ("program", ast(s1), ..., ast(sn))
 ///
-/// Load it with
+/// parse returns these trees as values of the type nested of ../Nested.fsx, e.g. ("+", l, r) is
+/// Node [Leaf (Str "+"); l; r].  Load it with
 ///
 ///   #load "../Support/Larkita/Larkita.fsx"
+///   open Nested
 ///   open Larkita
-///   let parser = Larkita.openFile "calc.lark"          // writes calc.out
-///   let ast = Larkita.parse parser "x := 1 + 2;"
+///   let parser = Larkita.Open "calc.lark"          // writes calc.out
+///   let ast = parse parser "x := 1 + 2;"
+/// Larkita uses the module Nested of ../Nested.fsx, which has to be loaded first, once per session:
+///   #load "../Support/Nested.fsx" "../Support/Larkita/Larkita.fsx"
 module Larkita
 
 #load "LarkitaAst.fsx" "LarkitaBase.fsx" "LarkitaRegex.fsx" "LarkitaLexer.fsx" "LarkitaLr.fsx" "LarkitaReport.fsx" "LarkitaGrammar.fsx"
@@ -52,9 +56,9 @@ type Parser =
       Conf: LarkitaLexer.LexerConf
       Run: string -> Ast
       BasicLexer: Lazy<LarkitaLexer.BasicLexer> }
-    /// A parser is shown like Python shows it: Larkita(open('calc.lark'), start='stmnt')
+    /// A parser is shown with its grammar file and its start symbol, e.g. <parser "calc.lark", start "stmnt">
     override this.ToString() =
-        sprintf "Larkita(open(%s), start=%s)" (LarkitaBase.pyRepr (defaultArg this.SourcePath "<string>")) (LarkitaBase.pyRepr this.Start)
+        sprintf "<parser %s, start %s>" (Nested.quote (defaultArg this.SourcePath "<string>")) (Nested.quote this.Start)
 
 let private makeParser (a: LarkitaLr.Analyzer) (conf: LarkitaLexer.LexerConf) (lexer: LexerKind) : string -> Ast =
     let table = LarkitaLr.parseTable a
@@ -128,14 +132,33 @@ type Larkita =
         Larkita.Create(text, ?start = start, ?lexer = lexer, ?importPaths = importPaths, sourcePath = fileName, ?outFile = outFile,
                        ?gRegexFlags = gRegexFlags, ?mergeStates = mergeStates)
 
+/// toNested t converts the internal tree t into a nested tuple:
+///   Node ([h], cs)   ->  (h, c1, ..., cn)
+///   Node (hs, cs)    ->  ((h1, ..., hk), c1, ..., cn)
+///   Tok (n, text)    ->  (n, text)
+///   Lit s            ->  s
+let rec toNested (t: Ast) : Nested.nested =
+    let str (s: string) = Nested.Leaf(Nested.Str s)
+    match t with
+    | LarkitaAst.Lit s -> str s
+    | LarkitaAst.Tok (name, text) -> Nested.Node [ str name; str text ]
+    | LarkitaAst.Node ([ h ], children) -> Nested.Node(str h :: List.map toNested children)
+    | LarkitaAst.Node (hs, children) -> Nested.Node(Nested.Node(List.map str hs) :: List.map toNested children)
+
 /// parse parser text: the abstract syntax tree of text.  Raises UnexpectedInput on a syntax error.
-let parse (p: Parser) (text: string) : Ast = p.Run text
+let parse (p: Parser) (text: string) : Nested.nested = toNested (p.Run text)
 
 /// lex parser text: the tokens of the text, produced by a basic lexer; ignored tokens are skipped
 let lex (p: Parser) (text: string) : Token list = LarkitaLexer.lexAll p.BasicLexer.Value text
 
-/// the abstract syntax tree in Python's notation, e.g. ((':=', ';'), ('IDENTIFIER', 'x'), ...)
-let toString (t: Ast) = LarkitaBase.astToString t
+/// toTestString t: the tree t with strings in single quotes, e.g. ((':=', ';'), ('IDENTIFIER', 'x'), ...),
+/// the format of the test data in ../../../ocaml/tests/larkita_expected.json
+let rec toTestString (t: Nested.nested) =
+    match t with
+    | Nested.Leaf (Nested.Str s) -> LarkitaBase.pyRepr s
+    | Nested.Leaf v -> Nested.valueToString v
+    | Nested.Node [ x ] -> "(" + toTestString x + ",)"
+    | Nested.Node xs -> "(" + String.Join(", ", List.map toTestString xs) + ")"
 
 let getContext (e: UnexpectedInputInfo) (text: string) = LarkitaBase.getContext 40 e text
 
@@ -156,44 +179,8 @@ let withConflictWarnings (mode: WarningMode) (f: unit -> 'a) : 'a =
 
 // ---------- pprint ----------
 
-type private PyObj =
-    | PStr of string
-    | PTuple of PyObj list
+/// the abstract syntax tree in tuple notation, split into several lines if it is too long
+let pformat (width: int) (t: Nested.nested) = Nested.pformat width t
 
-let rec private pyobjOfAst (t: Ast) =
-    match t with
-    | LarkitaAst.Lit s -> PStr s
-    | LarkitaAst.Tok (name, text) -> PTuple [ PStr name; PStr text ]
-    | LarkitaAst.Node (head, children) ->
-        let head = match head with [ h ] -> PStr h | hs -> PTuple(List.map PStr hs)
-        PTuple(head :: List.map pyobjOfAst children)
-
-let rec private pyobjRepr (o: PyObj) =
-    match o with
-    | PStr s -> LarkitaBase.pyRepr s
-    | PTuple [ x ] -> "(" + pyobjRepr x + ",)"
-    | PTuple xs -> "(" + String.Join(", ", List.map pyobjRepr xs) + ")"
-
-/// the abstract syntax tree formatted like Python's pprint.pformat formats the nested tuple
-let pformat (width: int) (t: Ast) =
-    let b = StringBuilder()
-    let rec format (o: PyObj) (indent: int) (allowance: int) =
-        let rep = pyobjRepr o
-        match o with
-        | PTuple items when rep.Length > width - indent - allowance ->
-            b.Append '(' |> ignore
-            let endchar = if List.length items = 1 then ",)" else ")"
-            formatItems items indent (allowance + endchar.Length)
-            b.Append endchar |> ignore
-        | _ -> b.Append rep |> ignore
-    and formatItems (items: PyObj list) (indent: int) (allowance: int) =
-        let indent = indent + 1
-        let n = List.length items
-        items |> List.iteri (fun i item ->
-            if i > 0 then b.Append(",\n").Append(String(' ', indent)) |> ignore
-            format item indent (if i = n - 1 then allowance else 1))
-    format (pyobjOfAst t) 0 0
-    b.ToString()
-
-/// prints the abstract syntax tree like Python's pprint prints the nested tuple
-let pprint (t: Ast) = printfn "%s" (pformat 80 t)
+/// prints the abstract syntax tree in tuple notation
+let pprint (t: Nested.nested) = Nested.pprint t

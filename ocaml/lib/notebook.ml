@@ -10,7 +10,7 @@
    - cat file             prints the content of a file, like the shell command !cat file
    - shell cmd            runs a shell command and prints its output, like !cmd
    - time f               computes f () and prints the time needed, like %%time
-   - python_repr, python_set  show strings and sets of strings like Python
+   - squote, set_to_string    show strings in single quotes and sets in braces
    - input prompt         returns the next of the inputs given to simulate_input (the kernel has no keyboard)
    - float_repr x         writes x like Python's repr, e.g. 0.1, 1.0, 1e-05
    - ljust s n, rjust s n pad s with blanks to n characters, like Python's f'{s:n}' and f'{s:>n}'
@@ -232,12 +232,13 @@ let shell (cmd : string) : unit =
   flush stdout;
   Sys.remove out
 
-(* python_repr s writes the string s like Python's repr, i.e. enclosed in single quotes, unless s
-   contains a single quote but no double quote.  python_set shows a set of strings like Python. *)
-let python_repr (s : string) : string =
+(* squote s writes the string s enclosed in single quotes, unless s contains a single quote but no
+   double quote.  set_to_string show l writes the elements of l as a set {x1, ..., xn}; the empty set
+   is written set(). *)
+let squote (s : string) : string =
   if String.contains s '\'' && not (String.contains s '"') then "\"" ^ s ^ "\"" else "'" ^ s ^ "'"
 
-let python_set (show : 'a -> string) (l : 'a list) : string =
+let set_to_string (show : 'a -> string) (l : 'a list) : string =
   if l = [] then "set()" else "{" ^ String.concat ", " (List.map show l) ^ "}"
 
 (* time f computes f () and prints the time needed, like the magic command %%time *)

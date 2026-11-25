@@ -1,4 +1,5 @@
 // One #load directive, so that modules shared by several scripts (Larkita, GrammarSyntax) are loaded once.
+#load "../Support/Nested.fsx"
 #load "../Chapter-06/TopDown.fsx" "../Chapter-06/Ebnf.fsx" "../Chapter-06/EbnfAst.fsx" "../Chapter-07/Calculator.fsx" "../Chapter-07/Differentiator.fsx" "../Chapter-07/Interpreter.fsx" "../Chapter-07/InterpreterFrame.fsx" "../Chapter-07/Examples/power.fsx" "../Chapter-07/Examples/primes.fsx" "../Chapter-07/Examples/carmichael.fsx" "../Chapter-08/Earley.fsx" "../Chapter-09/LR.fsx" "../Chapter-09/ShiftReduce.fsx"
 
 open GrammarSyntax
@@ -88,7 +89,7 @@ check "Integer formatting rounded the output" (Interpreter.valueText (List.head 
 let numeric = Interpreter.run simpleIO "q := 3 / 2; r := (0 - 7) % 3; s := 7 % (0 - 3); t := (0 - 7) % (0 - 3); rounded := 9007199254740993 / 3;"
 check "Simple division should be true division" (numeric["q"] = Interpreter.Real 1.5)
 check "Negative integer modulo differs from Python" (numeric["r"] = Interpreter.Integer 2I && numeric["s"] = Interpreter.Integer -2I && numeric["t"] = Interpreter.Integer -1I)
-check "Mixed arithmetic should yield a real" (Interpreter.arithmetic Interpreter.Add (Interpreter.Integer 1I) (Interpreter.Real 0.5) = Interpreter.Real 1.5)
+check "Mixed arithmetic should yield a real" (Interpreter.arithmetic "+" (Interpreter.Integer 1I) (Interpreter.Real 0.5) = Interpreter.Real 1.5)
 check "Integer division rounded operands before their ratio" (numeric["rounded"] = Interpreter.Real 3002399751580331.0)
 let huge = System.Numerics.BigInteger.Pow(10I, 400)
 check "A finite ratio of enormous integers should remain finite" (Interpreter.divideIntegers huge huge = 1.0)
@@ -124,19 +125,19 @@ let realModuloCases =
       -1e308, -1e-308, -3.498445546245627e-309
       1e308, 3.0, 2.0; 1.0, 1e-300, 8.963186528039712e-301 ]
 for left, right, expected in realModuloCases do
-    check "Real modulo differs from Python" (Interpreter.floatModulo left right = expected)
+    check "Real modulo differs from the floor remainder" (Interpreter.floatModulo left right = expected)
     for arithmetic in [Interpreter.arithmetic; InterpreterFrame.arithmetic] do
-        check "Interpreter real modulo differs" (arithmetic Interpreter.Modulo (Interpreter.Real left) (Interpreter.Real right) = Interpreter.Real expected)
+        check "Interpreter real modulo differs" (arithmetic "%" (Interpreter.Real left) (Interpreter.Real right) = Interpreter.Real expected)
 for left in [0.0; -0.0; 4.0; -4.0] do
     for right in [2.0; -2.0] do
         let expectedBits = if right < 0.0 then System.Int64.MinValue else 0L
         for arithmetic in [Interpreter.arithmetic; InterpreterFrame.arithmetic] do
-            let result = arithmetic Interpreter.Modulo (Interpreter.Real left) (Interpreter.Real right)
+            let result = arithmetic "%" (Interpreter.Real left) (Interpreter.Real right)
             check "Real modulo lost the divisor's signed zero" (System.BitConverter.DoubleToInt64Bits(Interpreter.asNumber result) = expectedBits)
 for zero in [0.0; -0.0] do
     check "Real modulo accepted a zero divisor" (rejects (fun () -> Interpreter.floatModulo 1.0 zero |> ignore))
-check "Simple real modulo accepted zero" (rejects (fun () -> Interpreter.arithmetic Interpreter.Modulo (Interpreter.Real 1.0) (Interpreter.Real 0.0) |> ignore))
-check "Frame real modulo accepted negative zero" (rejects (fun () -> InterpreterFrame.arithmetic Interpreter.Modulo (Interpreter.Real 1.0) (Interpreter.Real -0.0) |> ignore))
+check "Simple real modulo accepted zero" (rejects (fun () -> Interpreter.arithmetic "%" (Interpreter.Real 1.0) (Interpreter.Real 0.0) |> ignore))
+check "Frame real modulo accepted negative zero" (rejects (fun () -> InterpreterFrame.arithmetic "%" (Interpreter.Real 1.0) (Interpreter.Real -0.0) |> ignore))
 
 // Execute the actual accompanying lecture programs, including their printed results.
 let exampleOutput = ResizeArray<Interpreter.Value list>()

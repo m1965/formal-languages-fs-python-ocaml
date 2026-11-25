@@ -5,6 +5,7 @@
 /// larkita_expected.json (shared with ocaml/tests) contains the grammars and inputs of the unit tests
 /// of the Python package Larkita together with the results that Python's Larkita produced for them.
 /// ocaml/tools/diff_larkita.py --impl fsharp performs the full comparison, including the output files.
+#load "../../Nested.fsx"
 #load "../Larkita.fsx"
 
 open System.IO
@@ -64,7 +65,7 @@ cases |> Seq.iteri (fun i case ->
             let kind = str call.["kind"]
             let got =
                 try
-                    if kind = "parse" then "result " + toString (parse parser text)
+                    if kind = "parse" then "result " + toTestString (parse parser text)
                     else
                         "result " + System.String.Join("|", lex parser text |> List.map (fun t -> sprintf "%s,%s,%d,%d" t.Type t.Value t.Line t.Column))
                 with e ->

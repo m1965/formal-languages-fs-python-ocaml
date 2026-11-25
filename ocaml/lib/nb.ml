@@ -4,7 +4,8 @@
 
    This loads the packages the notebooks need and then, without printing their signatures,
    - notebook.ml: display functions and run_notebook (the replacement of %run),
-   - fset.ml:     the polymorphic modules FSet and Dict (Python's set and dict).
+   - fset.ml:     the polymorphic modules FSet and Dict (Python's set and dict),
+   - nested.ml:   the type nested of abstract syntax trees (nested tuples).
    Further files of this directory are loaded with load_lib, e.g.  load_lib "regex.ml". *)
 
 #use "topfind";;
@@ -27,4 +28,4 @@ let load_lib (file : string) : unit =
     Hashtbl.add loaded_libs file ()
   end
 
-let () = List.iter load_lib [ "notebook.ml"; "fset.ml" ]
+let () = List.iter load_lib [ "notebook.ml"; "fset.ml"; "nested.ml" ]

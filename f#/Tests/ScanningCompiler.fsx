@@ -1,5 +1,6 @@
 #r "nuget: FsLexYacc.Runtime, 11.3.0"
 #r "../Chapter-03/Scanning/bin/Debug/net9.0/Scanning.dll"
+#load "../Support/Nested.fsx"
 #load "../Chapter-12/Compiler.fsx"
 #r "../Legacy-ANTLR/04-Calc/Calculator/bin/Debug/net9.0/Calculator.dll"
 #r "../Exercises/Grammar2HTML-Antlr/GrammarParser/bin/Debug/net9.0/GrammarParser.dll"
@@ -38,32 +39,34 @@ check "Unknown HTML entities must survive unchanged" (Scanning.html "<p>Unknown 
 expectFailure (fun () -> Scanning.html "<head>never closed" |> ignore)
 check "LaTeX scanner must distinguish delimiters and exponent tokens" (Scanning.latex "$x^{2}$" = [MathDelimiter "$";Text "x";Hat;Brace '{';Text "2";Brace '}';MathDelimiter "$"])
 
+// Abstract syntax trees are nested tuples: tup builds a tuple, str a string, and number a number.
+let str, tup, number = Compiler.str, Compiler.tup, Compiler.number
+let body source = Compiler.firstBody (Compiler.Frontend.parse source)
 let parsed = Compiler.Frontend.parse "/* comment\n */ int main() { if (1) if (0) println(1); else println(2); }"
-match parsed.Head.Body with
-| [Compiler.If(_,Compiler.If(_,_,Some _),None)] -> ()
+match Compiler.firstBody parsed with
+| [ Nested.Node [ Nested.Leaf (Nested.Str "if"); _; Nested.Node [ Nested.Leaf (Nested.Str "if-else"); _; _; _ ] ] ] -> ()
 | _ -> failwith "Dangling else associated incorrectly"
-let ternary = Compiler.Frontend.parse "int main() { println(0 ? 1 : 2 + 3 * 4); }"
-match ternary.Head.Body with
-| [Compiler.Expression(Compiler.Call("println",[Compiler.Conditional(_,_,Compiler.Binary("+",_,Compiler.Binary("*",_,_)))]))] -> ()
-| _ -> failwith "Ternary/arithmetic precedence incorrect"
+let ternary = body "int main() { println(0 ? 1 : 2 + 3 * 4); }"
+check "Ternary/arithmetic precedence incorrect"
+    (ternary = [ Compiler.println (tup [ tup [ str "?"; str ":" ]; number 0; number 1; tup [ str "+"; number 2; tup [ str "*"; number 3; number 4 ] ] ]) ])
 
 // The lecture grammar binds comparison operators more tightly than Boolean !.
 let printedExpression source =
-    let functions = Compiler.Frontend.parse ("int main() { println(" + source + "); }")
-    match functions.Head.Body with
-    | [Compiler.Expression(Compiler.Call("println",[expression]))] -> expression
+    match body ("int main() { println(" + source + "); }") with
+    | [ Nested.Node [ _; Nested.Node [ _; _; expression ] ] ] -> expression
     | _ -> failwith "Expected one printed expression"
-let lessThan = Compiler.Binary("<",Compiler.Variable "x",Compiler.Variable "y")
-check "!x < y must negate the complete comparison" (printedExpression "!x < y" = Compiler.Not lessThan)
-check "Explicit comparison grouping must retain the same AST" (printedExpression "!(x < y)" = Compiler.Not lessThan)
-check "Double negation must also wrap the complete comparison" (printedExpression "!!x < y" = Compiler.Not(Compiler.Not lessThan))
+let lessThan = tup [ str "<"; str "x"; str "y" ]
+let negate e = tup [ str "!"; e ]
+check "!x < y must negate the complete comparison" (printedExpression "!x < y" = negate lessThan)
+check "Explicit comparison grouping must retain the same AST" (printedExpression "!(x < y)" = negate lessThan)
+check "Double negation must also wrap the complete comparison" (printedExpression "!!x < y" = negate (negate lessThan))
 check "Boolean ! must bind more tightly than &&"
-    (printedExpression "!x < y && x == 1" = Compiler.Binary("&&",Compiler.Not lessThan,Compiler.Binary("==",Compiler.Variable "x",Compiler.Number 1)))
+    (printedExpression "!x < y && x == 1" = tup [ str "&&"; negate lessThan; tup [ str "=="; str "x"; number 1 ] ])
 check "Boolean && must bind more tightly than ||"
     (printedExpression "!x < y || x == 1 && y == 2" =
-        Compiler.Binary("||",Compiler.Not lessThan,Compiler.Binary("&&",Compiler.Binary("==",Compiler.Variable "x",Compiler.Number 1),Compiler.Binary("==",Compiler.Variable "y",Compiler.Number 2))))
+        tup [ str "||"; negate lessThan; tup [ str "&&"; tup [ str "=="; str "x"; number 1 ]; tup [ str "=="; str "y"; number 2 ] ] ])
 check "Arithmetic must bind more tightly than comparison and Boolean !"
-    (printedExpression "!x + 1 < y * 2" = Compiler.Not(Compiler.Binary("<",Compiler.Binary("+",Compiler.Variable "x",Compiler.Number 1),Compiler.Binary("*",Compiler.Variable "y",Compiler.Number 2))))
+    (printedExpression "!x + 1 < y * 2" = negate (tup [ str "<"; tup [ str "+"; str "x"; number 1 ]; tup [ str "*"; str "y"; number 2 ] ]))
 expectFailure (fun () -> Compiler.Frontend.parse "int main() { 1 < 2 < 3; }" |> ignore)
 expectFailure (fun () -> Compiler.Frontend.parse "int main() { /* unclosed" |> ignore)
 

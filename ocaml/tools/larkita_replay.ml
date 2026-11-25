@@ -11,6 +11,11 @@
 #directory "+compiler-libs";;
 
 let () =
+  let lib = Filename.concat (Filename.dirname (Filename.dirname Sys.argv.(0))) "lib/nested.ml" in
+  if not (Toploop.use_silently Format.err_formatter (Toploop.File lib)) then exit 2
+;;
+
+let () =
   let lib = Filename.concat (Filename.dirname (Filename.dirname Sys.argv.(0))) "lib/larkita.ml" in
   if not (Toploop.use_silently Format.err_formatter (Toploop.File lib)) then exit 2
 ;;

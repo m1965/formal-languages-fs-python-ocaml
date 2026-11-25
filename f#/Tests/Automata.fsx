@@ -1,4 +1,5 @@
 // Run after exporting notebook libraries, from any current directory.
+#load "../Support/Nested.fsx"
 #load "../Chapter-04-05/AutomataTypes.fsx"
 #load "../Chapter-04-05/RegExpParser.fsx"
 #load "../Chapter-04-05/NfaToDfa.fsx"
@@ -29,14 +30,15 @@ let rec words length =
 let sampleWords = [0..5] |> List.collect words
 
 // The independent oracle uses the .NET regex engine, rather than another automaton.
-let rec dotNetPattern expression =
+let rec dotNetPattern (expression: RegExp) =
     match expression with
-    | Empty -> "(?!)"
-    | Epsilon -> "(?:)"
-    | Literal c -> System.Text.RegularExpressions.Regex.Escape(string c)
-    | Alt (left, right) -> "(?:" + dotNetPattern left + "|" + dotNetPattern right + ")"
-    | Concat (left, right) -> dotNetPattern left + dotNetPattern right
-    | Star r -> "(?:" + dotNetPattern r + ")*"
+    | Nested.Leaf (Nested.Int 0) -> "(?!)"
+    | Nested.Leaf (Nested.Str "𝜀") -> "(?:)"
+    | Nested.Leaf (Nested.Str c) -> System.Text.RegularExpressions.Regex.Escape c
+    | Nested.Node [ left; Nested.Leaf (Nested.Str "+"); right ] -> "(?:" + dotNetPattern left + "|" + dotNetPattern right + ")"
+    | Nested.Node [ left; Nested.Leaf (Nested.Str "⋅"); right ] -> dotNetPattern left + dotNetPattern right
+    | Nested.Node [ r; Nested.Leaf (Nested.Str "*") ] -> "(?:" + dotNetPattern r + ")*"
+    | _ -> failwithf "%A is not a regular expression" expression
 let examples =
     [ "∅"; "𝜀"; "a"; "a*"; "∅*"; "𝜀*"; "a**"; "a*ba*"
       "(a+b)*"; "(ab+ba)*"; "(𝜀+a)b*"; "a(b+c)*"; "(a+b)(a+b)*"
@@ -64,9 +66,9 @@ for left, right in getRules () do
         let first, second = apply left substitution, apply right substitution
         check "A rewrite identity changed the language." (regExpEquiv first second alphabet)
         check "Simplification changed the language." (regExpEquiv first (simplify first) alphabet)
-check "Uppercase input symbols must remain literal." (simplify (parse "R+R") = Literal 'R')
+check "Uppercase input symbols must remain literal." (simplify (parse "R+R") = literal 'R')
 check "Repeated pattern variable must match the same subtree."
-    (matchPattern (patternOf (parse "R+R")) (parse "a+b") Map.empty = None)
+    (matchPattern (parse "R+R") (parse "a+b") Map.empty = None)
 
 // Exact state-elimination round trips for partial and complete automata.
 let partial : Dfa<int> =

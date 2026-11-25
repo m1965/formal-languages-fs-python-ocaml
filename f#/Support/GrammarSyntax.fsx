@@ -4,9 +4,12 @@
 /// "|", literals are enclosed in double quotes, and a rule is not terminated by a semicolon.  The
 /// grammar of grammars below is the one of the Python notebooks; the abstract syntax tree that
 /// Larkita returns is converted into the types Rule and Grammar.
+/// The module Nested of Nested.fsx has to be loaded first, once per session.
 module GrammarSyntax
 
 #load "Larkita/Larkita.fsx"
+
+open Nested
 
 type Symbol = Nonterminal of string | Terminal of string
 type Rule = { Head: string; Body: Symbol list }
@@ -44,24 +47,26 @@ module Parse =
         Larkita.Larkita.Create(grammarOfGrammars, lexer = Larkita.Basic,
                                outFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "grammar-of-grammars.out"))
 
-    let private symbol (item: Larkita.Ast) =
+    let private symbol (item: nested) =
         match item with
-        | LarkitaAst.Tok ("VARIABLE", name) -> Nonterminal name
-        | LarkitaAst.Tok ("TOKEN", name) -> Terminal name
-        | LarkitaAst.Tok ("LITERAL", text) -> Terminal(text.Substring(1, text.Length - 2))   // strip the double quotes
-        | t -> failwithf "Unexpected item %s" (Larkita.toString t)
+        | Node [ Leaf (Str "VARIABLE"); Leaf (Str name) ] -> Nonterminal name
+        | Node [ Leaf (Str "TOKEN"); Leaf (Str name) ] -> Terminal name
+        | Node [ Leaf (Str "LITERAL"); Leaf (Str text) ] -> Terminal(text.Substring(1, text.Length - 2))   // strip the double quotes
+        | t -> failwithf "Unexpected item %s" (toString t)
 
-    /// ('grammar', ('rule', ('RULE_NAME', v), ('body', item, ...), ...), ...) -> the list of rules
-    let private rules (ast: Larkita.Ast) =
+    /// ("grammar", ("rule", ("RULE_NAME", v), ("body", item, ...), ...), ...) -> the list of rules
+    let private rules (ast: nested) =
+        let body head (t: nested) =
+            match t with
+            | Node (_ :: items) -> { Head = head; Body = List.map symbol items }
+            | t -> failwithf "Unexpected body %s" (toString t)
+        let rule (t: nested) =
+            match t with
+            | Node (_ :: Node [ _; Leaf (Str head) ] :: bodies) -> List.map (body head) bodies
+            | t -> failwithf "Unexpected rule %s" (toString t)
         match ast with
-        | LarkitaAst.Node (_, rules) ->
-            rules |> List.collect (function
-                | LarkitaAst.Node (_, LarkitaAst.Tok (_, head) :: bodies) ->
-                    bodies |> List.map (function
-                        | LarkitaAst.Node (_, items) -> { Head = head; Body = List.map symbol items }
-                        | t -> failwithf "Unexpected body %s" (Larkita.toString t))
-                | t -> failwithf "Unexpected rule %s" (Larkita.toString t))
-        | t -> failwithf "Unexpected grammar %s" (Larkita.toString t)
+        | Node (_ :: rules) -> List.collect rule rules
+        | t -> failwithf "Unexpected grammar %s" (toString t)
 
     let text source =
         let ast =

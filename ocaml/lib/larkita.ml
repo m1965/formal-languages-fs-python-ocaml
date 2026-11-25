@@ -5,13 +5,15 @@
    contains nothing but the grammar: no semantic actions, no token declarations, and no separate
    scanner specification.  The abstract syntax tree follows from the grammar:
 
-     expr: expr "+" product              Node (["+"], [ast(expr); ast(product)])
-     stmnt: IDENTIFIER ":=" expr ";"     Node ([":="; ";"], [Tok ("IDENTIFIER", name); ast(expr)])
+     expr: expr "+" product              ("+", ast(expr), ast(product))
+     stmnt: IDENTIFIER ":=" expr ";"     ((":=", ";"), ("IDENTIFIER", name), ast(expr))
      factor: "(" expr ")" %ignore "(", ")"   ast(expr)
-     atom: NUMBER                        Tok ("NUMBER", text)
-     program: statement*                 Node (["program"], [ast(s1); ...; ast(sn)])
+     atom: NUMBER                        ("NUMBER", text)
+     program: statement*                 ("program", ast(s1), ..., ast(sn))
 
-   Load it with  load_lib "larkita.ml"  (or #use it after #use "topfind").  Then
+   The trees are values of the type nested of nested.ml, e.g. ("+", l, r) is Node [Leaf (Str "+"); l; r].
+   nested.ml has to be loaded first: nb.ml does this.  Load Larkita with  load_lib "larkita.ml"
+   (or #use "nested.ml" and then this file after #use "topfind").  Then
 
      let parser = Larkita.open_ "calc.lark"        (* writes calc.out *)
      let ast = Larkita.parse parser "x := 1 + 2;"
@@ -34,12 +36,6 @@ let () =
 ;;
 
 let () = Larkita_grammar.grammars_dir := Filename.concat larkita_dir "grammars"
-
-(* the abstract syntax trees, see larkita_base.ml *)
-type ast = Larkita_base.ast =
-  | Node of string list * ast list
-  | Tok of string * string
-  | Lit of string
 
 type token = Larkita_base.token = {
   type_ : string;
@@ -152,17 +148,36 @@ module Larkita = struct
 
   (* open_ file_name: reads the grammar from a file (Larkita.open of Python) *)
   let open_ ?rel_to ?start ?lexer ?import_paths ?out_file ?g_regex_flags ?merge_states (file_name : string) : t =
-    let file_name = match rel_to with Some r -> Filename.concat (Filename.dirname r) file_name | None -> file_name in
+    let file_name =
+      match rel_to with
+      | Some r -> Filename.concat (Filename.dirname r) file_name
+      | None -> file_name
+    in
     let text = In_channel.with_open_bin file_name In_channel.input_all in
     create ?start ?lexer ?import_paths ~source_path:file_name ?out_file ?g_regex_flags ?merge_states text
 
+  (* to_nested t converts the internal tree t into a nested tuple:
+       Node ([h], cs)   ->  (h, c1, ..., cn)
+       Node (hs, cs)    ->  ((h1, ..., hk), c1, ..., cn)
+       Tok (n, text)    ->  (n, text)
+       Lit s            ->  s *)
+  let rec to_nested (t : ast) : nested =
+    let str (s : string) : nested = Leaf (Str s) in
+    match t with
+    | Lit s -> str s
+    | Tok (name, text) -> (Node [ str name; str text ] : nested)
+    | Node ([ h ], children) -> (Node (str h :: List.map to_nested children) : nested)
+    | Node (hs, children) -> (Node ((Node (List.map str hs) : nested) :: List.map to_nested children) : nested)
+
   (* parse parser text: the abstract syntax tree of text.  Raises Unexpected_input on a syntax error. *)
-  let parse (p : t) (text : string) : ast = p.run text
+  let parse (p : t) (text : string) : nested = to_nested (p.run text)
 
   (* lex parser text: the tokens of the text, produced by a basic lexer; ignored tokens are skipped *)
   let lex (p : t) (text : string) : token list = List.of_seq (lex_all (Lazy.force p.basic) text)
 
-  let to_string (t : ast) : string = ast_to_string t
+  (* to_string t: the tree t with strings in single quotes, the format of the test data in
+     tests/larkita_expected.json *)
+  let to_string (t : nested) : string = Nested.to_string ~quote:py_repr t
 
   (* the parse table (parse_table of Python): Array.length (parse_table p).table is the number of states *)
   let parse_table (p : t) : Larkita_lr.parse_table = Larkita_lr.parse_table p.analyzer
@@ -184,49 +199,9 @@ module Larkita = struct
   (* the text of the output file *)
   let report (p : t) : string = In_channel.with_open_bin p.out_file In_channel.input_all
 
-  (* pformat t: the abstract syntax tree formatted like Python's pprint.pformat formats the nested tuple *)
-  type pyobj = PStr of string | PTuple of pyobj list
-
-  let rec pyobj_of_ast (t : ast) : pyobj =
-    match t with
-    | Lit s -> PStr s
-    | Tok (name, text) -> PTuple [ PStr name; PStr text ]
-    | Node (head, children) ->
-        let head = match head with [ h ] -> PStr h | hs -> PTuple (List.map (fun h -> PStr h) hs) in
-        PTuple (head :: List.map pyobj_of_ast children)
-
-  let rec pyobj_repr (o : pyobj) : string =
-    match o with
-    | PStr s -> py_repr s
-    | PTuple [ x ] -> "(" ^ pyobj_repr x ^ ",)"
-    | PTuple xs -> "(" ^ String.concat ", " (List.map pyobj_repr xs) ^ ")"
-
-  let pformat ?(width = 80) (t : ast) : string =
-    let b = Buffer.create 256 in
-    (* PrettyPrinter._format and _pprint_tuple of Python's module pprint *)
-    let rec format (o : pyobj) (indent : int) (allowance : int) : unit =
-      let rep = pyobj_repr o in
-      match o with
-      | PTuple items when utf8_length rep > width - indent - allowance ->
-          Buffer.add_char b '(';
-          let endchar = if List.length items = 1 then ",)" else ")" in
-          format_items items indent (allowance + String.length endchar);
-          Buffer.add_string b endchar
-      | _ -> Buffer.add_string b rep
-    and format_items (items : pyobj list) (indent : int) (allowance : int) : unit =
-      let indent = indent + 1 in
-      let n = List.length items in
-      List.iteri
-        (fun i item ->
-          if i > 0 then Buffer.add_string b (",\n" ^ String.make indent ' ');
-          format item indent (if i = n - 1 then allowance else 1))
-        items
-    in
-    format (pyobj_of_ast t) 0 0;
-    Buffer.contents b
-
-  (* pprint t prints the abstract syntax tree like Python's pprint prints the nested tuple *)
-  let pprint ?width (t : ast) : unit = print_endline (pformat ?width t)
+  (* pformat t and pprint t: the tree t in tuple notation, split into several lines if it is too long *)
+  let pformat ?width (t : nested) : string = Nested.pformat ?width t
+  let pprint ?width (t : nested) : unit = Nested.pprint ?width t
 
   (* the message of an exception like Python's str(e) *)
   let message (e : unexpected_input) : string = e.message
@@ -240,15 +215,10 @@ let () =
     | Larkita.Lex_error m -> Some ("Lex_error: " ^ m)
     | _ -> None)
 
-(* The toplevel shows abstract syntax trees like Python shows nested tuples. *)
-let pp_larkita_ast ppf (t : ast) = Format.pp_print_string ppf (Larkita.to_string t);;
-
-#install_printer pp_larkita_ast;;
-
-(* A parser is shown like Python shows it: Larkita(open('calc.lark'), start='stmnt') *)
+(* A parser is shown with its grammar file and its start symbol, e.g. <parser "calc.lark", start "stmnt"> *)
 let pp_larkita_parser ppf (p : Larkita.t) =
-  Format.fprintf ppf "Larkita(open(%s), start=%s)"
-    (Larkita.py_repr (Option.value p.source_path ~default:"<string>")) (Larkita.py_repr p.start);;
+  Format.fprintf ppf "<parser %s, start %s>"
+    (Nested.quote (Option.value p.source_path ~default:"<string>")) (Nested.quote p.start);;
 
 #install_printer pp_larkita_parser;;
 

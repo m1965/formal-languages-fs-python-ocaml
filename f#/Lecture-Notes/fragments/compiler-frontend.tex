@@ -2,7 +2,7 @@
 Integer-C is the input language.
 The compiler's host language is F\# and its target is JVM/Jasmin assembly.
 The grammar and Integer-C sample above therefore retain their original notation.
-The frontend turns that syntax into typed records and union cases.
+The frontend turns that syntax into a nested tuple; the helper functions below build its leaves and tuples.
 @@snippet:compiler-types@@
 
 The grammar is stored in small Larkita files in the directory \texttt{Grammar}; the lexical files and the rules for programs and lists are those of the original course.
@@ -13,7 +13,7 @@ The statements add two \texttt{for} loops; the dangling else is resolved in favo
 The expression grammar encodes the precedence of the ternary operator, the Boolean operators, the comparisons and the arithmetic operators with one variable per level.
 @@snippet:compiler-expressions-grammar@@
 
-The frontend converts the abstract syntax tree returned by Larkita into the typed AST and desugars both loops into assignments and \texttt{while} loops.
+The frontend simplifies the leaves of the nested tuple returned by Larkita; the code generator translates both loops into assignments and \texttt{while} loops.
 Syntax errors raise \texttt{UnexpectedInput} with line and column.
 @@snippet:compiler-frontend@@
 

@@ -4,6 +4,7 @@
 ///
 /// The results are written in the same form as those of ocaml/tools/larkita_replay.ml, so that
 /// ocaml/tools/diff_larkita.py --impl fsharp can compare them with the recorded ones.
+#load "../../Nested.fsx"
 #load "../Larkita.fsx"
 
 open System
@@ -83,7 +84,7 @@ cases
                 r.["error"] <- o
             | Ok parser ->
                 try
-                    if str call.["kind"] = "parse" then r.["result"] <- JsonValue.Create(toString (parse parser text))
+                    if str call.["kind"] = "parse" then r.["result"] <- JsonValue.Create(toTestString (parse parser text))
                     else
                         let tokens = JsonArray()
                         for t in lex parser text do
